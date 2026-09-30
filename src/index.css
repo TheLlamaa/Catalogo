@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================================
+   AURAS CORRIGIDAS (DAISYUI OFICIAL) - Rotação Interna do Gradiente
+   ============================================================================ */
+
+/* Ativa o suporte para animar o ângulo do gradiente */
+@property --aura-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes auraRotate {
+  from { --aura-angle: 0deg; }
+  to { --aura-angle: 360deg; }
+}
+
+/* Wrapper da Aura */
+.aura {
+  position: relative;
+  border-radius: 0.75rem; /* Arredondamento exato dos seus cards (rounded-xl/lg) */
+  z-index: 1; /* Cria um contexto de empilhamento */
+  height: 100%; /* Garante que ocupe o espaço correto no Grid */
+}
+
+.aura-none {
+  border-radius: 0;
+}
+
+/* CAMADA 1: A borda fina colorida que contorna o card */
+.aura::before {
+  content: "";
+  position: absolute;
+  inset: -2px; /* Expande 2px para fora do card para criar a borda */
+  border-radius: inherit;
+  padding: 2px; /* Espessura da borda */
+  background: conic-gradient(from var(--aura-angle), var(--aura-stops));
+  animation: auraRotate 4s linear infinite;
+  z-index: -1; /* Atrás do card */
+  
+  /* Máscara que recorta o meio, deixando apenas a linha da borda */
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  pointer-events: none;
+}
+
+/* CAMADA 2: O Brilho Desfocado (Glow) atrás da borda */
+.aura::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--aura-angle), var(--aura-stops));
+  animation: auraRotate 4s linear infinite;
+  filter: blur(14px); /* Espalha a luz para fora */
+  opacity: 0.5; /* Intensidade do brilho */
+  z-index: -2; /* Fica no fundo absoluto */
+  pointer-events: none;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Efeito ao passar o mouse */
+.aura:hover::after {
+  filter: blur(20px);
+  opacity: 0.85;
+}
+
+/* Esconde as camadas quando "Sem Aura" está selecionado */
+.aura-none::before,
+.aura-none::after {
+  display: none;
+}
+
+
+/* ============================================================================
+   CORES E TEMAS DAS AURAS
+   ============================================================================ */
+
+/* Oficiais DaisyUI */
+.aura-rainbow { --aura-stops: #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bfd, #7a00ff, #ff00c8, #ff0000; }
+.aura-holo { --aura-stops: #00ffff, #ff00ff, #ffff00, #00ffff; }
+.aura-dual { --aura-stops: #3b82f6, #3b82f6 25%, #ec4899 50%, #ec4899 75%, #3b82f6; }
+.aura-gold { --aura-stops: #eab308, #fef08a, #ca8a04, #fef08a, #eab308; }
+.aura-silver { --aura-stops: #94a3b8, #f8fafc, #475569, #f8fafc, #94a3b8; }
+.aura-glow::after { filter: blur(24px) !important; opacity: 0.8 !important; }
+
+/* Temáticas Comemorativas */
+.aura-valentines { --aura-stops: #e11d48, #f472b6, #ffffff, #fb7185, #e11d48; }
+.aura-religious { --aura-stops: #eab308, #ffffff, #38bdf8, #ffffff, #eab308; }
+.aura-christmas { --aura-stops: #dc2626, #ffffff, #22c55e, #ffffff, #dc2626; }
+.aura-halloween { --aura-stops: #f97316, #000000, #a855f7, #000000, #f97316; }
+.aura-newyear { --aura-stops: #facc15, #ffffff, #38bdf8, #ffffff, #facc15; }
+.aura-easter { --aura-stops: #f472b6, #fef08a, #c084fc, #fef08a, #f472b6; }
+.aura-cyberpunk { --aura-stops: #06b6d4, #f43f5e, #3b82f6, #06b6d4; }
+
+/* Cores Sólidas (com leve variação para dar efeito de brilho em movimento) */
+.aura-blue { --aura-stops: #3b82f6, #93c5fd, #1d4ed8, #3b82f6; }
+.aura-purple { --aura-stops: #a855f7, #c084fc, #7e22ce, #a855f7; }
+.aura-red { --aura-stops: #ef4444, #fca5a5, #b91c1c, #ef4444; }
+.aura-green { --aura-stops: #22c55e, #86efac, #15803d, #22c55e; }
