@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 import { 
@@ -44,6 +44,39 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.su
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// ============================================================================
+// SUPABASE STORAGE (fotos dos produtos)
+// ============================================================================
+const BUCKET = 'fotos_produtos'; // nome do bucket criado no Supabase
+
+const compressToBlob = (file, max = 1200) => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(objectUrl);
+    let { width, height } = img;
+    if (width > height && width > max) { height = Math.round(height * max / width); width = max; }
+    else if (height > max) { width = Math.round(width * max / height); height = max; }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Falha ao comprimir a imagem'))), 'image/jpeg', 0.85);
+  };
+  img.onerror = reject;
+  img.src = objectUrl;
+});
+
+// Envia uma foto para o Storage e devolve a URL pública
+const uploadProductImage = async (file) => {
+  const blob = await compressToBlob(file);
+  const path = `${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+  if (error) throw error;
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+};
 
 const AURA_OPTIONS = [
   { id: 'inherit', name: 'Padrão da Categoria' },
@@ -105,6 +138,7 @@ function MainLayout() {
   const [customOrders, setCustomOrders] = useState([]);
   const [catalogOrders, setCatalogOrders] = useState([]);
   const [user, setUser] = useState(null);
+  const userRef = useRef(null); // usuário atual acessível dentro do fetchData
   const [loading, setLoading] = useState(true);
   
   // Modais de Detalhes
@@ -117,18 +151,34 @@ function MainLayout() {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    const applySession = (session) => {
+      const nextUser = session?.user ?? null;
+      const changed = (userRef.current?.id ?? null) !== (nextUser?.id ?? null);
+      userRef.current = nextUser;
+      setUser(nextUser);
+      if (!changed) return;
+      if (nextUser) {
+        fetchData(); // logou: agora pode carregar os pedidos
+      } else {
+        setCustomOrders([]);
+        setCatalogOrders([]);
+      }
+    };
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchData = async () => {
     try {
+      const isAdmin = !!userRef.current;
+      const empty = Promise.resolve({ data: null });
       const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('categories').select('*').order('name', { ascending: true }),
-        supabase.from('custom_orders').select('*').order('created_at', { ascending: false }),
-        supabase.from('orders').select('*').order('created_at', { ascending: false })
+        // Pedidos contêm dados de clientes: só são buscados com o admin logado
+        isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : empty,
+        isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : empty
       ]);
 
       if (productsRes.data) {
@@ -167,12 +217,20 @@ function MainLayout() {
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_orders' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchData)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
   }, []);
+
+  // Assinatura em tempo real dos pedidos: apenas com o admin logado
+  useEffect(() => {
+    if (!user) return;
+    const adminChannel = supabase.channel('admin-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_orders' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchData)
+      .subscribe();
+    return () => supabase.removeChannel(adminChannel);
+  }, [user?.id]);
 
   const saveProduct = async (product) => {
     const payload = {
@@ -533,7 +591,7 @@ function CatalogView({ products, categories, onAddToCart, onSelectProduct, onOpe
   filteredProducts.sort((a, b) => {
     if (sortOrder === 'price_asc') return a.price - b.price;
     if (sortOrder === 'price_desc') return b.price - a.price;
-    return -1;
+    return 0; // 'recent': mantém a ordem que veio do banco (created_at desc)
   });
 
   const activeCategory = categories.find(c => c.id === activeCategoryId);
@@ -1418,32 +1476,19 @@ function ProductForm({ initialData, categories, onSave, onCancel }) {
   
   const [isCompressing, setIsCompressing] = useState(false);
 
-  const compressImage = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let { width, height } = img;
-        if (width > height && width > MAX) { height *= MAX / width; width = MAX; } 
-        else if (height > MAX) { width *= MAX / height; height = MAX; }
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.onerror = reject; img.src = reader.result;
-    };
-    reader.onerror = reject; reader.readAsDataURL(file);
-  });
-
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+    e.target.value = '';
     if (!files.length) return;
     setIsCompressing(true);
     const newImages = [];
     for (const file of files) {
-      try { newImages.push(await compressImage(file)); } catch (err) { console.error(err); }
+      try {
+        newImages.push(await uploadProductImage(file));
+      } catch (err) {
+        console.error(err);
+        alert(`Erro ao enviar imagem: ${err.message || err}`);
+      }
     }
     setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, ...newImages] }));
     setIsCompressing(false);
@@ -1822,7 +1867,13 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
     const success = await onCheckout({
       client_name: clientName,
       client_phone: clientPhone,
-      items: cart,
+      items: cart.map(i => ({
+        id: i.id,
+        title: i.title,
+        price: i.price,
+        quantity: i.quantity,
+        imageUrls: (i.imageUrls || []).slice(0, 1)
+      })),
       total: total
     });
 
