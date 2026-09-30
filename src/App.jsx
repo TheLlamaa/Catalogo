@@ -78,6 +78,22 @@ const uploadProductImage = async (file) => {
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 };
 
+// ============================================================================
+// VALIDAÇÃO DE CONTATO (formulários públicos)
+// ============================================================================
+const validateContact = (name, phone) => {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (String(name || '').trim().length < 2 || String(name).length > 100) return 'Informe seu nome (entre 2 e 100 caracteres).';
+  if (digits.length < 10 || digits.length > 13) return 'Informe um WhatsApp válido, com DDD. Ex: (48) 99999-9999';
+  return null;
+};
+
+// Remove o 55 do início, se o cliente digitou, para montar o link do WhatsApp
+const toWhatsappDigits = (phone) => {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.length > 11 && digits.startsWith('55') ? digits.slice(2) : digits;
+};
+
 const AURA_OPTIONS = [
   { id: 'inherit', name: 'Padrão da Categoria' },
   { id: 'none', name: 'Nenhuma' },
@@ -214,18 +230,18 @@ function MainLayout() {
   useEffect(() => {
     fetchData();
 
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
+    // Visitantes não mantêm conexão ao vivo: atualizam ao voltar para a aba
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  // Assinatura em tempo real dos pedidos: apenas com o admin logado
+  // Tempo real (produtos, categorias e pedidos): apenas com o admin logado
   useEffect(() => {
     if (!user) return;
-    const adminChannel = supabase.channel('admin-orders')
+    const adminChannel = supabase.channel('admin-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_orders' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchData)
       .subscribe();
@@ -875,7 +891,7 @@ function ProductDetailModal({ product, categories, onClose, onAddToCart }) {
 }
 
 function CustomOrderDetailModal({ order, onClose, onDelete }) {
-  const cleanPhone = order.client_phone.replace(/\D/g, '');
+  const cleanPhone = toWhatsappDigits(order.client_phone);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -961,7 +977,7 @@ function CustomOrderDetailModal({ order, onClose, onDelete }) {
 }
 
 function CatalogOrderDetailModal({ order, onClose, onDelete }) {
-  const cleanPhone = order.client_phone.replace(/\D/g, '');
+  const cleanPhone = toWhatsappDigits(order.client_phone);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1061,7 +1077,7 @@ function CatalogOrderDetailModal({ order, onClose, onDelete }) {
 }
 
 function CustomRequestView({ onSaveOrder }) {
-  const [formData, setFormData] = useState({ clientName: '', clientPhone: '', description: '', imageUrl: '' });
+  const [formData, setFormData] = useState({ clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' });
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
@@ -1105,6 +1121,10 @@ function CustomRequestView({ onSaveOrder }) {
     if (!formData.clientName || !formData.clientPhone || !formData.description) {
       return alert("Por favor, preencha nome, WhatsApp e a descrição do pedido.");
     }
+    const contactError = validateContact(formData.clientName, formData.clientPhone);
+    if (contactError) return alert(contactError);
+    if (formData.description.length > 2000) return alert('A descrição pode ter no máximo 2000 caracteres.');
+    if (formData.website) { setSentSuccess(true); return; } // campo-isca preenchido: é robô
 
     setIsSubmitting(true);
 
@@ -1133,7 +1153,7 @@ function CustomRequestView({ onSaveOrder }) {
         
         <div className="flex items-center justify-center gap-3 mt-8">
           <button 
-            onClick={() => { setSentSuccess(false); setFormData({ clientName: '', clientPhone: '', description: '', imageUrl: '' }); }}
+            onClick={() => { setSentSuccess(false); setFormData({ clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' }); }}
             className="px-6 py-2.5 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors"
           >
             Enviar Outra Solicitação
@@ -1160,6 +1180,12 @@ function CustomRequestView({ onSaveOrder }) {
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        {/* Campo-isca: invisível para pessoas, robôs costumam preenchê-lo */}
+        <input
+          type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+          value={formData.website} onChange={e => setFormData(p => ({ ...p, website: e.target.value }))}
+          className="absolute -left-[9999px] w-px h-px opacity-0"
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Seu Nome *</label>
@@ -1855,12 +1881,16 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [trap, setTrap] = useState(''); // campo-isca anti-robô
 
   if (!isOpen) return null;
 
   const handleFinishOrder = async (e) => {
     e.preventDefault();
     if (!clientName || !clientPhone) return alert("Por favor, preencha nome e WhatsApp.");
+    const contactError = validateContact(clientName, clientPhone);
+    if (contactError) return alert(contactError);
+    if (trap) { setStep('success'); return; } // campo-isca preenchido: é robô
 
     setIsSubmitting(true);
 
@@ -1951,6 +1981,11 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
 
         {step === 'checkout' && (
           <form onSubmit={handleFinishOrder} className="flex-1 flex flex-col p-6 space-y-6">
+            <input
+              type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+              value={trap} onChange={e => setTrap(e.target.value)}
+              className="absolute -left-[9999px] w-px h-px opacity-0"
+            />
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para Contato</h3>
               <p className="text-xs text-gray-500 mb-6">Preencha seus dados para registrarmos seu pedido de orçamento.</p>
