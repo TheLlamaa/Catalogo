@@ -81,10 +81,32 @@ const uploadProductImage = async (file) => {
 // ============================================================================
 // VALIDAÇÃO DE CONTATO (formulários públicos)
 // ============================================================================
+const DDDS_VALIDOS = new Set([
+  '11','12','13','14','15','16','17','18','19','21','22','24','27','28',
+  '31','32','33','34','35','37','38','41','42','43','44','45','46','47','48','49',
+  '51','53','54','55','61','62','63','64','65','66','67','68','69',
+  '71','73','74','75','77','79','81','82','83','84','85','86','87','88','89',
+  '91','92','93','94','95','96','97','98','99'
+]);
+
+// Máscara enquanto digita: (48) 99999-9999 (aceita colar com +55)
+const formatPhoneBR = (value) => {
+  let d = String(value || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
 const validateContact = (name, phone) => {
-  const digits = String(phone || '').replace(/\D/g, '');
   if (String(name || '').trim().length < 2 || String(name).length > 100) return 'Informe seu nome (entre 2 e 100 caracteres).';
-  if (digits.length < 10 || digits.length > 13) return 'Informe um WhatsApp válido, com DDD. Ex: (48) 99999-9999';
+  let d = String(phone || '').replace(/\D/g, '');
+  if (d.length === 13 && d.startsWith('55')) d = d.slice(2);
+  if (d.length !== 11 || !DDDS_VALIDOS.has(d.slice(0, 2)) || d[2] !== '9') {
+    return 'Informe um WhatsApp válido com DDD e 9 dígitos. Ex: (48) 99999-9999';
+  }
   return null;
 };
 
@@ -1046,6 +1068,15 @@ function CatalogOrderDetailModal({ order, onClose, onDelete }) {
             </div>
           </div>
 
+          {order.notes && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Observações do cliente</h3>
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+                {order.notes}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
             <span className="text-sm font-semibold text-gray-700">Total do Pedido</span>
             <span className="text-xl font-extrabold text-blue-600">
@@ -1199,7 +1230,7 @@ function CustomRequestView({ onSaveOrder }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp *</label>
             <input 
               required type="text" placeholder="(11) 99999-9999"
-              value={formData.clientPhone} onChange={e => setFormData(p => ({ ...p, clientPhone: e.target.value }))}
+              value={formData.clientPhone} onChange={e => setFormData(p => ({ ...p, clientPhone: formatPhoneBR(e.target.value) }))} inputMode="tel" maxLength={15}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" 
             />
           </div>
@@ -1342,7 +1373,8 @@ function CatalogOrdersManager({ orders, onDelete, onSelectOrder }) {
                   </span>
                 </div>
 
-                <p className="text-xs text-blue-600 font-medium mb-3">{order.client_phone}</p>
+                <p className="text-xs text-blue-600 font-medium mb-2">{order.client_phone}</p>
+                {order.notes && <p className="text-xs text-gray-500 italic mb-2 line-clamp-1">“{order.notes}”</p>}
                 <div className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded border border-gray-100 flex items-center justify-between">
                   <span>{order.items?.length || 0} item(ns)</span>
                   <span className="font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}</span>
@@ -1882,6 +1914,7 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
   const [clientPhone, setClientPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [trap, setTrap] = useState(''); // campo-isca anti-robô
+  const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
@@ -1897,6 +1930,7 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
     const success = await onCheckout({
       client_name: clientName,
       client_phone: clientPhone,
+      notes: notes.trim() || null,
       items: cart.map(i => ({
         id: i.id,
         title: i.title,
@@ -1918,6 +1952,7 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
     setStep('cart');
     setClientName('');
     setClientPhone('');
+    setNotes('');
     onClose();
   };
 
@@ -2003,11 +2038,23 @@ function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, 
                   <label className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp *</label>
                   <input 
                     required type="text" placeholder="(11) 99999-9999"
-                    value={clientPhone} onChange={e => setClientPhone(e.target.value)}
+                    value={clientPhone} onChange={e => setClientPhone(formatPhoneBR(e.target.value))} inputMode="tel" maxLength={15}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observações <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                rows={3} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="Ex: cor preferida, prazo desejado, retirada ou entrega..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1 text-right">{notes.length}/500</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2">
