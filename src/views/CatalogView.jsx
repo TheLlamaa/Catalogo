@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
 import { useSettings } from '../components/SettingsContext';
-import { auraProps } from '../lib/auras';
+import { auraProps, auraDot } from '../lib/auras';
 import { brl } from '../lib/format';
 
 export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }) {
@@ -95,7 +95,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             >
               <span>{category.name}</span>
               {category.auraColor && category.auraColor !== 'none' && (
-                <span className={`w-2.5 h-2.5 rounded-full aura ${auraProps(category.auraColor, settings.auraLib).className}`} style={auraProps(category.auraColor, settings.auraLib).style} />
+                <span {...auraDot(category.auraColor, settings.auraLib, 10)} />
               )}
             </button>
           ))}
@@ -108,7 +108,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <span>{activeCategory ? activeCategory.name : settings.catalogTitle}</span>
               {activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
-                <span className={`inline-block w-3 h-3 rounded-full aura ${auraProps(activeCategory.auraColor, settings.auraLib).className}`} style={auraProps(activeCategory.auraColor, settings.auraLib).style} />
+                <span {...auraDot(activeCategory.auraColor, settings.auraLib, 12)} />
               )}
             </h1>
             <p className="text-gray-600 mt-2 text-sm max-w-2xl">

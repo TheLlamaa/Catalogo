@@ -151,3 +151,9 @@ export const optionsFor = (lib, current) => {
   const known = BUILTIN_IDS.includes(current) ? `${builtinName(current)} (oculta)` : 'Aura removida';
   return [...opts, { id: current, name: known }];
 };
+
+// Bolinha com o efeito da aura (tamanho em px). O tamanho vai inline porque a classe .aura força height: 100%.
+export const auraDot = (key, lib = EMPTY_LIB, size = 20) => {
+  const { className, style } = auraProps(key, lib);
+  return { className: `inline-block rounded-full bg-white aura ${className}`, style: { ...style, width: size, height: size } };
+};

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Palette, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { optionsFor, auraProps, auraLabel } from '../lib/auras';
+import { optionsFor, auraDot, auraLabel } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 
 export default function CategoryManager({ categories, onSave, onDelete }) {
@@ -46,9 +46,10 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
                       <td className="px-6 py-4">
                         {category.auraColor && category.auraColor !== 'none' ? (
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold aura ${auraProps(category.auraColor, auraLib).className}`} style={auraProps(category.auraColor, auraLib).style}>
-                            <Palette className="w-3 h-3" /> {auraLabel(category.auraColor, auraLib)}
-                          </span>
+                          <span
+                            role="img" title={auraLabel(category.auraColor, auraLib)} aria-label={`Aura: ${auraLabel(category.auraColor, auraLib)}`}
+                            {...auraDot(category.auraColor, auraLib, 20)}
+                          />
                         ) : (
                           <span className="text-gray-400 text-xs">Nenhuma</span>
                         )}
