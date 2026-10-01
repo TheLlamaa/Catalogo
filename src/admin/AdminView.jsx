@@ -34,7 +34,7 @@ export default function AdminView({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-      <div className="flex border-b border-gray-200 px-6 bg-gray-50/50 overflow-x-auto">
+      <div className="flex border-b border-gray-200 px-6 bg-gray-50/50 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tab('orders', 'Pedidos', catalogOrders.length, newOrders)}
         {tab('custom_orders', 'Pedidos Custom', customOrders.length, newCustom)}
         {tab('products', 'Produtos', products.length, 0)}
