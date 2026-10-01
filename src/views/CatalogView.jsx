@@ -199,7 +199,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
       tabIndex={0}
       aria-label={`Ver detalhes de ${product.title}`}
-      className="bg-white rounded-xl overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow cursor-pointer group relative z-10 w-full focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+      className="bg-white rounded-xl overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow cursor-pointer group relative isolate w-full focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
     >
       <div className="aspect-square bg-gray-50 relative border-b border-gray-100 overflow-hidden">
         {images.length > 0 ? (
