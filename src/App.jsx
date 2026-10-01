@@ -21,6 +21,7 @@ import AdminView from './admin/AdminView';
 import { CustomOrderDetailModal, CatalogOrderDetailModal } from './admin/OrderModals';
 
 const CURRENT_YEAR = new Date().getFullYear();
+const ADMIN_REFRESH_MS = 30000; // reserva caso o tempo real do Supabase não esteja ativo
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)
 function SlowHint() {
@@ -58,6 +59,7 @@ function MainLayout() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const lastFetchRef = useRef(0);
+  const knownOrdersRef = useRef({ orders: null, custom: null }); // ids já vistos (null = ainda não carregou)
 
   // Detalhes (admin): guardamos só o id, para o modal acompanhar mudanças de status
   const [selectedCustomOrderId, setSelectedCustomOrderId] = useState(null);
@@ -74,6 +76,17 @@ function MainLayout() {
   // -------------------------------------------------------------------------
   // Dados
   // -------------------------------------------------------------------------
+  // Avisa quando chega pedido novo (não avisa na primeira carga)
+  const announceNew = useCallback((key, rows, one, many) => {
+    const known = knownOrdersRef.current[key];
+    if (known) {
+      const fresh = rows.filter(o => !known.has(o.id));
+      if (fresh.length === 1) toast.info(`${one} ${fresh[0].client_name}`);
+      else if (fresh.length > 1) toast.info(`${fresh.length} ${many}`);
+    }
+    knownOrdersRef.current[key] = new Set(rows.map(o => o.id));
+  }, [toast]);
+
   const fetchData = useCallback(async () => {
     lastFetchRef.current = Date.now();
     try {
@@ -102,9 +115,15 @@ function MainLayout() {
       setCategories(categoriesRes.data.map(c => ({ ...c, auraColor: c.aura_color || 'none' })));
 
       if (customOrdersRes.error) console.error('Erro ao carregar pedidos personalizados:', customOrdersRes.error);
-      else if (customOrdersRes.data) setCustomOrders(customOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      else if (customOrdersRes.data) {
+        announceNew('custom', customOrdersRes.data, 'Nova solicitação personalizada de', 'novas solicitações personalizadas');
+        setCustomOrders(customOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      }
       if (catalogOrdersRes.error) console.error('Erro ao carregar pedidos:', catalogOrdersRes.error);
-      else if (catalogOrdersRes.data) setCatalogOrders(catalogOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      else if (catalogOrdersRes.data) {
+        announceNew('orders', catalogOrdersRes.data, 'Novo pedido de', 'novos pedidos');
+        setCatalogOrders(catalogOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      }
 
       setLoadError(null);
     } catch (error) {
@@ -113,7 +132,7 @@ function MainLayout() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [announceNew]);
 
   const retryLoad = () => { setLoading(true); fetchData(); };
 
@@ -130,6 +149,7 @@ function MainLayout() {
       } else {
         setCustomOrders([]);
         setCatalogOrders([]);
+        knownOrdersRef.current = { orders: null, custom: null };
       }
     };
     supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
@@ -156,7 +176,16 @@ function MainLayout() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_orders' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchData)
       .subscribe();
-    return () => supabase.removeChannel(adminChannel);
+
+    // Reserva: mesmo sem o tempo real ativo, atualiza a cada 30 s enquanto a aba está visível
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchData();
+    }, ADMIN_REFRESH_MS);
+
+    return () => {
+      supabase.removeChannel(adminChannel);
+      clearInterval(timer);
+    };
   }, [userId, fetchData]);
 
   // -------------------------------------------------------------------------
