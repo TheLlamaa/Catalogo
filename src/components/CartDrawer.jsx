@@ -4,10 +4,11 @@ import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2
 import Dialog from './Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from './UIContext';
-import { STORE_WHATSAPP } from '../lib/supabase';
+import { useSettings } from './SettingsContext';
 import { brl, formatOptions, formatPhoneBR, validateContact, buildOrderMessage, whatsappLink } from '../lib/format';
 
 export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, onCheckout }) {
+  const settings = useSettings();
   const { toast } = useUI();
   const [step, setStep] = useState('cart'); // cart, checkout, success
   const [clientName, setClientName] = useState('');
@@ -235,9 +236,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Pedido Registrado!</h3>
           <p className="text-sm text-gray-600 mb-6">Recebemos sua solicitação de orçamento. Entraremos em contato com você via WhatsApp para confirmar os detalhes.</p>
-          {STORE_WHATSAPP && lastOrder && (
+          {settings.whatsapp && lastOrder && (
             <a
-              href={whatsappLink(STORE_WHATSAPP, buildOrderMessage(lastOrder))}
+              href={whatsappLink(settings.whatsapp, buildOrderMessage(lastOrder))}
               target="_blank" rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-3"
             >

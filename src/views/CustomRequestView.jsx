@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { STORE_WHATSAPP } from '../lib/supabase';
+import { useSettings } from '../components/SettingsContext';
 import { formatPhoneBR, validateContact, whatsappLink } from '../lib/format';
 
 const EMPTY_FORM = { clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' };
@@ -27,6 +27,7 @@ const compressImage = (file) => new Promise((resolve, reject) => {
 });
 
 export default function CustomRequestView({ onSaveOrder }) {
+  const settings = useSettings();
   const { toast } = useUI();
   const navigate = useNavigate();
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -83,11 +84,11 @@ export default function CustomRequestView({ onSaveOrder }) {
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação Enviada!</h2>
-        <p className="text-gray-600 text-sm mb-6">Sua proposta e fotos foram recebidas com sucesso. Nossa equipe analisará os detalhes e entrará em contato com você pelo WhatsApp em breve!</p>
+        <p className="text-gray-600 text-sm mb-6">{settings.customSuccess}</p>
 
-        {STORE_WHATSAPP && (
+        {settings.whatsapp && (
           <a
-            href={whatsappLink(STORE_WHATSAPP, whatsappText)}
+            href={whatsappLink(settings.whatsapp, whatsappText)}
             target="_blank" rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-4"
           >
@@ -115,9 +116,9 @@ export default function CustomRequestView({ onSaveOrder }) {
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white">
         <div className="flex items-center gap-3 mb-2">
           <Sparkles className="w-6 h-6 text-yellow-300" />
-          <h1 className="text-2xl font-bold">Solicitar Peça Personalizada</h1>
+          <h1 className="text-2xl font-bold">{settings.customTitle}</h1>
         </div>
-        <p className="text-blue-100 text-sm">Tem um modelo em mente ou uma foto de referência? Preencha os campos abaixo e entraremos em contato com um orçamento sob medida.</p>
+        <p className="text-blue-100 text-sm">{settings.customIntro}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6 relative">

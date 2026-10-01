@@ -5,10 +5,12 @@ import {
   ChevronLeft, ChevronRight, Image as ImageIcon, Clock, AlertCircle
 } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
+import { useSettings } from '../components/SettingsContext';
 import { AURA_CLASS_MAP } from '../lib/auras';
 import { brl } from '../lib/format';
 
 export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }) {
+  const settings = useSettings();
   // Filtros ficam no endereço: ?categoria=chaveiros&q=vaso&ordem=price_asc
   const [params, setParams] = useSearchParams();
   const categoryParam = params.get('categoria') || 'all';
@@ -104,13 +106,13 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         <div className="mb-6 pb-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <span>{activeCategory ? activeCategory.name : 'Catálogo Completo'}</span>
+              <span>{activeCategory ? activeCategory.name : settings.catalogTitle}</span>
               {activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
                 <span className={`inline-block w-3 h-3 rounded-full aura ${AURA_CLASS_MAP[activeCategory.auraColor] || 'aura-none'}`} />
               )}
             </h1>
             <p className="text-gray-600 mt-2 text-sm max-w-2xl">
-              {activeCategory ? activeCategory.description : 'Explore nossa coleção de peças impressas em 3D. Clique em um produto para ver mais fotos e detalhes.'}
+              {activeCategory ? activeCategory.description : settings.catalogSubtitle}
             </p>
           </div>
 
@@ -131,7 +133,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <button
+          {settings.customEnabled && <button
             onClick={onOpenCustomRequest}
             className="text-left bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl p-6 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-all border border-blue-500 group relative overflow-hidden"
           >
@@ -140,20 +142,20 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-blue-100 mb-4">
-                <Sparkles className="w-3.5 h-3.5" /> Destaque Especial
+                <Sparkles className="w-3.5 h-3.5" /> {settings.cardBadge}
               </div>
-              <h3 className="text-xl font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors">Peça Personalizada</h3>
+              <h3 className="text-xl font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors">{settings.cardTitle}</h3>
               <p className="text-blue-100 text-sm leading-relaxed mb-6">
-                Precisa de um projeto exclusivo ou tem uma foto de referência? Envie sua ideia e criaremos um orçamento sob medida.
+                {settings.cardText}
               </p>
             </div>
             <div className="mt-auto pt-4 border-t border-white/20 flex items-center justify-between font-semibold text-sm w-full">
-              <span>Solicitar Orçamento</span>
+              <span>{settings.cardButton}</span>
               <div className="w-8 h-8 rounded-full bg-white text-blue-700 flex items-center justify-center group-hover:translate-x-1 transition-transform">
                 <ArrowRight className="w-4 h-4" />
               </div>
             </div>
-          </button>
+          </button>}
 
           {filteredProducts.map(product => (
             <ProductCard

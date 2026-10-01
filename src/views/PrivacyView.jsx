@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from '../lib/supabase';
+import { useSettings } from '../components/SettingsContext';
 
 export default function PrivacyView() {
+  const settings = useSettings();
   return (
     <article className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-8">
       <Link to="/" className="mb-6 text-sm font-medium text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 transition-colors">
@@ -13,7 +14,7 @@ export default function PrivacyView() {
       <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Quem somos</h2>
-          <p>{STORE_NAME} é uma loja de peças impressas em 3D. Este site é o nosso catálogo e o canal para receber pedidos e orçamentos.</p>
+          <p>{settings.storeName} é uma loja de peças impressas em 3D. Este site é o nosso catálogo e o canal para receber pedidos e orçamentos.</p>
         </section>
 
         <section>
@@ -40,9 +41,9 @@ export default function PrivacyView() {
           <h2 className="text-base font-semibold text-gray-900 mb-1">Seus direitos</h2>
           <p>Você pode pedir a qualquer momento para ver, corrigir ou apagar os dados que nos enviou. Basta entrar em contato:</p>
           <ul className="list-disc pl-5 mt-1 space-y-1">
-            {STORE_WHATSAPP && <li>WhatsApp: <a className="text-blue-600 hover:underline" href={`https://wa.me/${STORE_WHATSAPP}`} target="_blank" rel="noreferrer">clique para conversar</a></li>}
-            {STORE_EMAIL && <li>E-mail: <a className="text-blue-600 hover:underline" href={`mailto:${STORE_EMAIL}`}>{STORE_EMAIL}</a></li>}
-            {!STORE_WHATSAPP && !STORE_EMAIL && <li>Pelo mesmo WhatsApp em que combinamos o seu pedido.</li>}
+            {settings.whatsapp && <li>WhatsApp: <a className="text-blue-600 hover:underline" href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer">clique para conversar</a></li>}
+            {settings.email && <li>E-mail: <a className="text-blue-600 hover:underline" href={`mailto:${settings.email}`}>{settings.email}</a></li>}
+            {!settings.whatsapp && !settings.email && <li>Pelo mesmo WhatsApp em que combinamos o seu pedido.</li>}
           </ul>
         </section>
 

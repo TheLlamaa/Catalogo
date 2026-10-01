@@ -2,13 +2,15 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate, Link } from 'react-router-dom';
 import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
 
-import { supabase, STORE_NAME, STORE_WHATSAPP } from './lib/supabase';
+import { supabase } from './lib/supabase';
+import { mergeSettings } from './lib/settings';
 import { lineKey, loadCart, saveCart } from './lib/cart';
 import { statusInfo } from './lib/format';
 
 import UIProvider from './components/UIProvider';
 import { useUI } from './components/UIContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { SettingsContext } from './components/SettingsContext';
 import ProductDetailModal from './components/ProductDetailModal';
 import CartDrawer from './components/CartDrawer';
 
@@ -55,6 +57,8 @@ function MainLayout() {
   const [customOrders, setCustomOrders] = useState([]);
   const [catalogOrders, setCatalogOrders] = useState([]);
   const [user, setUser] = useState(null);
+  const [rawSettings, setRawSettings] = useState([]);
+  const settings = useMemo(() => mergeSettings(rawSettings), [rawSettings]);
   const userRef = useRef(null); // usuário atual acessível dentro do fetchData
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -92,17 +96,22 @@ function MainLayout() {
     try {
       const isAdmin = !!userRef.current;
       const empty = Promise.resolve({ data: null, error: null });
-      const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes, privateRes] = await Promise.all([
+      const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes, privateRes, settingsRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('categories').select('*').order('name', { ascending: true }),
         // Pedidos contêm dados de clientes: só são buscados com o admin logado
         isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : empty,
         isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : empty,
         // Link do modelo 3D: tabela separada, só o admin consegue ler
-        isAdmin ? supabase.from('product_private').select('product_id, model_url') : empty
+        isAdmin ? supabase.from('product_private').select('product_id, model_url') : empty,
+        // Textos e menus personalizados (públicos). Se a tabela ainda não existir, usa os padrões.
+        supabase.from('site_settings').select('key, value')
       ]);
 
       if (productsRes.error || categoriesRes.error) throw (productsRes.error || categoriesRes.error);
+
+      if (settingsRes.error) console.error('Erro ao carregar configurações do site:', settingsRes.error);
+      else setRawSettings(settingsRes.data || []);
 
       if (privateRes.error) console.error('Erro ao carregar links dos modelos:', privateRes.error);
       const modelUrls = {};
@@ -235,6 +244,23 @@ function MainLayout() {
       }
     }
     toast.success('Produto salvo.');
+    await fetchData();
+    return true;
+  };
+
+  // Textos e menus do site: changes = { chave: 'valor' | null }. null volta ao padrão.
+  const saveSettings = async (changes) => {
+    const toSave = Object.entries(changes).filter(([, v]) => v !== null).map(([key, value]) => ({ key, value, updated_at: new Date().toISOString() }));
+    const toReset = Object.entries(changes).filter(([, v]) => v === null).map(([key]) => key);
+    if (toSave.length) {
+      const { error } = await supabase.from('site_settings').upsert(toSave);
+      if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
+    }
+    if (toReset.length) {
+      const { error } = await supabase.from('site_settings').delete().in('key', toReset);
+      if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
+    }
+    toast.success('Site atualizado.');
     await fetchData();
     return true;
   };
@@ -377,9 +403,9 @@ function MainLayout() {
   useEffect(() => {
     if (!productTitle) return;
     const previous = document.title;
-    document.title = `${productTitle} | ${STORE_NAME}`;
+    document.title = `${productTitle} | ${settings.storeName}`;
     return () => { document.title = previous; };
-  }, [productTitle]);
+  }, [productTitle, settings.storeName]);
 
   const openProduct = (product) => navigate({ pathname: `/produto/${product.id}`, search: location.search });
   const closeProduct = () => navigate({ pathname: '/', search: location.search });
@@ -420,7 +446,12 @@ function MainLayout() {
   );
 
   return (
+    <SettingsContext.Provider value={settings}>
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex flex-col">
+
+      {isStoreRoute && settings.bannerText && (
+        <div role="status" className="bg-blue-600 text-white text-sm text-center px-4 py-2">{settings.bannerText}</div>
+      )}
 
       {/* HEADER 1: VITRINE */}
       {isStoreRoute && (
@@ -428,23 +459,23 @@ function MainLayout() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
               <Package className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
-              <span className="text-lg font-bold tracking-tight">{STORE_NAME}</span>
+              <span className="text-lg font-bold tracking-tight">{settings.storeName}</span>
             </Link>
             <nav className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => navigate('/')}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                Vitrine
+                {settings.menuHome}
               </button>
 
-              <button
+              {settings.customEnabled && <button
                 onClick={() => navigate('/custom')}
                 className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${isActive('/custom') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="hidden sm:inline">Personalizado</span>
-              </button>
+                <span className="hidden sm:inline">{settings.menuCustom}</span>
+              </button>}
 
               {user ? (
                 <button
@@ -516,7 +547,7 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={catalogElement} />
           <Route path="/produto/:id" element={catalogElement} />
-          <Route path="/custom" element={<CustomRequestView onSaveOrder={saveCustomOrder} />} />
+          <Route path="/custom" element={settings.customEnabled ? <CustomRequestView onSaveOrder={saveCustomOrder} /> : <Navigate to="/" replace />} />
           <Route path="/privacidade" element={<PrivacyView />} />
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={
@@ -529,6 +560,7 @@ function MainLayout() {
                 onDeleteCatalogOrder={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
                 onSelectCustomOrder={setSelectedCustomOrderId} onSelectCatalogOrder={setSelectedCatalogOrderId}
                 onUpdateOrderStatus={updateOrderStatus}
+                settings={settings} onSaveSettings={saveSettings}
               />
             ) : (
               <Navigate to="/login" replace />
@@ -541,10 +573,13 @@ function MainLayout() {
       {isStoreRoute && (
         <footer className="border-t border-gray-200 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
-            <span>© {CURRENT_YEAR} {STORE_NAME}</span>
+            <div className="text-center sm:text-left">
+              <span>© {CURRENT_YEAR} {settings.storeName}</span>
+              {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
+            </div>
             <div className="flex items-center gap-4">
-              {STORE_WHATSAPP && (
-                <a href={`https://wa.me/${STORE_WHATSAPP}`} target="_blank" rel="noreferrer" className="hover:text-blue-600">WhatsApp</a>
+              {settings.whatsapp && (
+                <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600">WhatsApp</a>
               )}
               <Link to="/privacidade" className="hover:text-blue-600">Política de privacidade</Link>
             </div>
@@ -588,5 +623,6 @@ function MainLayout() {
         />
       )}
     </div>
+    </SettingsContext.Provider>
   );
 }
