@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Palette, X } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { auraOptions, auraProps, auraLabel } from '../lib/auras';
+import { optionsFor, auraProps, auraLabel } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 
 export default function CategoryManager({ categories, onSave, onDelete }) {
   const { confirm } = useUI();
-  const { customAuras } = useSettings();
+  const { auraLib } = useSettings();
   const [editingCategory, setEditingCategory] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -46,8 +46,8 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
                       <td className="px-6 py-4">
                         {category.auraColor && category.auraColor !== 'none' ? (
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold aura ${auraProps(category.auraColor, customAuras).className}`} style={auraProps(category.auraColor, customAuras).style}>
-                            <Palette className="w-3 h-3" /> {auraLabel(category.auraColor, customAuras)}
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold aura ${auraProps(category.auraColor, auraLib).className}`} style={auraProps(category.auraColor, auraLib).style}>
+                            <Palette className="w-3 h-3" /> {auraLabel(category.auraColor, auraLib)}
                           </span>
                         ) : (
                           <span className="text-gray-400 text-xs">Nenhuma</span>
@@ -71,7 +71,7 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
 }
 
 function CategoryForm({ initialData, onSave, onCancel }) {
-  const { customAuras } = useSettings();
+  const { auraLib } = useSettings();
   const [formData, setFormData] = useState({ 
     id: initialData?.id || null, 
     name: initialData?.name || '', 
@@ -101,7 +101,7 @@ function CategoryForm({ initialData, onSave, onCancel }) {
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white"
           >
             {/* Remove 'inherit' pois Categorias não herdam de nada */}
-            {auraOptions(customAuras).filter(a => a.id !== 'inherit').map(aura => (
+            {optionsFor(auraLib, formData.auraColor).filter(a => a.id !== 'inherit').map(aura => (
               <option key={aura.id} value={aura.id}>{aura.name}</option>
             ))}
           </select>

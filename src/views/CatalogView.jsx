@@ -95,7 +95,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             >
               <span>{category.name}</span>
               {category.auraColor && category.auraColor !== 'none' && (
-                <span className={`w-2.5 h-2.5 rounded-full aura ${auraProps(category.auraColor, settings.customAuras).className}`} style={auraProps(category.auraColor, settings.customAuras).style} />
+                <span className={`w-2.5 h-2.5 rounded-full aura ${auraProps(category.auraColor, settings.auraLib).className}`} style={auraProps(category.auraColor, settings.auraLib).style} />
               )}
             </button>
           ))}
@@ -108,7 +108,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <span>{activeCategory ? activeCategory.name : settings.catalogTitle}</span>
               {activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
-                <span className={`inline-block w-3 h-3 rounded-full aura ${auraProps(activeCategory.auraColor, settings.customAuras).className}`} style={auraProps(activeCategory.auraColor, settings.customAuras).style} />
+                <span className={`inline-block w-3 h-3 rounded-full aura ${auraProps(activeCategory.auraColor, settings.auraLib).className}`} style={auraProps(activeCategory.auraColor, settings.auraLib).style} />
               )}
             </h1>
             <p className="text-gray-600 mt-2 text-sm max-w-2xl">
@@ -179,7 +179,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
 }
 
 function ProductCard({ product, categories, onAddToCart, onClick }) {
-  const { customAuras } = useSettings();
+  const { auraLib } = useSettings();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const isOutOfStock = product.stock <= 0;
@@ -191,7 +191,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
     const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
     if (matchedCategory) effectiveAuraKey = matchedCategory.auraColor;
   }
-  const aura = auraProps(effectiveAuraKey, customAuras);
+  const aura = auraProps(effectiveAuraKey, auraLib);
 
   const nextImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % images.length); };
   const prevImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); };

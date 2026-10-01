@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, RotateCcw, Eye } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { auraProps, customKey, MAX_CUSTOM_AURAS } from '../lib/auras';
+import { auraProps, customKey, builtinName, BUILTIN_COLORS, BUILTIN_STRONG, BUILTIN_IDS, MAX_CUSTOM_AURAS, MAX_AURA_COLORS } from '../lib/auras';
 
-const MAX_COLORS = 6;
 const START_COLORS = ['#f97316', '#ec4899'];
 
-// Caixinha com o efeito aplicado (usada na lista e na prévia)
-function AuraSample({ colors, strong, className = '', autoHeight = false, children }) {
-  const { className: cls, style } = auraProps('custom-x', [{ id: 'x', name: '', colors, strong }]);
+// Caixinha com o efeito aplicado. Com `auraKey` usa a aura (do sistema ou personalizada); senão usa as cores dadas.
+function AuraSample({ auraKey, lib, colors, strong, className = '', autoHeight = false, children }) {
+  const { className: cls, style } = auraKey
+    ? auraProps(auraKey, lib)
+    : auraProps('custom-x', { custom: [{ id: 'x', name: '', colors, strong }], overrides: {} });
   return <div className={`aura ${cls} ${className}`} style={autoHeight ? { ...style, height: 'auto' } : style}>{children}</div>;
 }
 
-function AuraForm({ initial, onSave, onCancel }) {
+function AuraForm({ initial, title, onSave, onCancel }) {
   const { toast } = useUI();
   const [name, setName] = useState(initial?.name || '');
   const [colors, setColors] = useState(initial?.colors || START_COLORS);
@@ -23,13 +24,13 @@ function AuraForm({ initial, onSave, onCancel }) {
   const submit = (e) => {
     e.preventDefault();
     if (!name.trim()) return toast.error('Dê um nome para a aura.');
-    onSave({ id: initial?.id || Math.random().toString(36).slice(2, 8), name: name.trim(), colors, strong });
+    onSave({ name: name.trim(), colors, strong });
   };
 
   return (
     <form onSubmit={submit} className="border border-gray-200 rounded-lg p-6 bg-gray-50/50 mb-6">
       <div className="flex justify-between items-center mb-5">
-        <h3 className="text-base font-medium text-gray-900">{initial ? 'Editar aura' : 'Nova aura'}</h3>
+        <h3 className="text-base font-medium text-gray-900">{title}</h3>
         <button type="button" onClick={onCancel} aria-label="Fechar" className="text-gray-400 hover:text-gray-600 p-1 rounded-md"><X className="w-5 h-5" /></button>
       </div>
 
@@ -41,8 +42,8 @@ function AuraForm({ initial, onSave, onCancel }) {
           </div>
 
           <div>
-            <span className="block text-sm font-medium text-gray-700 mb-1">Cores ({colors.length} de {MAX_COLORS})</span>
-            <p className="text-xs text-gray-500 mb-3">A luz gira passando por todas as cores, na ordem. Use de 2 a {MAX_COLORS}.</p>
+            <span className="block text-sm font-medium text-gray-700 mb-1">Cores ({colors.length} de {MAX_AURA_COLORS})</span>
+            <p className="text-xs text-gray-500 mb-3">A luz gira passando por todas as cores, na ordem. Use de 2 a {MAX_AURA_COLORS}.</p>
             <div className="flex flex-wrap gap-3">
               {colors.map((c, i) => (
                 <div key={i} className="relative">
@@ -52,7 +53,7 @@ function AuraForm({ initial, onSave, onCancel }) {
                   )}
                 </div>
               ))}
-              {colors.length < MAX_COLORS && (
+              {colors.length < MAX_AURA_COLORS && (
                 <button type="button" onClick={() => setColors(cs => [...cs, '#3b82f6'])} aria-label="Adicionar cor" className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md text-gray-400 hover:bg-white flex items-center justify-center"><Plus className="w-5 h-5" /></button>
               )}
             </div>
@@ -83,78 +84,162 @@ function AuraForm({ initial, onSave, onCancel }) {
   );
 }
 
-export default function AuraManager({ auras, products, categories, onSave }) {
+function ColorDots({ colors }) {
+  return (
+    <div className="flex gap-1.5 mt-3">
+      {colors.map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-gray-200" style={{ background: c }} />)}
+    </div>
+  );
+}
+
+export default function AuraManager({ lib, products, categories, onSave }) {
   const { confirm } = useUI();
-  const [editing, setEditing] = useState(null); // null = fechado, {} = nova, aura = editar
+  // editing: null | { kind: 'custom', aura? } | { kind: 'builtin', id }
+  const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const { custom, overrides } = lib;
 
-  const usage = (a) => {
-    const key = customKey(a.id);
-    return products.filter(p => p.auraColor === key).length + categories.filter(c => c.auraColor === key).length;
-  };
+  const usage = (key) => products.filter(p => p.auraColor === key).length + categories.filter(c => c.auraColor === key).length;
 
-  const persist = async (next) => {
+  const persist = async (nextCustom, nextOverrides) => {
     setSaving(true);
-    const ok = await onSave(next);
+    const ok = await onSave({ custom: nextCustom, overrides: nextOverrides });
     setSaving(false);
     return ok;
   };
-
-  const handleSave = async (aura) => {
-    const exists = auras.some(a => a.id === aura.id);
-    const ok = await persist(exists ? auras.map(a => (a.id === aura.id ? aura : a)) : [...auras, aura]);
-    if (ok) setEditing(null);
+  const setOverride = (id, value) => {
+    const next = { ...overrides };
+    if (value && Object.keys(value).length) next[id] = value; else delete next[id];
+    return next;
   };
 
-  const handleDelete = async (a) => {
-    const n = usage(a);
+  // --- personalizadas ---
+  const saveCustom = async (data) => {
+    const current = editing.aura;
+    const aura = { id: current?.id || Math.random().toString(36).slice(2, 8), ...data };
+    const next = current ? custom.map(a => (a.id === aura.id ? aura : a)) : [...custom, aura];
+    if (await persist(next, overrides)) setEditing(null);
+  };
+  const deleteCustom = async (a) => {
+    const n = usage(customKey(a.id));
+    const ok = await confirm({ title: 'Excluir aura', message: n > 0 ? `“${a.name}” está em ${n} produto(s)/categoria(s), que ficarão sem brilho. Excluir mesmo assim?` : `Excluir a aura “${a.name}”?` });
+    if (ok) persist(custom.filter(x => x.id !== a.id), overrides);
+  };
+
+  // --- do sistema ---
+  const saveBuiltin = async (data) => {
+    const id = editing.id;
+    const rest = overrides[id]?.hidden ? { hidden: true } : {};
+    if (await persist(custom, setOverride(id, { ...rest, name: data.name, colors: data.colors, strong: data.strong }))) setEditing(null);
+  };
+  const hideBuiltin = async (id) => {
+    const n = usage(id);
     const ok = await confirm({
-      title: 'Excluir aura',
-      message: n > 0 ? `“${a.name}” está em ${n} produto(s)/categoria(s), que ficarão sem brilho. Excluir mesmo assim?` : `Excluir a aura “${a.name}”?`
+      title: 'Excluir aura do sistema',
+      message: `${n > 0 ? `“${overrides[id]?.name || builtinName(id)}” está em ${n} produto(s)/categoria(s), que ficarão sem brilho. ` : ''}Ela some dos seletores e pode ser restaurada aqui depois. Continuar?`
     });
-    if (ok) persist(auras.filter(x => x.id !== a.id));
+    if (ok) persist(custom, setOverride(id, { ...overrides[id], hidden: true }));
   };
+  const restoreVisible = (id) => { const rest = { ...overrides[id] }; delete rest.hidden; return persist(custom, setOverride(id, rest)); };
+  const resetBuiltin = (id) => persist(custom, setOverride(id, null));
+
+  const builtinInitial = (id) => {
+    const ov = overrides[id];
+    return { name: ov?.name || builtinName(id), colors: ov?.colors || BUILTIN_COLORS[id], strong: ov?.strong ?? !!BUILTIN_STRONG[id] };
+  };
+
+  const visibleBuiltins = BUILTIN_IDS.filter(id => !overrides[id]?.hidden);
+  const hiddenBuiltins = BUILTIN_IDS.filter(id => overrides[id]?.hidden);
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Auras personalizadas ({auras.length})</h2>
-        {!editing && auras.length < MAX_CUSTOM_AURAS && (
-          <button onClick={() => setEditing({})} disabled={saving} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50">
-            <Plus className="w-4 h-4" /> Nova aura
-          </button>
-        )}
-      </div>
-
-      {editing && <AuraForm key={editing.id || 'nova'} initial={editing.id ? editing : null} onSave={handleSave} onCancel={() => setEditing(null)} />}
-
-      {auras.length === 0 && !editing ? (
-        <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-10 text-center">
-          Nenhuma aura personalizada ainda. Crie uma e ela aparece junto das outras ao escolher a aura de um produto ou categoria.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {auras.map(a => (
-            <AuraSample key={a.id} colors={a.colors} strong={a.strong}>
-              <div className="bg-white rounded-xl p-4 h-full">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{a.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Em uso: {usage(a)}</p>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => setEditing(a)} disabled={saving} title="Editar" aria-label={`Editar ${a.name}`} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(a)} disabled={saving} title="Excluir" aria-label={`Excluir ${a.name}`} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 mt-3">
-                  {a.colors.map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-gray-200" style={{ background: c }} />)}
-                </div>
-              </div>
-            </AuraSample>
-          ))}
-        </div>
+    <div className="space-y-10">
+      {editing && (
+        <AuraForm
+          key={editing.kind + (editing.id || editing.aura?.id || 'nova')}
+          title={editing.kind === 'builtin' ? `Editar aura “${builtinName(editing.id)}”` : (editing.aura ? 'Editar aura' : 'Nova aura')}
+          initial={editing.kind === 'builtin' ? builtinInitial(editing.id) : editing.aura}
+          onSave={editing.kind === 'builtin' ? saveBuiltin : saveCustom}
+          onCancel={() => setEditing(null)}
+        />
       )}
+
+      <section aria-label="Minhas auras">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-medium text-gray-900">Minhas auras ({custom.length})</h2>
+          {custom.length < MAX_CUSTOM_AURAS && (
+            <button onClick={() => setEditing({ kind: 'custom' })} disabled={saving} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50">
+              <Plus className="w-4 h-4" /> Nova aura
+            </button>
+          )}
+        </div>
+        {custom.length === 0 ? (
+          <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-8 text-center">Nenhuma aura criada ainda. Crie uma nova ou edite uma das auras do sistema abaixo.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {custom.map(a => (
+              <AuraSample key={a.id} auraKey={customKey(a.id)} lib={lib}>
+                <div className="bg-white rounded-xl p-4 h-full">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{a.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Em uso: {usage(customKey(a.id))}</p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => setEditing({ kind: 'custom', aura: a })} disabled={saving} title="Editar" aria-label={`Editar ${a.name}`} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteCustom(a)} disabled={saving} title="Excluir" aria-label={`Excluir ${a.name}`} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <ColorDots colors={a.colors} />
+                </div>
+              </AuraSample>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-label="Auras do sistema">
+        <h2 className="text-lg font-medium text-gray-900 mb-1">Auras do sistema ({visibleBuiltins.length})</h2>
+        <p className="text-sm text-gray-500 mb-6">As auras que já vinham no site. Você pode mudar nome e cores, voltar ao original ou excluir (dá para restaurar depois).</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {visibleBuiltins.map(id => {
+            const ov = overrides[id];
+            const name = ov?.name || builtinName(id);
+            return (
+              <AuraSample key={id} auraKey={id} lib={lib}>
+                <div className="bg-white rounded-xl p-4 h-full">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{name}{ov?.colors && <span className="ml-2 text-[10px] font-semibold text-blue-700 bg-blue-50 rounded px-1.5 py-0.5 align-middle">EDITADA</span>}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Em uso: {usage(id)}</p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {(ov?.colors || ov?.name) && <button onClick={() => resetBuiltin(id)} disabled={saving} title="Voltar ao original" aria-label={`Voltar ${name} ao original`} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md"><RotateCcw className="w-4 h-4" /></button>}
+                      <button onClick={() => setEditing({ kind: 'builtin', id })} disabled={saving} title="Editar" aria-label={`Editar ${name}`} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => hideBuiltin(id)} disabled={saving} title="Excluir" aria-label={`Excluir ${name}`} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <ColorDots colors={ov?.colors || BUILTIN_COLORS[id]} />
+                </div>
+              </AuraSample>
+            );
+          })}
+        </div>
+
+        {hiddenBuiltins.length > 0 && (
+          <div className="mt-8 border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+            <p className="text-sm font-medium text-gray-700 mb-3">Excluídas ({hiddenBuiltins.length})</p>
+            <ul className="flex flex-wrap gap-2">
+              {hiddenBuiltins.map(id => (
+                <li key={id}>
+                  <button onClick={() => restoreVisible(id)} disabled={saving} aria-label={`Restaurar ${overrides[id]?.name || builtinName(id)}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:bg-gray-50">
+                    <Eye className="w-3.5 h-3.5" /> Restaurar {overrides[id]?.name || builtinName(id)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

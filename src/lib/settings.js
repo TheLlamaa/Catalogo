@@ -1,5 +1,5 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './supabase';
-import { parseCustomAuras } from './auras';
+import { parseCustomAuras, parseAuraOverrides } from './auras';
 
 // Tudo que o admin pode editar na aba "Site". O padrão é o texto original do site:
 // campo vazio/igual ao padrão = nada fica salvo no banco.
@@ -65,10 +65,11 @@ export const isValidWhatsapp = (value) => /^55\d{10,11}$/.test(normalizeWhatsapp
 
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows) => {
-  const out = { ...DEFAULT_SETTINGS, customAuras: [] };
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} } };
   const allowed = new Set(SETTING_FIELDS.map(f => f.key));
   (rows || []).forEach(({ key, value }) => {
-    if (key === 'customAuras') { out.customAuras = parseCustomAuras(value); return; }
+    if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
+    if (key === 'auraOverrides') { out.auraLib.overrides = parseAuraOverrides(value); return; }
     if (!allowed.has(key) || typeof value !== 'string' || value.trim() === '') return;
     const field = SETTING_FIELDS.find(f => f.key === key);
     out[key] = field.type === 'toggle' ? value !== 'false' : value;

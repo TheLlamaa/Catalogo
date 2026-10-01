@@ -3,14 +3,13 @@ import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import ProductForm from './ProductForm';
-import { auraOptions, auraProps } from '../lib/auras';
+import { optionsFor, auraProps } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 import { brl, isHttpUrl } from '../lib/format';
 
 export default function ProductManager({ products, categories, onSave, onDelete }) {
   const { confirm } = useUI();
-  const { customAuras } = useSettings();
-  const AURA_OPTIONS = auraOptions(customAuras);
+  const { auraLib } = useSettings();
   const [editingProduct, setEditingProduct] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -91,14 +90,14 @@ export default function ProductManager({ products, categories, onSave, onDelete 
                         </td>
 
                         <td className="px-6 py-4">
-                          <div className={`inline-block ${displayAura !== 'none' && displayAura !== 'inherit' ? `aura ${auraProps(displayAura, customAuras).className}` : ''}`} style={displayAura !== 'none' && displayAura !== 'inherit' ? auraProps(displayAura, customAuras).style : undefined}>
+                          <div className={`inline-block ${displayAura !== 'none' && displayAura !== 'inherit' ? `aura ${auraProps(displayAura, auraLib).className}` : ''}`} style={displayAura !== 'none' && displayAura !== 'inherit' ? auraProps(displayAura, auraLib).style : undefined}>
                             <select
                               aria-label={`Aura de ${product.title}`}
                               value={product.auraColor || 'inherit'}
                               onChange={(e) => onSave({ ...product, auraColor: e.target.value })}
                               className="relative z-10 bg-white/90 backdrop-blur-sm text-xs font-medium px-2 py-1.5 rounded outline-none border border-gray-200 focus:border-blue-500 cursor-pointer text-gray-700 shadow-sm hover:bg-gray-50 transition-colors w-32"
                             >
-                              {AURA_OPTIONS.map(aura => (
+                              {optionsFor(auraLib, product.auraColor || "inherit").map(aura => (
                                 <option key={aura.id} value={aura.id}>{aura.name}</option>
                               ))}
                             </select>

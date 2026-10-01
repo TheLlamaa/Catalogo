@@ -39,7 +39,7 @@ export default function AdminView({
         {tab('custom_orders', 'Pedidos Custom', customOrders.length, newCustom)}
         {tab('products', 'Produtos', products.length, 0)}
         {tab('categories', 'Categorias', categories.length, 0)}
-        {tab('auras', 'Auras', settings.customAuras.length)}
+        {tab('auras', 'Auras', null)}
         {tab('site', 'Site', null)}
       </div>
       <div className="p-6">
@@ -63,8 +63,11 @@ export default function AdminView({
         {activeTab === 'categories' && <CategoryManager categories={categories} onSave={onSaveCategory} onDelete={onDeleteCategory} />}
         {activeTab === 'auras' && (
           <AuraManager
-            auras={settings.customAuras} products={products} categories={categories}
-            onSave={(list) => onSaveSettings({ customAuras: list.length ? JSON.stringify(list) : null }, 'Auras atualizadas.')}
+            lib={settings.auraLib} products={products} categories={categories}
+            onSave={({ custom, overrides }) => onSaveSettings({
+              customAuras: custom.length ? JSON.stringify(custom) : null,
+              auraOverrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null
+            }, 'Auras atualizadas.')}
           />
         )}
         {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} />}
