@@ -1,0 +1,42 @@
+export const AURA_OPTIONS = [
+  { id: 'inherit', name: 'Padrão da Categoria' },
+  { id: 'none', name: 'Nenhuma' },
+  { id: 'rainbow', name: 'Rainbow' },
+  { id: 'holo', name: 'Holo' },
+  { id: 'dual', name: 'Dual' },
+  { id: 'gold', name: 'Gold' },
+  { id: 'silver', name: 'Silver' },
+  { id: 'glow', name: 'Glow' },
+  { id: 'blue', name: 'Blue' },
+  { id: 'purple', name: 'Purple' },
+  { id: 'red', name: 'Red' },
+  { id: 'green', name: 'Green' },
+  { id: 'valentines', name: 'Valentines' },
+  { id: 'religious', name: 'Religious' },
+  { id: 'christmas', name: 'Christmas' },
+  { id: 'halloween', name: 'Halloween' },
+  { id: 'newyear', name: 'New Year' },
+  { id: 'easter', name: 'Easter' },
+  { id: 'cyberpunk', name: 'Cyberpunk' }
+];
+
+export const AURA_CLASS_MAP = {
+  none: 'aura-none',
+  rainbow: 'aura-rainbow',
+  holo: 'aura-holo',
+  dual: 'aura-dual',
+  gold: 'aura-gold',
+  silver: 'aura-silver',
+  glow: 'aura-glow',
+  blue: 'aura-blue',
+  purple: 'aura-purple',
+  red: 'aura-red',
+  green: 'aura-green',
+  valentines: 'aura-valentines',
+  religious: 'aura-religious',
+  christmas: 'aura-christmas',
+  halloween: 'aura-halloween',
+  newyear: 'aura-newyear',
+  easter: 'aura-easter',
+  cyberpunk: 'aura-cyberpunk'
+};
