@@ -92,15 +92,21 @@ function MainLayout() {
     try {
       const isAdmin = !!userRef.current;
       const empty = Promise.resolve({ data: null, error: null });
-      const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes] = await Promise.all([
+      const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes, privateRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('categories').select('*').order('name', { ascending: true }),
         // Pedidos contêm dados de clientes: só são buscados com o admin logado
         isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : empty,
-        isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : empty
+        isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : empty,
+        // Link do modelo 3D: tabela separada, só o admin consegue ler
+        isAdmin ? supabase.from('product_private').select('product_id, model_url') : empty
       ]);
 
       if (productsRes.error || categoriesRes.error) throw (productsRes.error || categoriesRes.error);
+
+      if (privateRes.error) console.error('Erro ao carregar links dos modelos:', privateRes.error);
+      const modelUrls = {};
+      (privateRes.data || []).forEach(r => { if (r.model_url) modelUrls[r.product_id] = r.model_url; });
 
       setProducts(productsRes.data.map(p => ({
         ...p,
@@ -110,7 +116,8 @@ function MainLayout() {
         stock: p.stock ?? 0,
         auraColor: p.aura_color || 'inherit',
         options: Array.isArray(p.options) ? p.options : [],
-        leadTime: p.lead_time || ''
+        leadTime: p.lead_time || '',
+        modelUrl: modelUrls[p.id] || ''
       })));
       setCategories(categoriesRes.data.map(c => ({ ...c, auraColor: c.aura_color || 'none' })));
 
@@ -206,10 +213,26 @@ function MainLayout() {
     };
     if (product.id) payload.id = product.id;
 
-    const { error } = await supabase.from('products').upsert(payload);
+    const { data: saved, error } = await supabase.from('products').upsert(payload).select('id').single();
     if (error) {
       toast.error(`Erro ao salvar produto: ${error.message}`);
       return false;
+    }
+
+    // Link do modelo 3D (admin): tabela separada. Só mexe se mudou.
+    const newUrl = (product.modelUrl || '').trim();
+    const oldUrl = product.id ? (products.find(p => p.id === product.id)?.modelUrl || '') : '';
+    const copiedFromOther = !product.id && newUrl; // duplicação: copia o link para o novo produto
+    if (newUrl !== oldUrl || copiedFromOther) {
+      const q = supabase.from('product_private');
+      const { error: privError } = newUrl
+        ? await q.upsert({ product_id: saved.id, model_url: newUrl, updated_at: new Date().toISOString() })
+        : await q.delete().eq('product_id', saved.id);
+      if (privError) {
+        toast.error(`Produto salvo, mas o link do modelo não foi salvo: ${privError.message}`);
+        await fetchData();
+        return true;
+      }
     }
     toast.success('Produto salvo.');
     await fetchData();

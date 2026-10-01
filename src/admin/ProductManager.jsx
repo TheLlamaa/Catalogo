@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import ProductForm from './ProductForm';
 import { AURA_OPTIONS, AURA_CLASS_MAP } from '../lib/auras';
-import { brl } from '../lib/format';
+import { brl, isHttpUrl } from '../lib/format';
 
 export default function ProductManager({ products, categories, onSave, onDelete }) {
   const { confirm } = useUI();
@@ -73,6 +73,11 @@ export default function ProductManager({ products, categories, onSave, onDelete 
                           <div>
                             <span className="text-sm font-medium text-gray-900 block">{product.title}</span>
                             <span className="text-xs text-gray-500 font-medium">{brl(product.price)}</span>
+                            {isHttpUrl(product.modelUrl) && (
+                              <a href={product.modelUrl} target="_blank" rel="noreferrer noopener" className="mt-0.5 flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+                                <Box className="w-3 h-3" /> Abrir modelo
+                              </a>
+                            )}
                           </div>
                         </td>
 

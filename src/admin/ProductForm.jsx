@@ -4,6 +4,7 @@ import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import { uploadProductImage } from '../lib/supabase';
 import { AURA_OPTIONS } from '../lib/auras';
+import { isHttpUrl } from '../lib/format';
 
 const MAX_OPTION_GROUPS = 4;
 const MAX_OPTION_VALUES = 12;
@@ -28,6 +29,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
     active: initialData?.active ?? true,
     auraColor: initialData?.auraColor || 'inherit',
     leadTime: initialData?.leadTime || '',
+    modelUrl: initialData?.modelUrl || '',
     // Opções do produto: [{ name: 'Cor', values: 'Branco, Preto' }] (valores como texto separado por vírgula)
     options: (initialData?.options || []).map(o => ({ name: o.name, values: (o.values || []).join(', ') }))
   });
@@ -95,12 +97,16 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
       options.push({ name, values });
     }
 
+    const modelUrl = formData.modelUrl.trim();
+    if (modelUrl && !isHttpUrl(modelUrl)) return toast.error('O link do modelo precisa começar com http:// ou https://');
+
     setSaving(true);
     await onSave({
       ...formData,
       price: parseFloat(formData.price) || 0,
       stock: parseInt(formData.stock, 10) || 0,
       leadTime: formData.leadTime.trim(),
+      modelUrl,
       options
     });
     setSaving(false);
@@ -158,6 +164,14 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
               value={formData.leadTime} onChange={e => setFormData(p => ({ ...p, leadTime: e.target.value }))} className={inputCls}
             />
             <datalist id="prazos">{LEAD_TIME_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="p-modelo" className="block text-sm font-medium text-gray-700 mb-1">Link do modelo 3D <span className="text-gray-400 font-normal">(opcional · só você vê, não aparece no site)</span></label>
+            <input
+              id="p-modelo" type="url" maxLength={500} placeholder="https://makerworld.com/… ou link do Drive/Thingiverse"
+              value={formData.modelUrl} onChange={e => setFormData(p => ({ ...p, modelUrl: e.target.value }))} className={inputCls}
+            />
           </div>
 
           <div className="sm:col-span-2">

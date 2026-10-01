@@ -89,3 +89,9 @@ export const downloadCsv = (filename, header, rows) => {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+// Link http(s) válido (usado no link do modelo 3D)
+export const isHttpUrl = (v) => {
+  if (typeof v !== 'string' || !v || v.length > 500 || /\s/.test(v)) return false;
+  try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
+};
