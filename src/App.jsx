@@ -249,7 +249,7 @@ function MainLayout() {
   };
 
   // Textos e menus do site: changes = { chave: 'valor' | null }. null volta ao padrão.
-  const saveSettings = async (changes) => {
+  const saveSettings = async (changes, successMessage = 'Site atualizado.') => {
     const toSave = Object.entries(changes).filter(([, v]) => v !== null).map(([key, value]) => ({ key, value, updated_at: new Date().toISOString() }));
     const toReset = Object.entries(changes).filter(([, v]) => v === null).map(([key]) => key);
     if (toSave.length) {
@@ -260,7 +260,7 @@ function MainLayout() {
       const { error } = await supabase.from('site_settings').delete().in('key', toReset);
       if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
     }
-    toast.success('Site atualizado.');
+    toast.success(successMessage);
     await fetchData();
     return true;
   };

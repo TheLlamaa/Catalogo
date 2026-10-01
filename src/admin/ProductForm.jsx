@@ -3,7 +3,8 @@ import { X, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import { uploadProductImage } from '../lib/supabase';
-import { AURA_OPTIONS } from '../lib/auras';
+import { auraOptions } from '../lib/auras';
+import { useSettings } from '../components/SettingsContext';
 import { isHttpUrl } from '../lib/format';
 
 const MAX_OPTION_GROUPS = 4;
@@ -12,6 +13,7 @@ const LEAD_TIME_SUGGESTIONS = ['Pronta entrega', 'Sob encomenda: 2 a 3 dias', 'S
 
 export default function ProductForm({ initialData, categories, onSave, onCancel }) {
   const { toast } = useUI();
+  const { customAuras } = useSettings();
 
   // Categoria "Geral": usada quando nenhuma outra é escolhida
   const geralCat = categories.find(c => c.name.toLowerCase() === 'geral');
@@ -204,7 +206,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
           <div className="sm:col-span-2">
             <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito Aura Próprio (Sobrescreve a aura da categoria)</label>
             <select id="p-aura" value={formData.auraColor} onChange={e => setFormData(p => ({ ...p, auraColor: e.target.value }))} className={`${inputCls} bg-white`}>
-              {AURA_OPTIONS.map(aura => <option key={aura.id} value={aura.id}>{aura.name}</option>)}
+              {auraOptions(customAuras).map(aura => <option key={aura.id} value={aura.id}>{aura.name}</option>)}
             </select>
           </div>
 

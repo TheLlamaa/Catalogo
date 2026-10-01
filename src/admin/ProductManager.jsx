@@ -3,11 +3,14 @@ import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import ProductForm from './ProductForm';
-import { AURA_OPTIONS, AURA_CLASS_MAP } from '../lib/auras';
+import { auraOptions, auraProps } from '../lib/auras';
+import { useSettings } from '../components/SettingsContext';
 import { brl, isHttpUrl } from '../lib/format';
 
 export default function ProductManager({ products, categories, onSave, onDelete }) {
   const { confirm } = useUI();
+  const { customAuras } = useSettings();
+  const AURA_OPTIONS = auraOptions(customAuras);
   const [editingProduct, setEditingProduct] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -88,7 +91,7 @@ export default function ProductManager({ products, categories, onSave, onDelete 
                         </td>
 
                         <td className="px-6 py-4">
-                          <div className={`inline-block ${displayAura !== 'none' && displayAura !== 'inherit' ? `aura ${AURA_CLASS_MAP[displayAura]}` : ''}`}>
+                          <div className={`inline-block ${displayAura !== 'none' && displayAura !== 'inherit' ? `aura ${auraProps(displayAura, customAuras).className}` : ''}`} style={displayAura !== 'none' && displayAura !== 'inherit' ? auraProps(displayAura, customAuras).style : undefined}>
                             <select
                               aria-label={`Aura de ${product.title}`}
                               value={product.auraColor || 'inherit'}

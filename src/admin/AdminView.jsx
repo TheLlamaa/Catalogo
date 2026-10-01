@@ -3,6 +3,7 @@ import { CatalogOrdersManager, CustomOrdersManager } from './OrderManagers';
 import ProductManager from './ProductManager';
 import CategoryManager from './CategoryManager';
 import SiteSettings from './SiteSettings';
+import AuraManager from './AuraManager';
 import { statusInfo } from '../lib/format';
 
 export default function AdminView({
@@ -38,6 +39,7 @@ export default function AdminView({
         {tab('custom_orders', 'Pedidos Custom', customOrders.length, newCustom)}
         {tab('products', 'Produtos', products.length, 0)}
         {tab('categories', 'Categorias', categories.length, 0)}
+        {tab('auras', 'Auras', settings.customAuras.length)}
         {tab('site', 'Site', null)}
       </div>
       <div className="p-6">
@@ -59,6 +61,12 @@ export default function AdminView({
         )}
         {activeTab === 'products' && <ProductManager products={products} categories={categories} onSave={onSaveProduct} onDelete={onDeleteProduct} />}
         {activeTab === 'categories' && <CategoryManager categories={categories} onSave={onSaveCategory} onDelete={onDeleteCategory} />}
+        {activeTab === 'auras' && (
+          <AuraManager
+            auras={settings.customAuras} products={products} categories={categories}
+            onSave={(list) => onSaveSettings({ customAuras: list.length ? JSON.stringify(list) : null }, 'Auras atualizadas.')}
+          />
+        )}
         {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} />}
       </div>
     </div>
