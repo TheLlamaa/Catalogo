@@ -1,10 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon } from 'lucide-react';
+import {
+  RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
+  Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, Package, Share2, Info, Type, PanelBottom
+} from 'lucide-react';
 import { useUI } from '../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../lib/settings';
 import { applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../lib/theme';
 import { uploadSiteImage } from '../lib/supabase';
 import { formatPhoneBR } from '../lib/format';
+
+// Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
+const SECTION_ICONS = {
+  'Cores e fonte': Palette, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
+  'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
+  'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
+  'Seções no topo da vitrine': LayoutGrid, 'Produtos': Package, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+};
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,7 +132,7 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
   const sections = SETTINGS_SCHEMA.filter(s => s.group === group);
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-8">
+    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       <p className="text-sm text-gray-600">Mude a aparência e os textos do site sem mexer em código. O que você edita aqui é um rascunho: os clientes só veem depois que você clicar em <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia neste painel enquanto você escolhe.</p>
 
       {settings.backup && (
@@ -139,18 +151,27 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
         ))}
       </div>
 
-      {sections.map(section => (
-        <fieldset key={section.title} className="space-y-5">
-          <legend className="text-sm font-semibold text-gray-900 mb-1 pb-2 border-b border-gray-100 w-full flex items-center justify-between">
-            <span>{section.title}</span>
-            <button type="button" onClick={() => resetSection(section)} className="text-xs font-normal text-gray-500 hover:text-blue-600 flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>
-          </legend>
-          {section.fields.map(f => (
-            <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
-          ))}
-          {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
-        </fieldset>
-      ))}
+      {sections.map(section => {
+        const Icon = SECTION_ICONS[section.title] || Type;
+        return (
+          <fieldset key={section.title} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <legend className="sr-only">{section.title}</legend>
+            <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
+              <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
+                {section.title}
+              </h3>
+              <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>
+            </div>
+            <div className="p-5 space-y-5">
+              {section.fields.map(f => (
+                <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
+              ))}
+              {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
+            </div>
+          </fieldset>
+        );
+      })}
 
       <div className="sticky bottom-0 -mx-1 px-1 py-4 bg-white/95 backdrop-blur border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
