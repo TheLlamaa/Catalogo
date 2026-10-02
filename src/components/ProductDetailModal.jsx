@@ -3,10 +3,15 @@ import { X, ShoppingCart, Link2, Clock, Image as ImageIcon } from 'lucide-react'
 import Dialog from './Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from './UIContext';
+import { useSettings } from './SettingsContext';
 import { brl } from '../lib/format';
+import { badgeFor, relatedProducts } from '../lib/catalog';
 
-export default function ProductDetailModal({ product, categories, onClose, onAddToCart }) {
+export default function ProductDetailModal({ product, products = [], categories, onClose, onAddToCart, onOpenProduct }) {
   const { toast } = useUI();
+  const settings = useSettings();
+  const badge = badgeFor(product, settings);
+  const related = settings.relatedEnabled && onOpenProduct ? relatedProducts(product, products) : [];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selected, setSelected] = useState({});
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
@@ -73,6 +78,7 @@ export default function ProductDetailModal({ product, categories, onClose, onAdd
               ))}
             </div>
           )}
+          {badge && <span className="inline-block mb-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{badge}</span>}
           <h2 className="text-2xl font-bold text-gray-900 leading-snug mb-2">{product.title}</h2>
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -109,6 +115,25 @@ export default function ProductDetailModal({ product, categories, onClose, onAdd
             <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-2">Descrição</h3>
             <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
           </div>
+
+          {related.length > 0 && (
+            <div className="border-t border-gray-100 pt-4 mb-6">
+              <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-3">{settings.relatedTitle}</h3>
+              <ul className="grid grid-cols-2 gap-3">
+                {related.map(rp => (
+                  <li key={rp.id}>
+                    <button type="button" onClick={() => onOpenProduct(rp)} className="w-full text-left group" aria-label={`Ver ${rp.title}`}>
+                      <div className="aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                        {rp.imageUrls?.[0] ? <ProductImage thumb src={rp.imageUrls[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <ImageIcon className="w-6 h-6 text-gray-300" />}
+                      </div>
+                      <span className="block text-xs font-medium text-gray-800 mt-1.5 line-clamp-2 leading-tight">{rp.title}</span>
+                      <span className="block text-xs font-bold text-blue-600">{brl(rp.price)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t border-gray-100 flex gap-3">

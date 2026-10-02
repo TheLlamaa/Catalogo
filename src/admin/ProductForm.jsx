@@ -9,6 +9,7 @@ import { isHttpUrl } from '../lib/format';
 
 const MAX_OPTION_GROUPS = 4;
 const MAX_OPTION_VALUES = 12;
+const BADGE_SUGGESTIONS = ['Novo', 'Sob encomenda', 'Últimas unidades', 'Promoção'];
 const LEAD_TIME_SUGGESTIONS = ['Pronta entrega', 'Sob encomenda: 2 a 3 dias', 'Sob encomenda: 5 a 7 dias', 'Sob encomenda: 10 a 15 dias'];
 
 export default function ProductForm({ initialData, categories, onSave, onCancel }) {
@@ -31,6 +32,8 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
     active: initialData?.active ?? true,
     auraColor: initialData?.auraColor || 'inherit',
     leadTime: initialData?.leadTime || '',
+    badge: initialData?.badge || '',
+    section: initialData?.section || '',
     modelUrl: initialData?.modelUrl || '',
     // Opções do produto: [{ name: 'Cor', values: 'Branco, Preto' }] (valores como texto separado por vírgula)
     options: (initialData?.options || []).map(o => ({ name: o.name, values: (o.values || []).join(', ') }))
@@ -108,6 +111,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
       price: parseFloat(formData.price) || 0,
       stock: parseInt(formData.stock, 10) || 0,
       leadTime: formData.leadTime.trim(),
+      badge: formData.badge.trim(),
       modelUrl,
       options
     });
@@ -166,6 +170,23 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
               value={formData.leadTime} onChange={e => setFormData(p => ({ ...p, leadTime: e.target.value }))} className={inputCls}
             />
             <datalist id="prazos">{LEAD_TIME_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
+          </div>
+
+          <div>
+            <label htmlFor="p-selo" className="block text-sm font-medium text-gray-700 mb-1">Selo no card <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <input
+              id="p-selo" type="text" list="selos" maxLength={20} placeholder="Ex: Novo, Promoção"
+              value={formData.badge} onChange={e => setFormData(p => ({ ...p, badge: e.target.value }))} className={inputCls}
+            />
+            <datalist id="selos">{BADGE_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
+          </div>
+          <div>
+            <label htmlFor="p-secao" className="block text-sm font-medium text-gray-700 mb-1">Seção na vitrine <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <select id="p-secao" value={formData.section} onChange={e => setFormData(p => ({ ...p, section: e.target.value }))} className={`${inputCls} bg-white`}>
+              <option value="">Nenhuma (só na lista geral)</option>
+              <option value="destaque">Destaques</option>
+              <option value="popular">Mais pedidos</option>
+            </select>
           </div>
 
           <div className="sm:col-span-2">

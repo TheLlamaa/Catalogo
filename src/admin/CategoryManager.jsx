@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { useUI } from '../components/UIContext';
 import { optionsFor, auraDot, auraLabel } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 
-export default function CategoryManager({ categories, onSave, onDelete }) {
+export default function CategoryManager({ categories, onSave, onDelete, onReorder }) {
   const { confirm } = useUI();
   const { auraLib } = useSettings();
   const [editingCategory, setEditingCategory] = useState(null);
@@ -13,6 +13,15 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
   const handleDelete = async (category) => {
     const ok = await confirm({ title: 'Excluir categoria', message: `Excluir “${category.name}”? Os produtos continuam existindo.` });
     if (ok) onDelete(category.id);
+  };
+
+  // A ordem desta lista é a ordem do menu de categorias na vitrine
+  const move = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= categories.length) return;
+    const ids = categories.map(c => c.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    onReorder(ids);
   };
 
   return (
@@ -27,10 +36,12 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
               <Plus className="w-4 h-4" /> Nova Categoria
             </button>
           </div>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">A ordem desta lista é a ordem do menu de categorias na vitrine. Categoria nova entra no fim.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
+                  <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-6 py-4">Nome</th>
                   <th className="px-6 py-4">Aura Padrão</th>
                   <th className="px-6 py-4">Descrição</th>
@@ -39,10 +50,16 @@ export default function CategoryManager({ categories, onSave, onDelete }) {
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {categories.length === 0 ? (
-                  <tr><td colSpan="4" className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada até o momento.</td></tr>
+                  <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada até o momento.</td></tr>
                 ) : (
-                  categories.map(category => (
+                  categories.map((category, index) => (
                     <tr key={category.id} className="hover:bg-gray-50">
+                      <td className="pl-4 pr-0 py-2">
+                        <div className="flex flex-col">
+                          <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${category.name}`} title="Subir" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowUp className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => move(index, 1)} disabled={index === categories.length - 1} aria-label={`Descer ${category.name}`} title="Descer" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowDown className="w-4 h-4" /></button>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
                       <td className="px-6 py-4">
                         {category.auraColor && category.auraColor !== 'none' ? (

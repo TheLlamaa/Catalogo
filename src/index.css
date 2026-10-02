@@ -2,11 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Paleta principal (= azul padrão do Tailwind). O admin pode trocar em Site > Aparência. */
+  --c-blue-50: 239 246 255; --c-blue-100: 219 234 254; --c-blue-200: 191 219 254;
+  --c-blue-300: 147 197 253; --c-blue-400: 96 165 250; --c-blue-500: 59 130 246;
+  --c-blue-600: 37 99 235; --c-blue-700: 29 78 216; --c-blue-800: 30 64 175; --c-blue-900: 30 58 138;
+  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 body {
   margin: 0;
   background-color: #f8fafc;
   color: #0f172a;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
 }
 
 /* ============================================================================

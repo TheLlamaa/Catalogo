@@ -16,6 +16,7 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 3 | `03-seguranca-rls.sql` | Liga a segurança por linha e cria as regras de acesso (visitante só vê produtos ativos e só cria pedidos) |
 | 4 | `04-storage.sql` | Pasta de fotos `fotos_produtos` (pública para ver, só admin envia/apaga) |
 | 5 | `05-tempo-real.sql` | Atualização em tempo real do painel admin |
+| 6 | `06-personalizacao.sql` | Colunas de selo, seção da vitrine (Destaques / Mais pedidos) e ordem manual de produtos e categorias |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 
