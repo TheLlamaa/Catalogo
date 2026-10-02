@@ -8,6 +8,7 @@ import ProductImage from '../components/ProductImage';
 import { useSettings } from '../components/SettingsContext';
 import { auraProps, auraDot } from '../lib/auras';
 import { brl } from '../lib/format';
+import { badgeFor, newProducts } from '../lib/catalog';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -54,6 +55,15 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const visibleCount = shown.key === filterKey ? shown.n : PAGE_SIZE;
   const visibleProducts = filteredProducts.slice(0, visibleCount);
   const remaining = filteredProducts.length - visibleProducts.length;
+
+  // Seções no topo (Destaques, Mais pedidos, Novidades): só na vitrine "limpa", sem filtro nem busca
+  const showShelves = activeCategoryId === 'all' && !searchQuery && sortOrder === 'recent';
+  const activeProducts = products.filter(p => p.active !== false);
+  const shelves = showShelves ? [
+    settings.showFeatured && { id: 'destaque', title: settings.featuredTitle, items: activeProducts.filter(p => p.section === 'destaque') },
+    settings.showPopular && { id: 'popular', title: settings.popularTitle, items: activeProducts.filter(p => p.section === 'popular') },
+    settings.showNew && { id: 'novidades', title: settings.newTitle, items: newProducts(activeProducts) }
+  ].filter(s => s && s.items.length > 0) : [];
 
   if (loadError && products.length === 0 && categories.length === 0) {
     return (
@@ -111,7 +121,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         </nav>
       </aside>
 
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
@@ -140,6 +150,25 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             </select>
           </div>
         </div>
+
+        {shelves.map(shelf => (
+          <section key={shelf.id} className="mb-8" aria-labelledby={`shelf-${shelf.id}`}>
+            <h2 id={`shelf-${shelf.id}`} className="text-lg font-bold text-gray-900 mb-3">{shelf.title}</h2>
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory py-3 px-2 -mx-2 [scrollbar-width:thin]">
+              {shelf.items.map(product => (
+                <div key={product.id} className="w-44 sm:w-56 flex-shrink-0 snap-start">
+                  <ProductCard
+                    product={product}
+                    categories={categories}
+                    onAddToCart={() => onAddToCart(product)}
+                    onClick={() => onOpenProduct(product)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+        {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">Todos os modelos</h2>}
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {settings.customEnabled && <button
@@ -199,7 +228,9 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
 }
 
 function ProductCard({ product, categories, onAddToCart, onClick }) {
-  const { auraLib } = useSettings();
+  const settings = useSettings();
+  const { auraLib } = settings;
+  const badge = badgeFor(product, settings);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const isOutOfStock = product.stock <= 0;
@@ -242,6 +273,9 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
           <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon className="h-10 w-10 opacity-50" /></div>
         )}
 
+        {badge && (
+          <span className="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
+        )}
         {isOutOfStock && (
           <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">Esgotado</span>
         )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import ProductForm from './ProductForm';
@@ -7,7 +7,7 @@ import { optionsFor, auraDot, auraLabel } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 import { brl, isHttpUrl } from '../lib/format';
 
-export default function ProductManager({ products, categories, onSave, onDelete }) {
+export default function ProductManager({ products, categories, onSave, onDelete, onReorder }) {
   const { confirm } = useUI();
   const { auraLib } = useSettings();
   const [editingProduct, setEditingProduct] = useState(null);
@@ -18,6 +18,15 @@ export default function ProductManager({ products, categories, onSave, onDelete 
   const handleDelete = async (product) => {
     const ok = await confirm({ title: 'Excluir produto', message: `Excluir “${product.title}”? Isso não pode ser desfeito.` });
     if (ok) onDelete(product.id);
+  };
+
+  // Sobe ou desce um produto: a ordem desta lista é a ordem da vitrine
+  const move = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= products.length) return;
+    const ids = products.map(p => p.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    onReorder(ids);
   };
 
   // Cópia inativa (rascunho): o admin ajusta e ativa quando estiver pronta
@@ -40,10 +49,12 @@ export default function ProductManager({ products, categories, onSave, onDelete 
               <Plus className="w-4 h-4" /> Novo Produto
             </button>
           </div>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">A ordem desta lista é a ordem da vitrine. Use as setas para subir ou descer. Produto novo entra no topo.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
+                  <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-6 py-4">Produto</th>
                   <th className="px-6 py-4">Estoque</th>
                   <th className="px-6 py-4">Aura (Edição Rápida)</th>
@@ -53,9 +64,9 @@ export default function ProductManager({ products, categories, onSave, onDelete 
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {products.length === 0 ? (
-                  <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
                 ) : (
-                  products.map(product => {
+                  products.map((product, index) => {
                     const displayImage = product.imageUrls?.length > 0 ? product.imageUrls[0] : null;
                     const isActive = product.active !== false;
 
@@ -68,6 +79,12 @@ export default function ProductManager({ products, categories, onSave, onDelete 
 
                     return (
                       <tr key={product.id} className="hover:bg-gray-50">
+                        <td className="pl-4 pr-0 py-2">
+                          <div className="flex flex-col">
+                            <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} title="Subir" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowUp className="w-4 h-4" /></button>
+                            <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} title="Descer" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowDown className="w-4 h-4" /></button>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 flex items-center gap-4">
                           <div className="h-10 w-10 bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
                             {displayImage ? <ProductImage thumb src={displayImage} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="w-4 h-4 text-gray-400" />}
@@ -75,6 +92,12 @@ export default function ProductManager({ products, categories, onSave, onDelete 
                           <div>
                             <span className="text-sm font-medium text-gray-900 block">{product.title}</span>
                             <span className="text-xs text-gray-500 font-medium">{brl(product.price)}</span>
+                            {(product.badge || product.section) && (
+                              <span className="mt-0.5 flex flex-wrap gap-1">
+                                {product.badge && <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">{product.badge}</span>}
+                                {product.section && <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{product.section === 'destaque' ? 'Destaque' : 'Mais pedido'}</span>}
+                              </span>
+                            )}
                             {isHttpUrl(product.modelUrl) && (
                               <a href={product.modelUrl} target="_blank" rel="noreferrer noopener" className="mt-0.5 flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
                                 <Box className="w-3 h-3" /> Abrir modelo

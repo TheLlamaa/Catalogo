@@ -8,10 +8,10 @@ import { statusInfo } from '../lib/format';
 
 export default function AdminView({
   products, categories, customOrders, catalogOrders,
-  onSaveProduct, onDeleteProduct, onSaveCategory, onDeleteCategory,
+  onSaveProduct, onDeleteProduct, onReorderProducts, onSaveCategory, onDeleteCategory, onReorderCategories,
   onDeleteCustomOrder, onDeleteCatalogOrder,
   onSelectCustomOrder, onSelectCatalogOrder, onUpdateOrderStatus,
-  settings, onSaveSettings
+  settings, onSaveSettings, onUndoSettings
 }) {
   const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, site
 
@@ -59,8 +59,8 @@ export default function AdminView({
             onUpdateStatus={(id, status) => onUpdateOrderStatus('custom_orders', id, status)}
           />
         )}
-        {activeTab === 'products' && <ProductManager products={products} categories={categories} onSave={onSaveProduct} onDelete={onDeleteProduct} />}
-        {activeTab === 'categories' && <CategoryManager categories={categories} onSave={onSaveCategory} onDelete={onDeleteCategory} />}
+        {activeTab === 'products' && <ProductManager products={products} categories={categories} onSave={onSaveProduct} onDelete={onDeleteProduct} onReorder={onReorderProducts} />}
+        {activeTab === 'categories' && <CategoryManager categories={categories} onSave={onSaveCategory} onDelete={onDeleteCategory} onReorder={onReorderCategories} />}
         {activeTab === 'auras' && (
           <AuraManager
             lib={settings.auraLib} products={products} categories={categories}
@@ -70,7 +70,7 @@ export default function AdminView({
             }, 'Auras atualizadas.')}
           />
         )}
-        {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} />}
+        {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} onUndo={onUndoSettings} />}
       </div>
     </div>
   );

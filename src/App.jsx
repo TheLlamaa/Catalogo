@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate, Link } from 'react-router-dom';
-import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 
 import { supabase } from './lib/supabase';
-import { mergeSettings } from './lib/settings';
+import { mergeSettings, SETTING_FIELDS } from './lib/settings';
+import { applyTheme, isBannerActive, bannerStyle, socialLinks } from './lib/theme';
 import { lineKey, loadCart, saveCart } from './lib/cart';
 import { statusInfo } from './lib/format';
 
@@ -18,6 +19,7 @@ import CatalogView from './views/CatalogView';
 import CustomRequestView from './views/CustomRequestView';
 import LoginView from './views/LoginView';
 import PrivacyView from './views/PrivacyView';
+import AboutView from './views/AboutView';
 
 import AdminView from './admin/AdminView';
 import { CustomOrderDetailModal, CatalogOrderDetailModal } from './admin/OrderModals';
@@ -63,6 +65,7 @@ function MainLayout() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const lastFetchRef = useRef(0);
+  const schemaRef = useRef(false); // true quando o banco já tem as colunas de selo, vitrine e ordem (SQL 06)
   const knownOrdersRef = useRef({ orders: null, custom: null }); // ids já vistos (null = ainda não carregou)
 
   // Detalhes (admin): guardamos só o id, para o modal acompanhar mudanças de status
@@ -117,8 +120,15 @@ function MainLayout() {
       const modelUrls = {};
       (privateRes.data || []).forEach(r => { if (r.model_url) modelUrls[r.product_id] = r.model_url; });
 
+      schemaRef.current = [...productsRes.data, ...categoriesRes.data].some(row => 'sort_order' in row);
+
+      // Ordem da vitrine: a que o admin definiu; empatou (ou nunca definiu), o mais novo primeiro
+      const byManual = (a, b) => (a.sortOrder - b.sortOrder) || (new Date(b.created_at) - new Date(a.created_at));
       setProducts(productsRes.data.map(p => ({
         ...p,
+        sortOrder: p.sort_order ?? 0,
+        badge: p.badge || '',
+        section: p.section || '',
         categoryIds: p.category_ids || [],
         imageUrls: p.image_urls || [],
         active: p.active ?? true,
@@ -127,8 +137,9 @@ function MainLayout() {
         options: Array.isArray(p.options) ? p.options : [],
         leadTime: p.lead_time || '',
         modelUrl: modelUrls[p.id] || ''
-      })));
-      setCategories(categoriesRes.data.map(c => ({ ...c, auraColor: c.aura_color || 'none' })));
+      })).sort(byManual));
+      setCategories(categoriesRes.data.map(c => ({ ...c, sortOrder: c.sort_order ?? 0, auraColor: c.aura_color || 'none' }))
+        .sort((a, b) => (a.sortOrder - b.sortOrder) || a.name.localeCompare(b.name, 'pt-BR')));
 
       if (customOrdersRes.error) console.error('Erro ao carregar pedidos personalizados:', customOrdersRes.error);
       else if (customOrdersRes.data) {
@@ -220,6 +231,12 @@ function MainLayout() {
       options: product.options || [],
       lead_time: product.leadTime || null
     };
+    if (schemaRef.current) {
+      payload.badge = (product.badge || '').trim() || null;
+      payload.section = product.section || null;
+    } else if ((product.badge || '').trim() || product.section) {
+      toast.info('Selo e vitrine ainda não foram salvos: falta rodar o SQL 06 no Supabase (supabase/06-personalizacao.sql).');
+    }
     if (product.id) payload.id = product.id;
 
     const { data: saved, error } = await supabase.from('products').upsert(payload).select('id').single();
@@ -249,9 +266,21 @@ function MainLayout() {
   };
 
   // Textos e menus do site: changes = { chave: 'valor' | null }. null volta ao padrão.
-  const saveSettings = async (changes, successMessage = 'Site atualizado.') => {
-    const toSave = Object.entries(changes).filter(([, v]) => v !== null).map(([key, value]) => ({ key, value, updated_at: new Date().toISOString() }));
+  // Antes de gravar, guarda o valor antigo das chaves mudadas (settingsBackup) para o botão "Desfazer".
+  const saveSettings = async (changes, successMessage = 'Site atualizado.', { noBackup = false } = {}) => {
+    const now = new Date().toISOString();
+    const toSave = Object.entries(changes).filter(([, v]) => v !== null).map(([key, value]) => ({ key, value, updated_at: now }));
     const toReset = Object.entries(changes).filter(([, v]) => v === null).map(([key]) => key);
+
+    if (noBackup) {
+      toReset.push('settingsBackup');
+    } else {
+      const old = Object.fromEntries(Object.keys(changes).map(k => [k, rawSettings.find(r => r.key === k)?.value ?? null]));
+      const backup = JSON.stringify({ t: now, v: old });
+      if (backup.length <= 5000) toSave.push({ key: 'settingsBackup', value: backup, updated_at: now });
+      else toReset.push('settingsBackup'); // grande demais para desfazer: melhor não oferecer um "desfazer" velho
+    }
+
     if (toSave.length) {
       const { error } = await supabase.from('site_settings').upsert(toSave);
       if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
@@ -265,6 +294,35 @@ function MainLayout() {
     return true;
   };
 
+  // Volta as chaves da última publicação ao valor que tinham antes
+  const undoSettings = async () => {
+    const backup = settings.backup;
+    if (!backup) return false;
+    const allowed = new Set([...SETTING_FIELDS.map(f => f.key), 'customAuras', 'auraOverrides']);
+    const changes = {};
+    for (const [key, value] of Object.entries(backup.v)) {
+      if (allowed.has(key) && (value === null || typeof value === 'string')) changes[key] = value;
+    }
+    return saveSettings(changes, 'Última publicação desfeita.', { noBackup: true });
+  };
+
+  // Reordena produtos ou categorias: recebe os ids na nova ordem e grava só o que mudou
+  const reorder = (table, list, setList) => async (orderedIds) => {
+    if (!schemaRef.current) { toast.error('Para reordenar, falta rodar o SQL 06 no Supabase (supabase/06-personalizacao.sql).'); return false; }
+    const current = new Map(list.map(i => [i.id, i.sortOrder]));
+    const updates = orderedIds.map((id, idx) => ({ id, sort_order: idx + 1 })).filter(u => current.get(u.id) !== u.sort_order);
+    if (!updates.length) return true;
+    const next = new Map(updates.map(u => [u.id, u.sort_order]));
+    setList(prev => prev.map(i => (next.has(i.id) ? { ...i, sortOrder: next.get(i.id) } : i)));
+    const results = await Promise.all(updates.map(u => supabase.from(table).update({ sort_order: u.sort_order }).eq('id', u.id)));
+    const failed = results.find(r => r.error);
+    if (failed) toast.error(`Erro ao reordenar: ${failed.error.message}`);
+    await fetchData();
+    return !failed;
+  };
+  const reorderProducts = reorder('products', products, setProducts);
+  const reorderCategories = reorder('categories', categories, setCategories);
+
   const deleteProduct = async (id) => {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) return toast.error(`Erro ao remover produto: ${error.message}`);
@@ -276,6 +334,7 @@ function MainLayout() {
     const slug = category.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
     const payload = { name: category.name, slug, description: category.description, aura_color: category.auraColor || 'none' };
     if (category.id) payload.id = category.id;
+    else if (schemaRef.current) payload.sort_order = categories.reduce((m, c) => Math.max(m, c.sortOrder), 0) + 1; // nova categoria vai para o fim
 
     const { error } = await supabase.from('categories').upsert(payload);
     if (error) {
@@ -415,6 +474,9 @@ function MainLayout() {
     navigate('/');
   };
 
+  // Cor, fonte, logo/ícone da aba: acompanham o que o admin publicou
+  useEffect(() => { applyTheme(settings); }, [settings]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center font-sans">
@@ -449,8 +511,8 @@ function MainLayout() {
     <SettingsContext.Provider value={settings}>
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex flex-col">
 
-      {isStoreRoute && settings.bannerText && (
-        <div role="status" className="bg-blue-600 text-white text-sm text-center px-4 py-2">{settings.bannerText}</div>
+      {isStoreRoute && isBannerActive(settings) && (
+        <div role="status" className="bg-blue-600 text-white text-sm text-center px-4 py-2" style={bannerStyle(settings)}>{settings.bannerText}</div>
       )}
 
       {/* HEADER 1: VITRINE */}
@@ -458,8 +520,12 @@ function MainLayout() {
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
-              <Package className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
-              <span className="text-lg font-bold tracking-tight">{settings.storeName}</span>
+              {settings.logoUrl ? (
+                <img src={settings.logoUrl} alt={settings.logoShowName ? '' : settings.storeName} className="h-9 max-w-[9rem] object-contain" />
+              ) : (
+                <Package className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
+              )}
+              {(!settings.logoUrl || settings.logoShowName) && <span className="text-lg font-bold tracking-tight">{settings.storeName}</span>}
             </Link>
             <nav className="flex items-center gap-1 sm:gap-2">
               <button
@@ -468,6 +534,15 @@ function MainLayout() {
               >
                 {settings.menuHome}
               </button>
+
+              {settings.aboutEnabled && <button
+                onClick={() => navigate('/sobre')}
+                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${isActive('/sobre') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Info className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">{settings.menuAbout}</span>
+                <span className="sr-only sm:hidden">{settings.menuAbout}</span>
+              </button>}
 
               {settings.customEnabled && <button
                 onClick={() => navigate('/custom')}
@@ -548,19 +623,20 @@ function MainLayout() {
           <Route path="/" element={catalogElement} />
           <Route path="/produto/:id" element={catalogElement} />
           <Route path="/custom" element={settings.customEnabled ? <CustomRequestView onSaveOrder={saveCustomOrder} /> : <Navigate to="/" replace />} />
+          <Route path="/sobre" element={settings.aboutEnabled ? <AboutView /> : <Navigate to="/" replace />} />
           <Route path="/privacidade" element={<PrivacyView />} />
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={
             user ? (
               <AdminView
                 products={products} categories={categories} customOrders={customOrders} catalogOrders={catalogOrders}
-                onSaveProduct={saveProduct} onDeleteProduct={deleteProduct}
-                onSaveCategory={saveCategory} onDeleteCategory={deleteCategory}
+                onSaveProduct={saveProduct} onDeleteProduct={deleteProduct} onReorderProducts={reorderProducts}
+                onSaveCategory={saveCategory} onDeleteCategory={deleteCategory} onReorderCategories={reorderCategories}
                 onDeleteCustomOrder={deleteOrder('custom_orders', setCustomOrders, selectedCustomOrderId, () => setSelectedCustomOrderId(null))}
                 onDeleteCatalogOrder={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
                 onSelectCustomOrder={setSelectedCustomOrderId} onSelectCatalogOrder={setSelectedCatalogOrderId}
                 onUpdateOrderStatus={updateOrderStatus}
-                settings={settings} onSaveSettings={saveSettings}
+                settings={settings} onSaveSettings={saveSettings} onUndoSettings={undoSettings}
               />
             ) : (
               <Navigate to="/login" replace />
@@ -577,7 +653,11 @@ function MainLayout() {
               <span>© {CURRENT_YEAR} {settings.storeName}</span>
               {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600">{settings.menuAbout}</Link>}
+              {socialLinks(settings).map(l => (
+                <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>
+              ))}
               {settings.whatsapp && (
                 <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600">WhatsApp</a>
               )}
@@ -591,9 +671,11 @@ function MainLayout() {
         <ProductDetailModal
           key={selectedProduct.id}
           product={selectedProduct}
+          products={products}
           categories={categories}
           onClose={closeProduct}
           onAddToCart={addToCart}
+          onOpenProduct={openProduct}
         />
       )}
 
