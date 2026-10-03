@@ -148,7 +148,6 @@ const baseRows = [
   check('mobile: logo limitada a 48 px', (await p.locator('header img[src="https://img.test/logo.png"]').evaluate(e => getComputedStyle(e).height)) === '48px');
   check('mobile sem rolagem horizontal da página', !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
   check('mobile: botão Sobre acessível', await p.getByRole('button', { name: 'Como funciona' }).count() === 1);
-  await p.screenshot({ path: '/home/claude/pers-mobile.png' });
   await p.close();
 }
 
