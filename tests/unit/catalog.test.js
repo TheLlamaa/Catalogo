@@ -7,16 +7,17 @@ const ago = (d) => new Date(NOW - d * DAY).toISOString();
 const prod = (id, over = {}) => ({ id, active: true, stock: 5, categoryIds: [], badge: '', created_at: ago(100), ...over });
 
 describe('selos', () => {
-  it('o selo manual vence', () => expect(badgeFor(prod('a', { badge: ' Novo ' }), { lowStockBadge: true })).toBe('Novo'));
+  it('sem controle de estoque, nunca mostra "Últimas unidades"', () => expect(badgeFor(prod('a', { stock: 2 }), { lowStockBadge: true, stockControl: false })).toBe(''));
+  it('o selo manual vence', () => expect(badgeFor(prod('a', { badge: ' Novo ' }), { lowStockBadge: true, stockControl: true })).toBe('Novo'));
   it('"Últimas unidades" automático só se ligado', () => {
     const p = prod('a', { stock: 2 });
-    expect(badgeFor(p, { lowStockBadge: true })).toBe('Últimas unidades');
+    expect(badgeFor(p, { lowStockBadge: true, stockControl: true })).toBe('Últimas unidades');
     expect(badgeFor(p, { lowStockBadge: false })).toBe('');
   });
   it('não marca estoque zerado nem alto', () => {
-    expect(badgeFor(prod('a', { stock: 0 }), { lowStockBadge: true })).toBe('');
-    expect(badgeFor(prod('a', { stock: 4 }), { lowStockBadge: true })).toBe('');
-    expect(badgeFor(prod('a', { stock: 3 }), { lowStockBadge: true })).toBe('Últimas unidades');
+    expect(badgeFor(prod('a', { stock: 0 }), { lowStockBadge: true, stockControl: true })).toBe('');
+    expect(badgeFor(prod('a', { stock: 4 }), { lowStockBadge: true, stockControl: true })).toBe('');
+    expect(badgeFor(prod('a', { stock: 3 }), { lowStockBadge: true, stockControl: true })).toBe('Últimas unidades');
   });
 });
 

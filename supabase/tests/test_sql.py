@@ -87,5 +87,14 @@ ok,m=pedido([{"id":pid,"quantity":-1}],tel='(48) 99999-1212'); check('quantidade
 ok,m=pedido("texto",tel='(48) 99999-1313'); check('items que não é lista recusado',not ok,m)
 ok,m=pedido([{"id":pid,"quantity":1},{"id":pid,"quantity":2}],tel='(48) 99999-1414'); t,_=ultimo(); check('linhas repetidas somam: 180', ok and float(t)==180.0, f"{t}")
 role('anon'); ok,m=att("select public.precificar_pedido()"); check('função não chamável pela API', not ok, m)
+# --- controle de estoque opcional ---
+role('authenticated','admin@teste.com'); ok,m=att("insert into public.site_settings(key,value) values ('stockControl','false') on conflict (key) do update set value=excluded.value"); check('admin desliga o controle de estoque',ok,m)
+ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2020'); check('controle desligado: aceita quantidade acima do estoque',ok,m)
+ok,m=pedido([{"id":zero,"quantity":1}],tel='(48) 99999-2121'); check('controle desligado: aceita produto com estoque 0',ok,m)
+ok,m=pedido([{"id":inat,"quantity":1}],tel='(48) 99999-2222'); check('controle desligado: produto inativo continua recusado',not ok,m)
+role('authenticated','admin@teste.com'); att("update public.site_settings set value='true' where key='stockControl'")
+ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2323'); check('controle ligado de novo: volta a recusar',not ok,m)
+role('authenticated','admin@teste.com'); att("delete from public.site_settings where key='stockControl'")
+ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2424'); check('sem a configuração: padrão é controlar estoque',not ok,m)
 import sys
 print('TUDO OK' if allok else 'HÁ FALHAS'); sys.exit(0 if allok else 1)

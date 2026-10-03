@@ -9,13 +9,19 @@ const ADMIN_REFRESH_MS = 30000; // reserva caso o tempo real do Supabase não es
 // Carrega e mantém atualizados produtos, categorias, configurações do site e (só para o admin) os pedidos.
 export function useCatalogData() {
   const { toast } = useUI();
-  const [products, setProducts] = useState([]);
+  const [rawProducts, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [customOrders, setCustomOrders] = useState([]);
   const [catalogOrders, setCatalogOrders] = useState([]);
   const [user, setUser] = useState(null);
   const [rawSettings, setRawSettings] = useState([]);
   const settings = useMemo(() => mergeSettings(rawSettings), [rawSettings]);
+  // Sem controle de estoque, todo produto ativo está sempre disponível (available infinito); o número guardado fica intacto
+  const trackStock = settings.stockControl;
+  const products = useMemo(
+    () => rawProducts.map(p => ({ ...p, available: trackStock ? p.stock : Infinity })),
+    [rawProducts, trackStock]
+  );
   const userRef = useRef(null); // usuário atual acessível dentro do fetchData
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);

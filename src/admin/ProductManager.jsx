@@ -9,7 +9,7 @@ import { brl, isHttpUrl } from '../lib/format';
 
 export default function ProductManager({ products, categories, onSave, onDelete, onReorder }) {
   const { confirm } = useUI();
-  const { auraLib } = useSettings();
+  const { auraLib, stockControl } = useSettings();
   const [editingProduct, setEditingProduct] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -56,7 +56,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
                   <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-6 py-4">Produto</th>
-                  <th className="px-6 py-4">Estoque</th>
+                  {stockControl && <th className="px-6 py-4">Estoque</th>}
                   <th className="px-6 py-4">Aura (Edição Rápida)</th>
                   <th className="px-6 py-4">Visibilidade</th>
                   <th className="px-6 py-4 text-right">Ações</th>
@@ -64,7 +64,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {products.length === 0 ? (
-                  <tr><td colSpan="6" className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
+                  <tr><td colSpan={stockControl ? 6 : 5} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
                 ) : (
                   products.map((product, index) => {
                     const displayImage = product.imageUrls?.length > 0 ? product.imageUrls[0] : null;
@@ -106,11 +106,11 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                           </div>
                         </td>
 
-                        <td className="px-6 py-4">
+                        {stockControl && <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${product.stock > 0 ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
                             <Layers className="w-3 h-3" /> {product.stock} un.
                           </span>
-                        </td>
+                        </td>}
 
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">

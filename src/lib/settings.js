@@ -109,6 +109,7 @@ export const SETTINGS_SCHEMA = [
   {
     group: 'vitrine', title: 'Produtos',
     fields: [
+      { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: todos os produtos ficam sempre disponíveis, sem limite de quantidade, e o estoque some do site e do cadastro.' },
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Aparece nos produtos com 3 unidades ou menos que não tenham outro selo.' },
       { key: 'relatedEnabled', label: 'Mostrar produtos relacionados', type: 'toggle', default: true, hint: 'Na página do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },

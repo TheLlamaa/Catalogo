@@ -10,8 +10,8 @@ export function useCart({ products, loading, loadError }) {
 
   const cart = useMemo(() => cartLines.map(line => {
     const product = products.find(p => String(p.id) === String(line.id));
-    if (!product || product.active === false || product.stock <= 0) return null;
-    return { ...line, quantity: Math.min(line.quantity, product.stock), product };
+    if (!product || product.active === false || product.available <= 0) return null;
+    return { ...line, quantity: Math.min(line.quantity, product.available), product };
   }).filter(Boolean), [cartLines, products]);
 
   // Depois do primeiro carregamento, tira do carrinho o que saiu de linha ou ficou sem estoque
@@ -28,8 +28,8 @@ export function useCart({ products, loading, loadError }) {
     cartLines.filter(l => String(l.id) === String(productId)).reduce((sum, l) => sum + l.quantity, 0);
 
   const addToCart = (product, options = {}) => {
-    if (product.stock <= 0) { toast.error('Produto esgotado no momento.'); return false; }
-    if (unitsInCart(product.id) >= product.stock) {
+    if (product.available <= 0) { toast.error('Produto esgotado no momento.'); return false; }
+    if (unitsInCart(product.id) >= product.available) {
       toast.error(`Temos apenas ${product.stock} unidade(s) em estoque.`);
       return false;
     }
@@ -45,7 +45,7 @@ export function useCart({ products, loading, loadError }) {
     const line = cartLines.find(l => l.key === key);
     const product = line && products.find(p => String(p.id) === String(line.id));
     if (!line || !product) return;
-    if (delta > 0 && unitsInCart(product.id) + delta > product.stock) {
+    if (delta > 0 && unitsInCart(product.id) + delta > product.available) {
       return toast.error(`Quantidade máxima em estoque atingida (${product.stock} unidades).`);
     }
     if (line.quantity + delta < 1) return;

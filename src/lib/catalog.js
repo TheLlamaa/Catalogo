@@ -9,7 +9,7 @@ export const LOW_STOCK_MAX = 3;
 export const badgeFor = (product, settings) => {
   const manual = (product.badge || '').trim();
   if (manual) return manual;
-  if (settings.lowStockBadge && product.stock > 0 && product.stock <= LOW_STOCK_MAX) return 'Últimas unidades';
+  if (settings.stockControl && settings.lowStockBadge && product.stock > 0 && product.stock <= LOW_STOCK_MAX) return 'Últimas unidades';
   return '';
 };
 
@@ -26,7 +26,7 @@ export const relatedProducts = (product, products, limit = 4) => {
     .filter(p => p.id !== product.id && p.active !== false)
     .map(p => ({ p, shared: (p.categoryIds || []).filter(id => mine.has(id)).length }))
     .filter(x => x.shared > 0)
-    .sort((a, b) => (b.shared - a.shared) || ((b.p.stock > 0) - (a.p.stock > 0)))
+    .sort((a, b) => (b.shared - a.shared) || (((b.p.available ?? b.p.stock) > 0) - ((a.p.available ?? a.p.stock) > 0)))
     .slice(0, limit)
     .map(x => x.p);
 };

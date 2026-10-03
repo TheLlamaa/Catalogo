@@ -14,7 +14,7 @@ const LEAD_TIME_SUGGESTIONS = ['Pronta entrega', 'Sob encomenda: 2 a 3 dias', 'S
 
 export default function ProductForm({ initialData, categories, onSave, onCancel }) {
   const { toast } = useUI();
-  const { auraLib } = useSettings();
+  const { auraLib, stockControl } = useSettings();
 
   // Categoria "Geral": usada quando nenhuma outra é escolhida
   const geralCat = categories.find(c => c.name.toLowerCase() === 'geral');
@@ -158,10 +158,12 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
             <label htmlFor="p-preco" className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
             <input id="p-preco" required type="number" step="0.01" min="0" value={formData.price} onChange={e => setFormData(p => ({ ...p, price: e.target.value }))} className={inputCls} />
           </div>
-          <div>
-            <label htmlFor="p-estoque" className="block text-sm font-medium text-gray-700 mb-1">Quantidade em Estoque *</label>
-            <input id="p-estoque" required type="number" min="0" step="1" value={formData.stock} onChange={e => setFormData(p => ({ ...p, stock: e.target.value }))} className={inputCls} />
-          </div>
+          {stockControl && (
+            <div>
+              <label htmlFor="p-estoque" className="block text-sm font-medium text-gray-700 mb-1">Quantidade em Estoque *</label>
+              <input id="p-estoque" required type="number" min="0" step="1" value={formData.stock} onChange={e => setFormData(p => ({ ...p, stock: e.target.value }))} className={inputCls} />
+            </div>
+          )}
 
           <div className="sm:col-span-2">
             <label htmlFor="p-prazo" className="block text-sm font-medium text-gray-700 mb-1">Prazo de produção <span className="text-gray-400 font-normal">(opcional)</span></label>
