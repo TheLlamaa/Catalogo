@@ -77,9 +77,10 @@ export const normalizeSocial = (key, value) => {
   const v = String(value || '').trim();
   if (!v) return '';
   if (/^https?:\/\//i.test(v)) { try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : ''; } catch { return ''; } }
-  const handle = v.replace(/^@/, '').replace(/[^\w.-]/g, '');
+  // Só @usuario (letras, números, ponto, hífen e sublinhado). Qualquer outra coisa não vira link.
+  if (!/^@?[\w.-]{1,100}$/.test(v)) return '';
   const net = SOCIAL.find(s => s.key === key);
-  return handle && net ? net.base + handle : '';
+  return net ? net.base + v.replace(/^@/, '') : '';
 };
 export const socialLinks = (s) => SOCIAL.map(n => ({ label: n.label, href: normalizeSocial(n.key, s[n.key]) })).filter(l => l.href);
 
@@ -99,7 +100,7 @@ export const bannerStyle = (s) => {
   const color = isHex(s.bannerColor) ? s.bannerColor : null;
   if (s.bannerImage) {
     const overlay = color ? `${color}b3` : 'rgb(var(--c-blue-600) / 0.7)';
-    const url = String(s.bannerImage).replace(/["'\\()\s]/g, encodeURIComponent);
+    const url = String(s.bannerImage).replace(/["'\\()\s]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
     return { backgroundImage: `linear-gradient(${overlay}, ${overlay}), url("${url}")`, backgroundSize: 'cover', backgroundPosition: 'center' };
   }
   return color ? { backgroundColor: color } : {};
