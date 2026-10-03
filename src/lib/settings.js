@@ -25,6 +25,7 @@ export const SETTINGS_SCHEMA = [
     group: 'aparencia', title: 'Logo',
     fields: [
       { key: 'logoUrl', label: 'Logo da loja', type: 'image', default: '', max: 700, hint: 'Aparece no topo no lugar do ícone e vira o ícone da aba do navegador. PNG com fundo transparente fica melhor.' },
+      { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura da logo no topo. No celular ela é limitada a 48 px para não ocupar a tela.' },
       { key: 'logoShowName', label: 'Mostrar o nome da loja ao lado da logo', type: 'toggle', default: true },
     ]
   },
@@ -148,6 +149,7 @@ const validFor = (field, value) => {
     case 'color': return isHex(value);
     case 'select': return field.options.some(o => o.value === value);
     case 'date': return /^\d{4}-\d{2}-\d{2}$/.test(value);
+    case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;

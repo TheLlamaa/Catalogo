@@ -219,6 +219,23 @@ function Field({ f, form, set, resetField }) {
         </select>
       );
       break;
+    case 'range':
+      control = (
+        <div>
+          <div className="flex items-center gap-4">
+            <input id={id} type="range" min={f.min} max={f.max} step={f.step} value={form[f.key]} onChange={e => set(f.key, e.target.value)} className="flex-1 accent-blue-600" />
+            <span className="w-16 text-right text-sm font-mono text-gray-700">{form[f.key]} {f.unit}</span>
+          </div>
+          {f.key === 'logoSize' && (
+            <div className="mt-3 flex items-center h-[7rem] px-4 rounded-md border border-dashed border-gray-300 bg-gray-50 overflow-hidden">
+              {form.logoUrl
+                ? <img src={form.logoUrl} alt="Prévia da logo" style={{ height: `${form.logoSize}px`, maxWidth: '100%' }} className="object-contain" />
+                : <span className="text-xs text-gray-500">Envie uma logo acima para ver a prévia do tamanho.</span>}
+            </div>
+          )}
+        </div>
+      );
+      break;
     case 'date':
       control = <input id={id} type="date" value={form[f.key]} onChange={e => set(f.key, e.target.value)} className={`${inputCls} sm:w-56`} />;
       break;

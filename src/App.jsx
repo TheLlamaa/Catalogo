@@ -518,10 +518,14 @@ function MainLayout() {
       {/* HEADER 1: VITRINE */}
       {isStoreRoute && (
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
               {settings.logoUrl ? (
-                <img src={settings.logoUrl} alt={settings.logoShowName ? '' : settings.storeName} className="h-9 max-w-[9rem] object-contain" />
+                <img
+                  src={settings.logoUrl} alt={settings.logoShowName ? '' : settings.storeName}
+                  style={{ '--logo-h': `${Number(settings.logoSize) || 36}px`, '--logo-w': `${(Number(settings.logoSize) || 36) * 4}px` }}
+                  className="object-contain h-[var(--logo-h)] max-sm:h-[min(var(--logo-h),48px)] max-w-[min(var(--logo-w),60vw)]"
+                />
               ) : (
                 <Package className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
               )}
