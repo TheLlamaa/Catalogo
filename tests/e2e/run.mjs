@@ -37,8 +37,15 @@ const files = readdirSync(here).filter(f => f.endsWith('.mjs') && !['run.mjs', '
 let failed = 0;
 for (const f of files) {
   console.log(`\n=== ${f} ===`);
-  const r = spawnSync('node', [join(here, f)], { env, stdio: 'inherit' });
-  if (r.status !== 0) { failed++; console.log(`>>> ${f} FALHOU`); }
+  const r = spawnSync('node', [join(here, f)], { env, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
+  process.stdout.write(r.stdout || ''); process.stderr.write(r.stderr || '');
+  if (r.status !== 0) {
+    failed++; console.log(`>>> ${f} FALHOU`);
+    // No GitHub Actions, destaca as linhas com problema (aparecem como anotações do check)
+    const bad = `${r.stdout}\n${r.stderr}`.split('\n').filter(l => /^FAIL|Error|PAGEERROR/.test(l)).slice(0, 8);
+    for (const l of bad) console.log(`::error title=${f}::${l.replace(/[\r\n%]/g, ' ').slice(0, 300)}`);
+    if (!bad.length) console.log(`::error title=${f}::saiu com código ${r.status} ${r.signal || ''}`);
+  }
 }
 console.log(failed ? `\n${failed} roteiro(s) com falha` : `\nTodos os ${files.length} roteiros passaram`);
 process.exit(failed ? 1 : 0);
