@@ -16,7 +16,7 @@ export default function ProductDetailModal({ product, products = [], categories,
   const [selected, setSelected] = useState({});
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const productCategories = categories.filter(c => product.categoryIds?.includes(c.id));
-  const isOutOfStock = product.stock <= 0;
+  const isOutOfStock = product.available <= 0;
   const options = product.options || [];
   const missing = options.filter(o => !selected[o.name]).map(o => o.name);
 
@@ -83,9 +83,11 @@ export default function ProductDetailModal({ product, products = [], categories,
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="text-2xl font-extrabold text-blue-600">{brl(product.price)}</span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-              {isOutOfStock ? 'Esgotado' : `${product.stock} em estoque`}
-            </span>
+            {settings.stockControl && (
+              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                {isOutOfStock ? 'Esgotado' : `${product.stock} em estoque`}
+              </span>
+            )}
           </div>
 
           {product.leadTime && (

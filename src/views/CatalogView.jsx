@@ -233,7 +233,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
   const badge = badgeFor(product, settings);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
-  const isOutOfStock = product.stock <= 0;
+  const isOutOfStock = product.available <= 0;
   const hasOptions = (product.options || []).length > 0;
 
   // Herança de Aura: se o produto for 'inherit', usa a da categoria
@@ -282,9 +282,11 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
       </div>
       <div className="p-3 sm:p-5 flex flex-col flex-1">
         <h3 className="text-sm sm:text-base font-semibold text-gray-900 leading-tight mb-1 line-clamp-2">{product.title}</h3>
-        <span className="hidden sm:block text-xs text-gray-500 mb-1 font-medium">
-          {isOutOfStock ? 'Sem estoque disponível' : `${product.stock} unidade(s) disponível(is)`}
-        </span>
+        {settings.stockControl && (
+          <span className="hidden sm:block text-xs text-gray-500 mb-1 font-medium">
+            {isOutOfStock ? 'Sem estoque disponível' : `${product.stock} unidade(s) disponível(is)`}
+          </span>
+        )}
         {product.leadTime && (
           <span className="hidden sm:flex text-xs text-gray-500 mb-2 font-medium items-center gap-1"><Clock className="w-3 h-3" /> {product.leadTime}</span>
         )}

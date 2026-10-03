@@ -134,7 +134,11 @@ declare
   novos jsonb := '[]'::jsonb;
   soma numeric := 0;
   qtd int;
+  controla boolean;
 begin
+  -- Painel > Site > Produtos > "Controlar estoque": desligado, o estoque não limita o pedido
+  select coalesce((select value <> 'false' from public.site_settings where key = 'stockControl'), true) into controla;
+
   if jsonb_typeof(NEW.items) is distinct from 'array' or jsonb_array_length(NEW.items) not between 1 and 50 then
     raise exception 'Pedido sem itens válidos.';
   end if;
@@ -155,7 +159,7 @@ begin
     if not found or prod.active is not true then
       raise exception 'Um dos produtos do carrinho não está mais disponível.';
     end if;
-    if coalesce(prod.stock, 0) < qtd then
+    if controla and coalesce(prod.stock, 0) < qtd then
       raise exception 'Estoque insuficiente para "%". Atualize o carrinho.', prod.title;
     end if;
 

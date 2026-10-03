@@ -24,6 +24,11 @@ describe('estrutura do painel', () => {
 });
 
 describe('mergeSettings', () => {
+  it('controle de estoque: ligado por padrão, desliga com "false"', () => {
+    expect(mergeSettings([]).stockControl).toBe(true);
+    expect(mergeSettings([{ key: 'stockControl', value: 'false' }]).stockControl).toBe(false);
+    expect(mergeSettings([{ key: 'stockControl', value: 'lixo' }]).stockControl).toBe(true);
+  });
   it('sem linhas, devolve os padrões', () => {
     const s = mergeSettings([]);
     expect(s.primaryColor).toBe('');
