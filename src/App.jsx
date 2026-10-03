@@ -5,7 +5,7 @@ import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink,
 import { supabase } from './lib/supabase';
 import { mergeSettings, SETTING_FIELDS } from './lib/settings';
 import { applyTheme, isBannerActive, bannerStyle, socialLinks } from './lib/theme';
-import { lineKey, loadCart, saveCart } from './lib/cart';
+import { useCart } from './hooks/useCart';
 import { statusInfo } from './lib/format';
 
 import UIProvider from './components/UIProvider';
@@ -64,6 +64,10 @@ function MainLayout() {
   const userRef = useRef(null); // usuário atual acessível dentro do fetchData
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const {
+    cart, cartTotal, cartCount, addToCart, updateCartQuantity, removeFromCart, clearCart,
+    isCartOpen, openCart, closeCart,
+  } = useCart({ products, loading, loadError });
   const lastFetchRef = useRef(0);
   const schemaRef = useRef(false); // true quando o banco já tem as colunas de selo, vitrine e ordem (SQL 06)
   const knownOrdersRef = useRef({ orders: null, custom: null }); // ids já vistos (null = ainda não carregou)
@@ -71,10 +75,6 @@ function MainLayout() {
   // Detalhes (admin): guardamos só o id, para o modal acompanhar mudanças de status
   const [selectedCustomOrderId, setSelectedCustomOrderId] = useState(null);
   const [selectedCatalogOrderId, setSelectedCatalogOrderId] = useState(null);
-
-  // Carrinho: só id, quantidade e opções ficam no navegador
-  const [cartLines, setCartLines] = useState(loadCart);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Produto aberto pelo endereço /produto/:id
   const productMatch = useMatch('/produto/:id');
@@ -374,7 +374,7 @@ function MainLayout() {
       toast.error(`Não foi possível enviar o pedido: ${error.message}`);
       return false;
     }
-    setCartLines([]);
+    clearCart();
     if (userRef.current) await fetchData();
     return true;
   };
@@ -393,57 +393,6 @@ function MainLayout() {
     const patch = (list) => list.map(o => (o.id === id ? { ...o, status } : o));
     if (table === 'orders') setCatalogOrders(patch); else setCustomOrders(patch);
   };
-
-  // -------------------------------------------------------------------------
-  // Carrinho
-  // -------------------------------------------------------------------------
-  const cart = useMemo(() => cartLines.map(line => {
-    const product = products.find(p => String(p.id) === String(line.id));
-    if (!product || product.active === false || product.stock <= 0) return null;
-    return { ...line, quantity: Math.min(line.quantity, product.stock), product };
-  }).filter(Boolean), [cartLines, products]);
-
-  // Depois do primeiro carregamento, tira do carrinho o que saiu de linha ou ficou sem estoque
-  useEffect(() => {
-    if (loading || loadError) return;
-    const valid = cart.map(({ key, id, quantity, options }) => ({ key, id, quantity, options }));
-    const changed = valid.length !== cartLines.length || valid.some((l, i) => l.key !== cartLines[i].key || l.quantity !== cartLines[i].quantity);
-    if (changed) setCartLines(valid);
-  }, [loading, loadError, cart, cartLines]);
-
-  useEffect(() => { saveCart(cartLines); }, [cartLines]);
-
-  const unitsInCart = (productId) =>
-    cartLines.filter(l => String(l.id) === String(productId)).reduce((sum, l) => sum + l.quantity, 0);
-
-  const addToCart = (product, options = {}) => {
-    if (product.stock <= 0) { toast.error('Produto esgotado no momento.'); return false; }
-    if (unitsInCart(product.id) >= product.stock) {
-      toast.error(`Temos apenas ${product.stock} unidade(s) em estoque.`);
-      return false;
-    }
-    const key = lineKey(product.id, options);
-    setCartLines(prev => (prev.some(l => l.key === key)
-      ? prev.map(l => (l.key === key ? { ...l, quantity: l.quantity + 1 } : l))
-      : [...prev, { key, id: product.id, quantity: 1, options }]));
-    setIsCartOpen(true);
-    return true;
-  };
-
-  const updateCartQuantity = (key, delta) => {
-    const line = cartLines.find(l => l.key === key);
-    const product = line && products.find(p => String(p.id) === String(line.id));
-    if (!line || !product) return;
-    if (delta > 0 && unitsInCart(product.id) + delta > product.stock) {
-      return toast.error(`Quantidade máxima em estoque atingida (${product.stock} unidades).`);
-    }
-    if (line.quantity + delta < 1) return;
-    setCartLines(prev => prev.map(l => (l.key === key ? { ...l, quantity: l.quantity + delta } : l)));
-  };
-
-  const removeFromCart = (key) => setCartLines(prev => prev.filter(l => l.key !== key));
-  const cartTotal = cart.reduce((acc, l) => acc + l.product.price * l.quantity, 0);
-  const cartCount = cart.reduce((acc, l) => acc + l.quantity, 0);
 
   // -------------------------------------------------------------------------
   // Produto aberto por endereço (/produto/:id)
@@ -577,7 +526,7 @@ function MainLayout() {
               <div className="w-px h-6 bg-gray-300 mx-2"></div>
 
               <button
-                onClick={() => setIsCartOpen(true)}
+                onClick={openCart}
                 aria-label={`Abrir orçamento (${cartCount} item(ns))`}
                 className="relative p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
               >
@@ -703,7 +652,7 @@ function MainLayout() {
 
       {isStoreRoute && (
         <CartDrawer
-          isOpen={isCartOpen} onClose={() => setIsCartOpen(false)}
+          isOpen={isCartOpen} onClose={closeCart}
           cart={cart} updateQuantity={updateCartQuantity} removeItem={removeFromCart} total={cartTotal}
           onCheckout={saveCatalogOrder}
         />
