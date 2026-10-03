@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
-export const BASE = process.env.E2E_BASE || 'http://localhost:4173';
+export const BASE = process.env.E2E_BASE || 'http://127.0.0.1:4173';
 
 const CANDIDATES = [
   process.env.E2E_CHROMIUM,
