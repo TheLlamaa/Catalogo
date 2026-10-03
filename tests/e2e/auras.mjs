@@ -79,7 +79,7 @@ const row = [{ key: 'customAuras', value: JSON.stringify(AURA) }];
   await page.getByRole('button', { name: 'Remover cor 3' }).click();
   check('remover cor funciona e mantém mínimo de 2', (await page.getByLabel(/^Cor \d$/).count()) === 2 && (await page.getByRole('button', { name: /Remover cor/ }).count()) === 0);
   await page.getByRole('button', { name: 'Adicionar cor' }).click(); await page.getByLabel('Cor 3', { exact: true }).fill('#ff00aa');
-  await page.screenshot({ path: '/home/claude/auras-form.png' }); await page.getByRole('button', { name: 'Salvar aura' }).click(); await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Salvar aura' }).click(); await page.waitForTimeout(500);
   const post = st.writes.find(w => w.method === 'POST');
   const saved = JSON.parse(post.body[0].value);
   check('salva as duas auras como JSON em customAuras', post.body[0].key === 'customAuras' && saved.length === 2 && saved[1].name === 'Neon' && saved[1].colors.join() === '#00ff88,#0088ff,#ff00aa' && /^[a-z0-9]{3,12}$/.test(saved[1].id), post.body[0].value.slice(0, 120));
@@ -98,7 +98,7 @@ const row = [{ key: 'customAuras', value: JSON.stringify(AURA) }];
   check('depois de confirmar, só sobra a aura Neon', last.length === 1 && last[0].name === 'Neon');
   await page.getByRole('button', { name: 'Excluir Neon' }).click(); await page.getByRole('dialog').getByRole('button', { name: /Excluir/ }).click(); await page.waitForTimeout(500);
   check('apagar a última aura remove a chave do banco (DELETE)', st.writes.some(w => w.method === 'DELETE' && decodeURIComponent(w.query).includes('customAuras')));
-  await page.screenshot({ path: '/home/claude/auras.png' });
+
   await ctx.close();
 }
 await browser.close();
