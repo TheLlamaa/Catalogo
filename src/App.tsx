@@ -10,6 +10,7 @@ import { useAdminActions } from './hooks/useAdminActions';
 import UIProvider from './components/UIProvider';
 import { useUI } from './components/UIContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import type { Product } from './types';
 import { SettingsContext } from './components/SettingsContext';
 import ProductDetailModal from './features/vitrine/ProductDetailModal';
 import CartDrawer from './features/vitrine/CartDrawer';
@@ -63,8 +64,8 @@ function MainLayout() {
     isCartOpen, openCart, closeCart,
   } = useCart({ products, loading, loadError });
   // Detalhes (admin): guardamos só o id, para o modal acompanhar mudanças de status
-  const [selectedCustomOrderId, setSelectedCustomOrderId] = useState(null);
-  const [selectedCatalogOrderId, setSelectedCatalogOrderId] = useState(null);
+  const [selectedCustomOrderId, setSelectedCustomOrderId] = useState<string | null>(null);
+  const [selectedCatalogOrderId, setSelectedCatalogOrderId] = useState<string | null>(null);
 
   // Produto aberto pelo endereço /produto/:id
   const productMatch = useMatch('/produto/:id');
@@ -99,7 +100,7 @@ function MainLayout() {
     return () => { document.title = previous; };
   }, [productTitle, settings.storeName]);
 
-  const openProduct = (product) => navigate({ pathname: `/produto/${product.id}`, search: location.search });
+  const openProduct = (product: Product) => navigate({ pathname: `/produto/${product.id}`, search: location.search });
   const closeProduct = () => navigate({ pathname: '/', search: location.search });
 
   const handleLogout = async () => {

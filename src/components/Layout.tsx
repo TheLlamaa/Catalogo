@@ -1,14 +1,19 @@
+import type { CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
+import type { Settings as SiteSettings } from '../lib/settings';
+import type { AuthUser } from '../services/auth';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 // Cabeçalho da vitrine: logo, menus, acesso ao painel e carrinho
-export function StoreHeader({ settings, user, cartCount, onOpenCart }) {
+interface StoreHeaderProps { settings: SiteSettings; user: AuthUser | null; cartCount: number; onOpenCart: () => void }
+
+export function StoreHeader({ settings, user, cartCount, onOpenCart }: StoreHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path;
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2 flex items-center justify-between">
@@ -16,7 +21,7 @@ export function StoreHeader({ settings, user, cartCount, onOpenCart }) {
           {settings.logoUrl ? (
             <img
               src={settings.logoUrl} alt={settings.logoShowName ? '' : settings.storeName}
-              style={{ '--logo-h': `${Number(settings.logoSize) || 36}px`, '--logo-w': `${(Number(settings.logoSize) || 36) * 4}px` }}
+              style={{ '--logo-h': `${Number(settings.logoSize) || 36}px`, '--logo-w': `${(Number(settings.logoSize) || 36) * 4}px` } as CSSProperties} // variáveis CSS não existem em CSSProperties
               className="object-contain h-[var(--logo-h)] max-sm:h-[min(var(--logo-h),48px)] max-w-[min(var(--logo-w),60vw)]"
             />
           ) : (
@@ -88,7 +93,7 @@ export function StoreHeader({ settings, user, cartCount, onOpenCart }) {
 }
 
 // Cabeçalho do painel administrativo
-export function AdminHeader({ onLogout }) {
+export function AdminHeader({ onLogout }: { onLogout: () => void }) {
   return (
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -119,7 +124,7 @@ export function AdminHeader({ onLogout }) {
 }
 
 // Rodapé da vitrine
-export function StoreFooter({ settings }) {
+export function StoreFooter({ settings }: { settings: SiteSettings }) {
   return (
     <footer className="border-t border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">

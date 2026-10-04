@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { UserPlus, Trash2, ShieldCheck, Users } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { normalizeEmail, validateAdminEmail } from '../../../lib/admins';
@@ -6,11 +7,22 @@ import { addAdmin, listAdmins, removeAdmin } from '../../../services/team';
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500';
 
+// Linha da tabela admins (colunas pedidas em listAdmins)
+interface AdminRow {
+  email: string;
+  added_by: string | null;
+  created_at: string;
+}
+
+interface TeamManagerProps {
+  currentEmail?: string | null;
+}
+
 // Quem tem acesso ao painel. O acesso é pelo e-mail com o qual a pessoa entra (login do Supabase).
-export default function TeamManager({ currentEmail }) {
+export default function TeamManager({ currentEmail }: TeamManagerProps) {
   const { confirm, toast } = useUI();
   const me = normalizeEmail(currentEmail);
-  const [admins, setAdmins] = useState(null); // null = carregando
+  const [admins, setAdmins] = useState<AdminRow[] | null>(null); // null = carregando
   const [loadError, setLoadError] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -19,11 +31,11 @@ export default function TeamManager({ currentEmail }) {
   const load = useCallback(async () => {
     const { data, error: e } = await listAdmins();
     if (e) { setLoadError(e.message || 'Erro ao carregar a equipe.'); setAdmins([]); return; }
-    setLoadError(''); setAdmins(data || []);
+    setLoadError(''); setAdmins((data || []) as AdminRow[]);
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const submit = async (ev) => {
+  const submit = async (ev: FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
     const msg = validateAdminEmail(email, (admins || []).map(a => a.email));
     if (msg) { setError(msg); return; }
@@ -36,7 +48,7 @@ export default function TeamManager({ currentEmail }) {
     load();
   };
 
-  const remove = async (a) => {
+  const remove = async (a: AdminRow) => {
     const ok = await confirm({ title: 'Remover acesso', message: `Remover o acesso de ${a.email}? A pessoa deixa de entrar no painel na hora.`, confirmLabel: 'Remover' });
     if (!ok) return;
     const { error: e } = await removeAdmin(a.email);

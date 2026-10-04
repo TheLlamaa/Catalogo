@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { X, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
@@ -6,29 +7,61 @@ import { uploadProductImage } from '../../../services/storage';
 import { optionsFor } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { isHttpUrl } from '../../../lib/format';
+import type { Category, Product, ProductOption, StoredProduct } from '../../../types';
 
 const MAX_OPTION_GROUPS = 4;
 const MAX_OPTION_VALUES = 12;
 const BADGE_SUGGESTIONS = ['Novo', 'Sob encomenda', 'Últimas unidades', 'Promoção'];
 const LEAD_TIME_SUGGESTIONS = ['Pronta entrega', 'Sob encomenda: 2 a 3 dias', 'Sob encomenda: 5 a 7 dias', 'Sob encomenda: 10 a 15 dias'];
 
-export default function ProductForm({ initialData, categories, onSave, onCancel }) {
+interface ProductFormProps {
+  initialData: Product | null;
+  categories: Category[];
+  onSave: (product: Partial<StoredProduct>) => Promise<unknown>;
+  onCancel: () => void;
+}
+
+// Estado do formulário: preço e estoque ficam como texto (campos numéricos), opções com valores separados por vírgula
+interface ProductFormState {
+  id: string | undefined;
+  title: string;
+  description: string;
+  price: string;
+  stock: string;
+  categoryIds: string[];
+  imageUrls: string[];
+  active: boolean;
+  auraColor: string;
+  leadTime: string;
+  badge: string;
+  section: string;
+  modelUrl: string;
+  options: { name: string; values: string }[];
+}
+
+// Texto de um erro desconhecido (Error, objeto com message ou qualquer outro valor)
+const errorText = (err: unknown): string => (
+  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string' && err.message ? err.message : String(err)
+);
+
+export default function ProductForm({ initialData, categories, onSave, onCancel }: ProductFormProps) {
   const { toast } = useUI();
   const { auraLib, stockControl, leadTimeEnabled, aurasEnabled, modelLinkEnabled } = useSettings();
 
   // Categoria "Geral": usada quando nenhuma outra é escolhida
   const geralCat = categories.find(c => c.name.toLowerCase() === 'geral');
   const geralId = geralCat ? geralCat.id : null;
-  const defaultCategoryIds = initialData?.categoryIds?.length > 0 ? initialData.categoryIds : (geralId ? [geralId] : []);
+  const initialCategoryIds = initialData?.categoryIds ?? [];
+  const defaultCategoryIds = initialCategoryIds.length > 0 ? initialCategoryIds : (geralId ? [geralId] : []);
 
-  const [formData, setFormData] = useState({
-    id: initialData?.id || null,
+  const [formData, setFormData] = useState<ProductFormState>({
+    id: initialData?.id || undefined,
     title: initialData?.title || '',
     description: initialData?.description || '',
-    price: initialData?.price || '',
-    stock: initialData?.stock ?? 1,
+    price: initialData?.price ? String(initialData.price) : '',
+    stock: String(initialData?.stock ?? 1),
     categoryIds: defaultCategoryIds,
-    imageUrls: initialData?.imageUrls?.length > 0 ? initialData.imageUrls : [],
+    imageUrls: initialData?.imageUrls?.length ? initialData.imageUrls : [],
     active: initialData?.active ?? true,
     auraColor: initialData?.auraColor || 'inherit',
     leadTime: initialData?.leadTime || '',
@@ -42,25 +75,25 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
   const [isUploading, setIsUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith('image/'));
     e.target.value = '';
     if (!files.length) return;
     setIsUploading(true);
-    const newImages = [];
+    const newImages: string[] = [];
     for (const file of files) {
       try {
         newImages.push(await uploadProductImage(file));
       } catch (err) {
         console.error(err);
-        toast.error(`Erro ao enviar imagem: ${err.message || err}`);
+        toast.error(`Erro ao enviar imagem: ${errorText(err)}`);
       }
     }
     setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, ...newImages] }));
     setIsUploading(false);
   };
 
-  const moveImage = (idx, direction) => {
+  const moveImage = (idx: number, direction: number) => {
     setFormData(prev => {
       const target = idx + direction;
       if (target < 0 || target >= prev.imageUrls.length) return prev;
@@ -70,14 +103,14 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
     });
   };
 
-  const handleCategoryToggle = (catId) => {
+  const handleCategoryToggle = (catId: string) => {
     setFormData(prev => {
       let newCats = [...prev.categoryIds];
       if (newCats.includes(catId)) {
         newCats = newCats.filter(id => id !== catId);
         if (newCats.length === 0 && geralId) newCats = [geralId]; // sem categoria: volta para "Geral"
       } else if (catId === geralId) {
-        newCats = [geralId]; // marcar "Geral" remove as outras
+        newCats = [catId]; // marcar "Geral" remove as outras
       } else {
         newCats = newCats.filter(id => id !== geralId);
         newCats.push(catId);
@@ -86,14 +119,14 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
     });
   };
 
-  const updateOption = (idx, patch) => setFormData(prev => ({
+  const updateOption = (idx: number, patch: Partial<ProductFormState['options'][number]>) => setFormData(prev => ({
     ...prev, options: prev.options.map((o, i) => (i === idx ? { ...o, ...patch } : o))
   }));
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const options = [];
+    const options: ProductOption[] = [];
     for (const o of formData.options) {
       const name = o.name.trim();
       const values = [...new Set(o.values.split(',').map(v => v.trim()).filter(Boolean))].slice(0, MAX_OPTION_VALUES);

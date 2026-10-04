@@ -4,6 +4,7 @@ import {
   Search, SlidersHorizontal, Sparkles, ArrowRight, ShoppingCart,
   ChevronLeft, ChevronRight, Image as ImageIcon, Clock, AlertCircle
 } from 'lucide-react';
+import type { Category, Product } from '../../types';
 import ProductImage from './ProductImage';
 import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
@@ -12,7 +13,17 @@ import { badgeFor, newProducts } from '../../lib/catalog';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
-export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }) {
+interface CatalogViewProps {
+  products: Product[];
+  categories: Category[];
+  loadError: string | null;
+  onRetry: () => void;
+  onAddToCart: (product: Product) => boolean;
+  onOpenProduct: (product: Product) => void;
+  onOpenCustomRequest: () => void;
+}
+
+export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }: CatalogViewProps) {
   const settings = useSettings();
   // Filtros ficam no endereço: ?categoria=chaveiros&q=vaso&ordem=price_asc
   const [params, setParams] = useSearchParams();
@@ -20,7 +31,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const searchQuery = params.get('q') || '';
   const sortOrder = params.get('ordem') || 'recent';
 
-  const updateParam = (key, value, defaultValue) => {
+  const updateParam = (key: string, value: string, defaultValue: string) => {
     const next = new URLSearchParams(params);
     if (!value || value === defaultValue) next.delete(key); else next.set(key, value);
     setParams(next, { replace: true });
@@ -32,7 +43,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
 
   const activeCategory = categories.find(c => (c.slug && c.slug === categoryParam) || String(c.id) === categoryParam);
   const activeCategoryId = activeCategory ? activeCategory.id : 'all';
-  const categoryKey = (c) => c.slug || String(c.id);
+  const categoryKey = (c: Category) => c.slug || String(c.id);
 
   const query = searchQuery.toLowerCase();
   const filteredProducts = products.filter(product => {
@@ -59,11 +70,11 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   // Seções no topo (Destaques, Mais pedidos, Novidades): só na vitrine "limpa", sem filtro nem busca
   const showShelves = activeCategoryId === 'all' && !searchQuery && sortOrder === 'recent';
   const activeProducts = products.filter(p => p.active !== false);
-  const shelves = showShelves ? [
+  const shelves: { id: string; title: string; items: Product[] }[] = showShelves ? [
     settings.showFeatured && { id: 'destaque', title: settings.featuredTitle, items: activeProducts.filter(p => p.section === 'destaque') },
     settings.showPopular && { id: 'popular', title: settings.popularTitle, items: activeProducts.filter(p => p.section === 'popular') },
     settings.showNew && { id: 'novidades', title: settings.newTitle, items: newProducts(activeProducts) }
-  ].filter(s => s && s.items.length > 0) : [];
+  ].filter((s): s is { id: string; title: string; items: Product[] } => !!s && s.items.length > 0) : [];
 
   if (loadError && products.length === 0 && categories.length === 0) {
     return (
@@ -227,7 +238,14 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   );
 }
 
-function ProductCard({ product, categories, onAddToCart, onClick }) {
+interface ProductCardProps {
+  product: Product;
+  categories: Category[];
+  onAddToCart: () => void;
+  onClick: () => void;
+}
+
+function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardProps) {
   const settings = useSettings();
   const { auraLib } = settings;
   const badge = badgeFor(product, settings);
@@ -240,13 +258,13 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
   let effectiveAuraKey = product.auraColor && product.auraColor !== 'inherit' ? product.auraColor : 'none';
   if ((!product.auraColor || product.auraColor === 'inherit') && product.categoryIds?.length > 0) {
     const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
-    if (matchedCategory) effectiveAuraKey = matchedCategory.auraColor;
+    if (matchedCategory?.auraColor) effectiveAuraKey = matchedCategory.auraColor;
   }
   if (!settings.aurasEnabled) effectiveAuraKey = 'none';
   const aura = auraProps(effectiveAuraKey, auraLib);
 
-  const nextImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % images.length); };
-  const prevImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); };
+  const nextImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % images.length); };
+  const prevImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); };
 
   const card = (
     // Card clicável com botões internos: não pode ser <button>; teclado tratado em onKeyDown.

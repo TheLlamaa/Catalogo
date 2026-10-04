@@ -54,15 +54,15 @@ src/
     admin/      painel do dono, uma pasta por área: pedidos, produtos, categorias, auras, site, equipe, erros
     auth/       login do painel
   components/   peças compartilhadas (cabeçalho, diálogos, contexto)
-  hooks/        (TypeScript) carga de dados (useCatalogData), ações do painel (useAdminActions) e carrinho (useCart)
-  lib/          (TypeScript) regras puras e testadas (pedidos, relatório, tema, configurações…); não conhece o banco
-  services/     (TypeScript) ÚNICO lugar que fala com o Supabase (catálogo, pedidos, config, equipe, login, fotos, erros)
+  hooks/        carga de dados (useCatalogData), ações do painel (useAdminActions) e carrinho (useCart)
+  lib/          regras puras e testadas (pedidos, relatório, tema, configurações…); não conhece o banco
+  services/     ÚNICO lugar que fala com o Supabase (catálogo, pedidos, config, equipe, login, fotos, erros)
   views/        páginas da vitrine
 supabase/       SQL do banco, testes do banco e função de aviso no Telegram
 tests/          testes unitários e de navegador
 ```
 
-TypeScript: `lib/`, `services/`, `hooks/` e `types.ts` são tipados em modo estrito (`npm run typecheck`, também no CI). As telas (`.jsx`) migram aos poucos: renomeie para `.tsx` e o compilador passa a checá-las.
+TypeScript estrito em todo o código (`npm run typecheck`, também no CI): telas, hooks, serviços e regras são `.ts`/`.tsx`; tipos de domínio ficam em `src/types.ts`.
 
 Regra de arquitetura (garantida por teste): telas e hooks nunca importam o Supabase direto; passam por `src/services/`. Trocar de banco ou adicionar cache mexe só nessa pasta.
 

@@ -1,36 +1,41 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { UIContext } from './UIContext';
 import Dialog from './Dialog';
+import type { ConfirmOptions, Toast } from '../types';
 
-const TOAST_STYLE = {
+type ToastType = 'success' | 'error' | 'info';
+interface ToastItem { id: number; type: ToastType; message: string }
+interface ConfirmState extends ConfirmOptions { resolve: (v: boolean) => void }
+
+const TOAST_STYLE: Record<ToastType, { icon: typeof Info; cls: string; iconCls: string }> = {
   success: { icon: CheckCircle2, cls: 'bg-green-50 border-green-200 text-green-900', iconCls: 'text-green-600' },
   error: { icon: AlertCircle, cls: 'bg-red-50 border-red-200 text-red-900', iconCls: 'text-red-600' },
   info: { icon: Info, cls: 'bg-blue-50 border-blue-200 text-blue-900', iconCls: 'text-blue-600' }
 };
 
-export default function UIProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
-  const [confirmState, setConfirmState] = useState(null);
+export default function UIProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const idRef = useRef(0);
 
-  const dismiss = useCallback((id) => setToasts(list => list.filter(t => t.id !== id)), []);
+  const dismiss = useCallback((id: number) => setToasts(list => list.filter(t => t.id !== id)), []);
 
-  const push = useCallback((type, message) => {
+  const push = useCallback((type: ToastType, message: string) => {
     const id = ++idRef.current;
     setToasts(list => [...list.slice(-3), { id, type, message }]);
     setTimeout(() => dismiss(id), type === 'error' ? 7000 : 4500);
   }, [dismiss]);
 
-  const toast = useMemo(() => ({
-    success: (m) => push('success', m),
-    error: (m) => push('error', m),
-    info: (m) => push('info', m)
+  const toast = useMemo<Toast>(() => ({
+    success: (m: string) => push('success', m),
+    error: (m: string) => push('error', m),
+    info: (m: string) => push('info', m)
   }), [push]);
 
-  const confirm = useCallback((options) => new Promise(resolve => setConfirmState({ ...options, resolve })), []);
+  const confirm = useCallback((options: ConfirmOptions) => new Promise<boolean>(resolve => setConfirmState({ ...options, resolve })), []);
 
-  const answer = (value) => {
+  const answer = (value: boolean) => {
     confirmState?.resolve(value);
     setConfirmState(null);
   };

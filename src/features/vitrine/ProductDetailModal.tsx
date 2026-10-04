@@ -4,16 +4,26 @@ import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
+import type { Category, Product } from '../../types';
 import { brl } from '../../lib/format';
 import { badgeFor, relatedProducts } from '../../lib/catalog';
 
-export default function ProductDetailModal({ product, products = [], categories, onClose, onAddToCart, onOpenProduct }) {
+interface ProductDetailModalProps {
+  product: Product;
+  products?: Product[];
+  categories: Category[];
+  onClose: () => void;
+  onAddToCart: (product: Product, options?: Record<string, string>) => boolean;
+  onOpenProduct?: (product: Product) => void;
+}
+
+export default function ProductDetailModal({ product, products = [], categories, onClose, onAddToCart, onOpenProduct }: ProductDetailModalProps) {
   const { toast } = useUI();
   const settings = useSettings();
   const badge = badgeFor(product, settings);
   const related = settings.relatedEnabled && onOpenProduct ? relatedProducts(product, products) : [];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [selected, setSelected] = useState({});
+  const [selected, setSelected] = useState<Record<string, string>>({});
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const productCategories = categories.filter(c => product.categoryIds?.includes(c.id));
   const isOutOfStock = product.available <= 0;
@@ -124,7 +134,7 @@ export default function ProductDetailModal({ product, products = [], categories,
               <ul className="grid grid-cols-2 gap-3">
                 {related.map(rp => (
                   <li key={rp.id}>
-                    <button type="button" onClick={() => onOpenProduct(rp)} className="w-full text-left group" aria-label={`Ver ${rp.title}`}>
+                    <button type="button" onClick={() => onOpenProduct?.(rp)} className="w-full text-left group" aria-label={`Ver ${rp.title}`}>
                       <div className="aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
                         {rp.imageUrls?.[0] ? <ProductImage thumb src={rp.imageUrls[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <ImageIcon className="w-6 h-6 text-gray-300" />}
                       </div>

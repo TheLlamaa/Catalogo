@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
+import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
   Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../../../lib/settings';
+import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
-const SECTION_ICONS = {
+const SECTION_ICONS: Record<string, LucideIcon> = {
   'Cores e fonte': Palette, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
@@ -23,11 +26,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DB_VALUE_MAX = 5000;
 
 // WhatsApp mostrado com máscara (guardado só com dígitos)
-const toForm = (key, value) => (key === 'whatsapp' ? formatPhoneBR(value) : value);
-const formFrom = (settings) => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, settings[k])]));
+// Valores do formulário: texto ou interruptor, indexados pela chave da configuração
+type FormValues = Record<string, string | boolean>;
+// Mudanças enviadas ao salvar: chave -> novo valor (null volta ao padrão)
+type SettingChanges = Record<string, string | null>;
+// Item de pergunta frequente como digitado (campos podem estar vazios)
+interface FaqDraft { q?: string; a?: string }
+
+// Texto de um valor do formulário (interruptores não têm texto)
+const str = (v: string | boolean | undefined): string => (typeof v === 'string' ? v : '');
+// Texto de um erro desconhecido (Error, objeto com message ou qualquer outro valor)
+const errorText = (err: unknown): string => (
+  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string' && err.message ? err.message : String(err)
+);
+
+const toForm = (key: string, value: unknown): string | boolean => (key === 'whatsapp' ? formatPhoneBR(value) : value as string | boolean); // valores já validados por mergeSettings
+const formFrom = (settings: Settings): FormValues => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, settings[k])]));
 
 // Valor que iria para o banco (null = volta ao padrão, nada guardado)
-const toStored = (key, value) => {
+const toStored = (key: string, value: unknown): string | null => {
   const def = DEFAULT_SETTINGS[key];
   if (typeof def === 'boolean') return value === def ? null : String(value);
   let v = String(value ?? '').trim();
@@ -38,9 +55,15 @@ const toStored = (key, value) => {
   return !v || v === def ? null : v;
 };
 
-export default function SiteSettings({ settings, onSave, onUndo }) {
+interface SiteSettingsProps {
+  settings: Settings;
+  onSave: (changes: SettingChanges, successMessage?: string) => Promise<boolean>;
+  onUndo: () => unknown;
+}
+
+export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsProps) {
   const { toast, confirm } = useUI();
-  const [form, setForm] = useState(() => formFrom(settings));
+  const [form, setForm] = useState<FormValues>(() => formFrom(settings));
   const [base, setBase] = useState(form);
   const [group, setGroup] = useState(GROUPS[0].id);
   const [saving, setSaving] = useState(false);
@@ -58,7 +81,7 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
 
   // Prévia ao vivo de cor, fonte e logo; ao sair, volta ao que está publicado
   useEffect(() => {
-    applyTheme({ primaryColor: form.primaryColor, fontChoice: form.fontChoice, logoUrl: form.logoUrl });
+    applyTheme({ primaryColor: str(form.primaryColor), fontChoice: str(form.fontChoice), logoUrl: str(form.logoUrl) });
   }, [form.primaryColor, form.fontChoice, form.logoUrl]);
   const publishedRef = useRef(settings);
   publishedRef.current = settings;
@@ -67,25 +90,25 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
   // Avisa ao fechar a aba com alterações não publicadas
   useEffect(() => {
     if (!dirty) return;
-    const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const set = (key, value) => setForm(p => ({ ...p, [key]: value }));
+  const set = (key: string, value: string | boolean) => setForm(p => ({ ...p, [key]: value }));
 
   const validate = () => {
-    if (form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
-    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) return 'E-mail inválido.';
-    if (!form.storeName.trim()) return 'O nome da loja não pode ficar vazio.';
+    if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
+    if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return 'E-mail inválido.';
+    if (!str(form.storeName).trim()) return 'O nome da loja não pode ficar vazio.';
     for (const k of ['primaryColor', 'bannerColor']) {
-      if (form[k].trim() && !isHex(form[k].trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
+      if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
     }
     for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
-      if (form[f.key].trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
+      if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
     }
     try {
-      const raw = JSON.parse(form.faqItems || '[]');
+      const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
       if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
       if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return 'Toda resposta precisa de uma pergunta.';
     } catch { /* texto vazio */ }
@@ -93,13 +116,13 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
     return null;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const problem = validate();
     if (problem) return toast.error(problem);
 
     // Só vai para o banco o que mudou; o que voltou ao padrão é apagado
-    const changes = {};
+    const changes: SettingChanges = {};
     for (const key of Object.keys(DEFAULT_SETTINGS)) {
       const next = toStored(key, form[key]);
       if (next !== toStored(key, base[key])) changes[key] = next;
@@ -116,8 +139,8 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
     setForm(base);
   };
 
-  const resetField = (key) => set(key, toForm(key, DEFAULT_SETTINGS[key]));
-  const resetSection = (section) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
+  const resetField = (key: string) => set(key, toForm(key, DEFAULT_SETTINGS[key]));
+  const resetSection = (section: SettingsSection) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
   const resetAll = async () => {
     if (!(await confirm({ title: 'Voltar tudo ao padrão', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar.', confirmLabel: 'Voltar ao padrão' }))) return;
     setForm(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, DEFAULT_SETTINGS[k])])));
@@ -188,7 +211,14 @@ export default function SiteSettings({ settings, onSave, onUndo }) {
   );
 }
 
-function Field({ f, form, set, resetField }) {
+interface FieldProps {
+  f: SettingField;
+  form: FormValues;
+  set: (key: string, value: string | boolean) => void;
+  resetField: (key: string) => void;
+}
+
+function Field({ f, form, set, resetField }: FieldProps) {
   const id = `s-${f.key}`;
   const isDefault = toStored(f.key, form[f.key]) === null;
   const resetBtn = !isDefault && (
@@ -207,14 +237,14 @@ function Field({ f, form, set, resetField }) {
     );
   }
 
-  let control;
+  let control: ReactNode;
   switch (f.type) {
     case 'textarea':
-      control = <textarea id={id} rows={f.rows || 3} maxLength={f.max} value={form[f.key]} onChange={e => set(f.key, e.target.value)} className={inputCls} />;
+      control = <textarea id={id} rows={f.rows || 3} maxLength={f.max} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={inputCls} />;
       break;
     case 'select':
       control = (
-        <select id={id} value={form[f.key]} onChange={e => set(f.key, e.target.value)} className={`${inputCls} bg-white`}>
+        <select id={id} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={`${inputCls} bg-white`}>
           {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       );
@@ -223,13 +253,13 @@ function Field({ f, form, set, resetField }) {
       control = (
         <div>
           <div className="flex items-center gap-4">
-            <input id={id} type="range" min={f.min} max={f.max} step={f.step} value={form[f.key]} onChange={e => set(f.key, e.target.value)} className="flex-1 accent-blue-600" />
-            <span className="w-16 text-right text-sm font-mono text-gray-700">{form[f.key]} {f.unit}</span>
+            <input id={id} type="range" min={f.min} max={f.max} step={f.step} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className="flex-1 accent-blue-600" />
+            <span className="w-16 text-right text-sm font-mono text-gray-700">{str(form[f.key])} {f.unit}</span>
           </div>
           {f.key === 'logoSize' && (
             <div className="mt-3 flex items-center h-[7rem] px-4 rounded-md border border-dashed border-gray-300 bg-gray-50 overflow-hidden">
               {form.logoUrl
-                ? <img src={form.logoUrl} alt="Prévia da logo" style={{ height: `${form.logoSize}px`, maxWidth: '100%' }} className="object-contain" />
+                ? <img src={str(form.logoUrl)} alt="Prévia da logo" style={{ height: `${form.logoSize}px`, maxWidth: '100%' }} className="object-contain" />
                 : <span className="text-xs text-gray-500">Envie uma logo acima para ver a prévia do tamanho.</span>}
             </div>
           )}
@@ -237,23 +267,23 @@ function Field({ f, form, set, resetField }) {
       );
       break;
     case 'date':
-      control = <input id={id} type="date" value={form[f.key]} onChange={e => set(f.key, e.target.value)} className={`${inputCls} sm:w-56`} />;
+      control = <input id={id} type="date" value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={`${inputCls} sm:w-56`} />;
       break;
     case 'color':
-      control = <ColorField id={id} f={f} value={form[f.key]} onChange={v => set(f.key, v)} primary={form.primaryColor} />;
+      control = <ColorField id={id} f={f} value={str(form[f.key])} onChange={v => set(f.key, v)} primary={str(form.primaryColor)} />;
       break;
     case 'image':
-      control = <ImageField id={id} label={f.label} value={form[f.key]} onChange={v => set(f.key, v)} />;
+      control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
     case 'faq':
-      control = <FaqField value={form[f.key]} onChange={v => set(f.key, v)} />;
+      control = <FaqField value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
     default:
       control = (
         <input
           id={id} type={f.type === 'email' ? 'email' : 'text'} inputMode={f.type === 'phone' ? 'tel' : undefined}
           placeholder={f.type === 'social' ? '@usuario' : undefined}
-          maxLength={f.type === 'phone' ? 15 : f.max} value={form[f.key]}
+          maxLength={f.type === 'phone' ? 15 : f.max} value={str(form[f.key])}
           onChange={e => set(f.key, f.type === 'phone' ? formatPhoneBR(e.target.value) : e.target.value)} className={inputCls}
         />
       );
@@ -266,7 +296,7 @@ function Field({ f, form, set, resetField }) {
         {resetBtn}
       </div>
       {control}
-      {f.key === 'primaryColor' && isTooLight(form.primaryColor.trim()) && (
+      {f.key === 'primaryColor' && isTooLight(str(form.primaryColor).trim()) && (
         <p className="text-xs text-amber-700 mt-1">Essa cor é bem clara: o texto branco dos botões pode ficar difícil de ler.</p>
       )}
       {f.hint && <p className="text-xs text-gray-500 mt-1">{f.hint}</p>}
@@ -274,7 +304,7 @@ function Field({ f, form, set, resetField }) {
   );
 }
 
-function ColorField({ id, f, value, onChange, primary }) {
+function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorFieldDef; value: string; onChange: (v: string) => void; primary: string }) {
   const fallback = f.key === 'bannerColor' && isHex(primary) ? primary : DEFAULT_PRIMARY;
   const shown = isHex(value.trim()) ? value.trim() : fallback;
   return (
@@ -285,17 +315,17 @@ function ColorField({ id, f, value, onChange, primary }) {
   );
 }
 
-function ImageField({ id, label, value, onChange }) {
+function ImageField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
   const { toast } = useUI();
   const [busy, setBusy] = useState(false);
-  const pick = async (e) => {
+  const pick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error('Escolha um arquivo de imagem.');
     setBusy(true);
     try { onChange(await uploadSiteImage(file)); }
-    catch (err) { console.error(err); toast.error(`Erro ao enviar imagem: ${err.message || err}`); }
+    catch (err) { console.error(err); toast.error(`Erro ao enviar imagem: ${errorText(err)}`); }
     setBusy(false);
   };
   return (
@@ -314,12 +344,12 @@ function ImageField({ id, label, value, onChange }) {
   );
 }
 
-function FaqField({ value, onChange }) {
-  let items = [];
+function FaqField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  let items: FaqDraft[] = [];
   try { const raw = JSON.parse(value || '[]'); if (Array.isArray(raw)) items = raw; } catch { items = []; }
-  const save = (next) => onChange(next.length ? JSON.stringify(next) : '');
-  const update = (i, patch) => save(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
-  const move = (i, d) => { const j = i + d; if (j < 0 || j >= items.length) return; const next = [...items]; [next[i], next[j]] = [next[j], next[i]]; save(next); };
+  const save = (next: FaqDraft[]) => onChange(next.length ? JSON.stringify(next) : '');
+  const update = (i: number, patch: FaqDraft) => save(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  const move = (i: number, d: number) => { const j = i + d; if (j < 0 || j >= items.length) return; const next = [...items]; [next[i], next[j]] = [next[j], next[i]]; save(next); };
   return (
     <div className="space-y-3">
       {items.map((it, i) => (
@@ -340,15 +370,17 @@ function FaqField({ value, onChange }) {
   );
 }
 
-function BannerPreview({ form }) {
-  if (!form.bannerText.trim()) return null;
-  const bg = isHex(form.bannerColor.trim()) ? form.bannerColor.trim() : (isHex(form.primaryColor.trim()) ? form.primaryColor.trim() : DEFAULT_PRIMARY);
+function BannerPreview({ form }: { form: FormValues }) {
+  if (!str(form.bannerText).trim()) return null;
+  const bannerColor = str(form.bannerColor).trim();
+  const primaryColor = str(form.primaryColor).trim();
+  const bg = isHex(bannerColor) ? bannerColor : (isHex(primaryColor) ? primaryColor : DEFAULT_PRIMARY);
   return (
     <div>
       <span className="block text-xs font-medium text-gray-500 mb-1">Prévia{form.bannerEnabled ? '' : ' (faixa desligada: não aparece no site)'}</span>
       <div
         className={`text-white text-sm text-center px-4 py-2 rounded-md ${form.bannerEnabled ? '' : 'opacity-40'}`}
-        style={form.bannerImage ? { backgroundColor: bg, backgroundImage: `linear-gradient(${bg}b3, ${bg}b3), url(${form.bannerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: bg }}
+        style={str(form.bannerImage) ? { backgroundColor: bg, backgroundImage: `linear-gradient(${bg}b3, ${bg}b3), url(${str(form.bannerImage)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: bg }}
       >{form.bannerText}</div>
     </div>
   );

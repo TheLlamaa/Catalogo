@@ -1,22 +1,40 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Plus, Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
+import type { Category } from '../../../types';
 
-export default function CategoryManager({ categories, onSave, onDelete, onReorder }) {
+// Dados enviados ao salvar uma categoria (nome é obrigatório)
+type CategoryDraft = Partial<Category> & { name: string };
+
+interface CategoryManagerProps {
+  categories: Category[];
+  onSave: (category: CategoryDraft) => Promise<boolean>;
+  onDelete: (id: string) => unknown;
+  onReorder: (orderedIds: string[]) => unknown;
+}
+
+interface CategoryFormProps {
+  initialData: Category | null;
+  onSave: (category: CategoryDraft) => unknown;
+  onCancel: () => void;
+}
+
+export default function CategoryManager({ categories, onSave, onDelete, onReorder }: CategoryManagerProps) {
   const { confirm } = useUI();
   const { auraLib, aurasEnabled } = useSettings();
-  const [editingCategory, setEditingCategory] = useState(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const handleDelete = async (category) => {
+  const handleDelete = async (category: Category) => {
     const ok = await confirm({ title: 'Excluir categoria', message: `Excluir “${category.name}”? Os produtos continuam existindo.` });
     if (ok) onDelete(category.id);
   };
 
   // A ordem desta lista é a ordem do menu de categorias na vitrine
-  const move = (index, direction) => {
+  const move = (index: number, direction: number) => {
     const target = index + direction;
     if (target < 0 || target >= categories.length) return;
     const ids = categories.map(c => c.id);
@@ -88,16 +106,16 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
   );
 }
 
-function CategoryForm({ initialData, onSave, onCancel }) {
+function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
   const { auraLib, aurasEnabled } = useSettings();
-  const [formData, setFormData] = useState({ 
-    id: initialData?.id || null, 
+  const [formData, setFormData] = useState<CategoryDraft>({ 
+    id: initialData?.id || undefined, 
     name: initialData?.name || '', 
     description: initialData?.description || '',
     auraColor: initialData?.auraColor || 'none'
   });
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); onSave(formData); };
 
   return (
     <div className="bg-white border border-gray-100 rounded-lg shadow-sm">

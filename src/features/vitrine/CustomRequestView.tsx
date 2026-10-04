@@ -1,13 +1,20 @@
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import { formatPhoneBR, validateContact, whatsappLink } from '../../lib/format';
 
-const EMPTY_FORM = { clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' };
+interface CustomFormData { clientName: string; clientPhone: string; description: string; imageUrl: string; website: string }
 
-const compressImage = (file) => new Promise((resolve, reject) => {
+interface CustomRequestViewProps {
+  onSaveOrder: (order: Record<string, unknown>) => Promise<boolean>;
+}
+
+const EMPTY_FORM: CustomFormData = { clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' };
+
+const compressImage = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
   reader.onloadend = () => {
     const img = new Image();
@@ -18,26 +25,26 @@ const compressImage = (file) => new Promise((resolve, reject) => {
       if (width > height && width > MAX) { height *= MAX / width; width = MAX; }
       else if (height > MAX) { width *= MAX / height; height = MAX; }
       canvas.width = width; canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL('image/jpeg', 0.8));
     };
-    img.onerror = reject; img.src = reader.result;
+    img.onerror = reject; img.src = reader.result as string; // readAsDataURL sempre devolve string
   };
   reader.onerror = reject; reader.readAsDataURL(file);
 });
 
-export default function CustomRequestView({ onSaveOrder }) {
+export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProps) {
   const settings = useSettings();
   const { toast } = useUI();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useState<CustomFormData>(EMPTY_FORM);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
   const [sentName, setSentName] = useState('');
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
     setIsCompressing(true);
     try {
@@ -51,7 +58,7 @@ export default function CustomRequestView({ onSaveOrder }) {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.clientName || !formData.clientPhone || !formData.description) {
       return toast.error('Preencha nome, WhatsApp e a descrição do pedido.');
