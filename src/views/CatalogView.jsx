@@ -249,9 +249,12 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
   const prevImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); };
 
   const card = (
+    // Card clicável com botões internos: não pode ser <button>; teclado tratado em onKeyDown.
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex
     <article
       onClick={onClick}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
       aria-label={`Ver detalhes de ${product.title}`}
       className="bg-white rounded-xl overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow cursor-pointer group relative isolate w-full focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"

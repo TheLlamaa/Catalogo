@@ -172,7 +172,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
               id="p-prazo" type="text" list="prazos" maxLength={80} placeholder="Ex: Pronta entrega, ou Sob encomenda: 3 a 5 dias"
               value={formData.leadTime} onChange={e => setFormData(p => ({ ...p, leadTime: e.target.value }))} className={inputCls}
             />
-            <datalist id="prazos">{LEAD_TIME_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
+            <datalist id="prazos">{LEAD_TIME_SUGGESTIONS.map(s => <option key={s} value={s}>{s}</option>)}</datalist>
           </div>
           )}
 
@@ -182,7 +182,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
               id="p-selo" type="text" list="selos" maxLength={20} placeholder="Ex: Novo, Promoção"
               value={formData.badge} onChange={e => setFormData(p => ({ ...p, badge: e.target.value }))} className={inputCls}
             />
-            <datalist id="selos">{BADGE_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
+            <datalist id="selos">{BADGE_SUGGESTIONS.map(s => <option key={s} value={s}>{s}</option>)}</datalist>
           </div>
           <div>
             <label htmlFor="p-secao" className="block text-sm font-medium text-gray-700 mb-1">Seção na vitrine <span className="text-gray-400 font-normal">(opcional)</span></label>

@@ -35,12 +35,12 @@ export default function LoginView({ onLoginSuccess }) {
         
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sm" />
+            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+            <input id="login-email" autoComplete="username" required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sm" />
+            <label htmlFor="login-senha" className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <input id="login-senha" autoComplete="current-password" required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
           <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-md hover:bg-blue-700 disabled:opacity-50 mt-2">
             {loading ? 'Entrando...' : 'Entrar no Painel'}

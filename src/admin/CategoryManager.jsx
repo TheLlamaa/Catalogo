@@ -107,13 +107,13 @@ function CategoryForm({ initialData, onSave, onCancel }) {
       </div>
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-          <input required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+          <label htmlFor="cat-nome" className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+          <input id="cat-nome" required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
         </div>
 
         {aurasEnabled && <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Efeito de Aura para os Produtos desta Categoria</label>
-          <select 
+          <label htmlFor="cat-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito de Aura para os Produtos desta Categoria</label>
+          <select id="cat-aura" 
             value={formData.auraColor} 
             onChange={e => setFormData(p => ({...p, auraColor: e.target.value}))}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white"
@@ -127,8 +127,8 @@ function CategoryForm({ initialData, onSave, onCancel }) {
         </div>}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>
-          <textarea required rows={3} value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+          <label htmlFor="cat-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>
+          <textarea id="cat-desc" required rows={3} value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onCancel} className="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">Cancelar</button>
