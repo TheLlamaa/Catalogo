@@ -67,7 +67,7 @@ check('selo de pedidos novos na aba (só o novo conta; o antigo sem status tamb�
 // filtro por status
 await page.getByRole('button', { name: /^Todos \(2\)/ }).waitFor();
 await page.getByRole('button', { name: /^Em produção \(0\)/ }).click();
-check('filtro "Em produção" esconde pedidos novos', await page.getByText('Nenhum pedido com este status.').isVisible());
+check('filtro "Em produção" esconde pedidos novos', await page.getByText('Nenhum pedido com estes filtros.').isVisible());
 await page.getByRole('button', { name: /^Todos \(2\)/ }).click();
 
 // mudar status pelo cartão
@@ -77,14 +77,14 @@ check('mudar status envia PATCH {status} para o pedido certo', patches.length ==
 check('contagem dos filtros acompanha a mudança', await page.getByRole('button', { name: /^Em produção \(1\)/ }).isVisible());
 
 // exportar CSV
-const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV' }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Planilha de pedidos' }).click()]);
 const csv = fs.readFileSync(await dl.path(), 'utf8');
-check('CSV com BOM, separador ";" e itens com opção', csv.startsWith('﻿"Data";"Cliente"') && csv.includes('2x Vaso Ondulado (Cor: Preto)') && csv.includes('"Em produção"'), dl.suggestedFilename());
+check('CSV com BOM, separador ";" e itens com opção', csv.startsWith('\ufeff"Código";"Data";"Cliente"') && csv.includes('2x Vaso Ondulado (Cor: Preto)') && csv.includes('"Em produção"'), dl.suggestedFilename());
 check('CSV traz entrega e observação; pedido antigo não quebra', csv.includes('Rua A, 10, Centro') && csv.includes('Prefiro azul') && csv.includes('João (pedido antigo)'));
 
 // modal do pedido: detalhes e Esc
 await page.getByText('Maria Silva').first().click();
-const dlg = page.getByRole('dialog', { name: 'Detalhes da Compra' });
+const dlg = page.getByRole('dialog', { name: /Detalhes da Compra/ });
 await dlg.waitFor();
 check('modal mostra opção, entrega e observação', await dlg.getByText('Cor: Preto').isVisible() && await dlg.getByText('Rua A, 10, Centro').isVisible() && await dlg.getByText('Prefiro azul').isVisible());
 await dlg.getByRole('button', { name: /Excluir Pedido/ }).click();

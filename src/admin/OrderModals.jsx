@@ -4,6 +4,7 @@ import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
 import { StatusSelect } from './StatusSelect';
 import { brl, formatOptions, toWhatsappDigits, whatsappLink } from '../lib/format';
+import { ageInfo, orderCode } from '../lib/orders';
 
 const formatDateTime = (iso) =>
   `${new Date(iso).toLocaleDateString('pt-BR')} às ${new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -68,7 +69,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
 
   return (
     <ModalShell
-      title="Detalhes do Pedido Personalizado" icon={Sparkles} onClose={onClose}
+      title={`Pedido Personalizado ${orderCode(order)}`} icon={Sparkles} onClose={onClose}
       footer={<>
         <DeleteButton onClick={handleDelete} />
         <WhatsappButton order={order} label="Responder no WhatsApp" message={`Olá ${order.client_name}! Recebi sua solicitação de peça personalizada pelo site.`} />
@@ -88,7 +89,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
         <InfoRow icon={User} label="Cliente">{order.client_name}</InfoRow>
         <InfoRow icon={Phone} label="WhatsApp">{order.client_phone}</InfoRow>
-        <InfoRow icon={Calendar} label="Data da Solicitação" wide>{formatDateTime(order.created_at)}</InfoRow>
+        <InfoRow icon={Calendar} label="Data da Solicitação" wide>{formatDateTime(order.created_at)} <span className="text-xs font-normal text-gray-500">({ageInfo(order).label})</span></InfoRow>
       </div>
 
       <div className="flex items-center gap-3">
@@ -114,7 +115,7 @@ export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStat
 
   return (
     <ModalShell
-      title="Detalhes da Compra" icon={ShoppingBag} onClose={onClose}
+      title={`Detalhes da Compra ${orderCode(order)}`} icon={ShoppingBag} onClose={onClose}
       footer={<>
         <DeleteButton onClick={handleDelete} />
         <WhatsappButton order={order} label="Entrar em Contato no WhatsApp" message={`Olá ${order.client_name}! Recebi seu pedido pelo site.`} />
@@ -123,7 +124,7 @@ export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStat
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
         <InfoRow icon={User} label="Cliente">{order.client_name}</InfoRow>
         <InfoRow icon={Phone} label="WhatsApp">{order.client_phone}</InfoRow>
-        <InfoRow icon={Calendar} label="Data do Pedido">{formatDateTime(order.created_at)}</InfoRow>
+        <InfoRow icon={Calendar} label="Data do Pedido">{formatDateTime(order.created_at)} <span className="text-xs font-normal text-gray-500">({ageInfo(order).label})</span></InfoRow>
         {order.delivery_method && (
           <InfoRow icon={Truck} label={order.delivery_method === 'entrega' ? 'Entrega' : 'Recebimento'}>
             {order.delivery_method === 'entrega' ? (order.delivery_address || 'Endereço não informado') : 'Retirada'}
