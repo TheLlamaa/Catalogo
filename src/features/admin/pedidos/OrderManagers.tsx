@@ -74,7 +74,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
         <div className="py-12 text-center border border-gray-200 rounded-lg border-dashed">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
           <h3 className="mt-4 text-base font-medium text-gray-900">Nenhuma solicitação recebida</h3>
-          <p className="mt-1 text-sm text-gray-500">Quando os clientes enviarem pedidos personalizados pelo site, eles aparecerão aqui.</p>
+          <p className="mt-1 text-sm text-gray-500">Os pedidos personalizados enviados pelo site aparecem aqui.</p>
         </div>
       ) : visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-500">Nenhuma solicitação com estes filtros.</p>

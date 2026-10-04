@@ -54,7 +54,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
               <Plus className="w-4 h-4" /> Nova Categoria
             </button>
           </div>
-          <p className="text-xs text-gray-500 -mt-3 mb-4">A ordem desta lista é a ordem do menu de categorias na vitrine. Categoria nova entra no fim.</p>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">Esta é a ordem do menu da vitrine; categoria nova entra no fim.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -68,7 +68,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {categories.length === 0 ? (
-                  <tr><td colSpan={aurasEnabled ? 5 : 4} className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada até o momento.</td></tr>
+                  <tr><td colSpan={aurasEnabled ? 5 : 4} className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada.</td></tr>
                 ) : (
                   categories.map((category, index) => (
                     <tr key={category.id} className="hover:bg-gray-50">
@@ -141,7 +141,7 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
               <option key={aura.id} value={aura.id}>{aura.name}</option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">Todos os produtos desta categoria ganharão o brilho selecionado na vitrine.</p>
+          <p className="text-xs text-gray-500 mt-1">Todos os produtos da categoria ganham este brilho na vitrine.</p>
         </div>}
 
         <div>

@@ -63,7 +63,7 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
         <Users className="w-5 h-5 text-blue-600" />
         <h2 className="text-lg font-medium text-gray-900">Equipe</h2>
       </div>
-      <p className="text-sm text-gray-500 mb-6">Quem pode entrar neste painel. A pessoa precisa ter um usuário criado no Supabase (Authentication → Users) com este mesmo e-mail.</p>
+      <p className="text-sm text-gray-500 mb-6">Quem pode entrar neste painel. A pessoa precisa ter um usuário no Supabase (Authentication → Users) com o mesmo e-mail.</p>
 
       {loadError && (
         <div role="alert" className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-900">

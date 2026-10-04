@@ -58,7 +58,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               <Plus className="w-4 h-4" /> Novo Produto
             </button>
           </div>
-          <p className="text-xs text-gray-500 -mt-3 mb-4">A ordem desta lista é a ordem da vitrine. Use as setas para subir ou descer. Produto novo entra no topo.</p>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">Esta é a ordem da vitrine. Use as setas para reordenar; produto novo entra no topo.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
@@ -73,7 +73,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {products.length === 0 ? (
-                  <tr><td colSpan={4 + (stockControl ? 1 : 0) + (aurasEnabled ? 1 : 0)} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
+                  <tr><td colSpan={4 + (stockControl ? 1 : 0) + (aurasEnabled ? 1 : 0)} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado.</td></tr>
                 ) : (
                   products.map((product, index) => {
                     const displayImage = product.imageUrls?.length > 0 ? product.imageUrls[0] : null;

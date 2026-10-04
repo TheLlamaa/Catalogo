@@ -45,7 +45,7 @@ export default function ErrorsManager() {
         <Bug className="w-5 h-5 text-blue-600" />
         <h2 className="text-lg font-bold text-gray-900">Erros do site</h2>
       </div>
-      <p className="text-sm text-gray-500 mb-4">Quando algo quebra no navegador de um visitante, o site anota aqui. Se esta lista está vazia, está tudo bem.</p>
+      <p className="text-sm text-gray-500 mb-4">Erros ocorridos no navegador dos visitantes. Lista vazia = tudo certo.</p>
 
       {loadError && (
         <p role="alert" className="mb-4 p-3 text-sm bg-amber-50 text-amber-800 border border-amber-200 rounded-md">

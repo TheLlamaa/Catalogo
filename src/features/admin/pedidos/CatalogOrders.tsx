@@ -111,7 +111,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
         <div className="py-12 text-center border border-gray-200 rounded-lg border-dashed">
           <ShoppingBag className="mx-auto h-12 w-12 text-gray-300" />
           <h3 className="mt-4 text-base font-medium text-gray-900">Nenhum pedido realizado</h3>
-          <p className="mt-1 text-sm text-gray-500">Quando os clientes realizarem compras no carrinho da vitrine, os pedidos aparecerão aqui.</p>
+          <p className="mt-1 text-sm text-gray-500">Os pedidos feitos no carrinho da vitrine aparecem aqui.</p>
         </div>
       ) : (
         <>
