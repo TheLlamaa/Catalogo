@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CatalogOrdersManager, CustomOrdersManager } from './OrderManagers';
+import CatalogOrdersManager from './CatalogOrders';
+import { CustomOrdersManager } from './OrderManagers';
 import ProductManager from './ProductManager';
 import CategoryManager from './CategoryManager';
 import SiteSettings from './SiteSettings';
