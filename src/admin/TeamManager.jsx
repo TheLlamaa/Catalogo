@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { UserPlus, Trash2, ShieldCheck, Users } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { addAdmin, listAdmins, normalizeEmail, removeAdmin, validateAdminEmail } from '../lib/admins';
+import { normalizeEmail, validateAdminEmail } from '../lib/admins';
+import { addAdmin, listAdmins, removeAdmin } from '../services/team';
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500';
 

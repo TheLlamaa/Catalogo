@@ -50,12 +50,15 @@ O CI do GitHub roda tudo isso a cada pull request.
 src/
   admin/        painel do dono (pedidos, produtos, categorias, equipe, site)
   components/   peças compartilhadas (cabeçalho, carrinho, diálogos, contexto)
-  hooks/        carga de dados (useCatalogData) e carrinho (useCart)
-  lib/          regras puras e testadas (pedidos, relatório, tema, configurações…)
+  hooks/        carga de dados (useCatalogData), ações do painel (useAdminActions) e carrinho (useCart)
+  lib/          regras puras e testadas (pedidos, relatório, tema, configurações…); não conhece o banco
+  services/     ÚNICO lugar que fala com o Supabase (catálogo, pedidos, config, equipe, login, fotos, erros)
   views/        páginas da vitrine
 supabase/       SQL do banco, testes do banco e função de aviso no Telegram
 tests/          testes unitários e de navegador
 ```
+
+Regra de arquitetura (garantida por teste): telas e hooks nunca importam o Supabase direto; passam por `src/services/`. Trocar de banco ou adicionar cache mexe só nessa pasta.
 
 ## Publicação
 

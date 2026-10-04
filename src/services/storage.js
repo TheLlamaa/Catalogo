@@ -1,25 +1,9 @@
-import { NICHE } from './niche';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// ---------------------------------------------------------------------------
-// Configurações opcionais da loja (variáveis de ambiente, definidas no build)
-// ---------------------------------------------------------------------------
-export const STORE_NAME = import.meta.env.VITE_STORE_NAME || NICHE.storeName;
-export const STORE_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || '';
-
-// WhatsApp da loja: aceita com ou sem 55. Ex: 5548999999999 ou (48) 99999-9999
-const rawWhats = String(import.meta.env.VITE_WHATSAPP_NUMBER || '').replace(/\D/g, '');
-export const STORE_WHATSAPP = rawWhats.length === 10 || rawWhats.length === 11 ? `55${rawWhats}` : rawWhats;
+import { supabase } from './client';
+import { BUCKET } from '../lib/images';
 
 // ---------------------------------------------------------------------------
 // Supabase Storage (fotos dos produtos)
 // ---------------------------------------------------------------------------
-export const BUCKET = 'fotos_produtos';
 
 const loadImage = (file) => new Promise((resolve, reject) => {
   const objectUrl = URL.createObjectURL(file);
@@ -54,14 +38,6 @@ export const uploadProductImage = async (file) => {
 
   return supabase.storage.from(BUCKET).getPublicUrl(`${id}.jpg`).data.publicUrl;
 };
-
-// URL da miniatura, quando a foto está no nosso bucket. Fotos antigas não têm miniatura:
-// o componente ProductImage volta para a foto grande se a miniatura não existir.
-export const thumbUrl = (url) => (
-  typeof url === 'string' && url.includes(`/${BUCKET}/`) && /\.jpg$/.test(url) && !/_t\.jpg$/.test(url)
-    ? url.replace(/\.jpg$/, '_t.jpg')
-    : url
-);
 
 // Imagem do site (logo, faixa, página Sobre): um único arquivo, sem miniatura.
 // PNG/WebP/GIF viram PNG (mantém transparência) e as demais JPEG; SVG vai como está.

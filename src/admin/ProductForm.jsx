@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductImage from '../components/ProductImage';
 import { useUI } from '../components/UIContext';
-import { uploadProductImage } from '../lib/supabase';
+import { uploadProductImage } from '../services/storage';
 import { optionsFor } from '../lib/auras';
 import { useSettings } from '../components/SettingsContext';
 import { isHttpUrl } from '../lib/format';
