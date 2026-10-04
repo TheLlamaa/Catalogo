@@ -138,3 +138,12 @@ describe('CSV', () => {
     expect(ordersCsv([mk('f6', { items: null })]).rows[0][4]).toBe('');
   });
 });
+
+import { itemProductLink } from '../../src/lib/orders';
+describe('link do produto no item do pedido', () => {
+  const products = [{ id: 'a', active: true }, { id: 'b', active: false }];
+  it('produto ativo vira link da página pública', () => expect(itemProductLink({ id: 'a' }, products)).toEqual({ href: '/produto/a', note: '' }));
+  it('produto inativo não vira link e avisa', () => expect(itemProductLink({ id: 'b' }, products)).toEqual({ href: null, note: 'produto inativo' }));
+  it('produto removido não vira link e avisa', () => expect(itemProductLink({ id: 'z' }, products)).toEqual({ href: null, note: 'produto removido' }));
+  it('item sem id (pedido antigo) fica como texto', () => expect(itemProductLink({}, products)).toEqual({ href: null, note: '' }));
+});

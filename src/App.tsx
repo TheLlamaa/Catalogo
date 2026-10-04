@@ -217,6 +217,7 @@ function MainLayout() {
       {selectedCatalogOrder && (
         <CatalogOrderDetailModal
           order={selectedCatalogOrder}
+          products={products}
           onClose={() => setSelectedCatalogOrderId(null)}
           onDelete={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
           onUpdateStatus={(id, status) => updateOrderStatus('orders', id, status)}

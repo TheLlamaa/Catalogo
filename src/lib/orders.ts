@@ -190,3 +190,16 @@ export const itemsCsv = (orders: OrderLike[]) => ({
     money(i.price), money((Number(i.price) || 0) * (Number(i.quantity) || 0)), statusInfo(o.status).label,
   ])),
 });
+
+// Link do produto de um item de pedido (página pública /produto/:id).
+// Só vale para produto que ainda existe e está ativo; senão devolve o motivo para o painel avisar.
+export const itemProductLink = (
+  item: { id?: string },
+  products: { id: string; active?: boolean }[],
+): { href: string | null; note: string } => {
+  if (!item.id) return { href: null, note: '' };
+  const product = products.find(p => p.id === item.id);
+  if (!product) return { href: null, note: 'produto removido' };
+  if (product.active === false) return { href: null, note: 'produto inativo' };
+  return { href: `/produto/${item.id}`, note: '' };
+};

@@ -1,0 +1,79 @@
+import { BASE, launch } from './env.mjs';
+
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: 4102444800 })}.sig`;
+const session = { access_token: jwt, token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, refresh_token: 'r',
+  user: { id: 'u1', aud: 'authenticated', role: 'authenticated', email: 'admin@teste.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } };
+
+const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();
+const orders = Array.from({ length: 32 }, (_, i) => ({
+  id: `a${String(i).padStart(7, '0')}-0000-0000-0000-000000000000`, client_name: `Cliente ${String(i + 1).padStart(2, '0')}`,
+  client_phone: `(48) 99999-${String(1000 + i)}`, total: 10 + i, created_at: hoursAgo(i + 1), status: i % 4 === 0 ? 'concluido' : 'novo',
+  delivery_method: 'retirada', items: [{ id: 'p1', title: 'Peça', price: 10 + i, quantity: 1, imageUrls: [] }],
+}));
+const customOrders = Array.from({ length: 12 }, (_, i) => ({
+  id: `k${String(i).padStart(7, '0')}-0000-0000-0000-000000000000`, client_name: `Custom ${String(i + 1).padStart(2, '0')}`, client_phone: '(48) 91111-2222',
+  description: `Pedido ${i + 1}`, image_url: '', created_at: hoursAgo(i + 1), status: 'novo',
+}));
+
+let fails = 0;
+const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
+
+const browser = await launch();
+const ctx = await browser.newContext({ viewport: { width: 1300, height: 950 } });
+await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+const page = await ctx.newPage();
+page.on('pageerror', e => { fails++; console.log('PAGEERROR', e.message); });
+await page.route('https://mock.supabase.co/**', async (route) => {
+  const req = route.request(); const url = new URL(req.url());
+  const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+  const json = (body) => route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+  if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+  if (url.pathname === '/rest/v1/orders' && req.method() === 'GET') return json(orders);
+  if (url.pathname === '/rest/v1/custom_orders' && req.method() === 'GET') return json(customOrders);
+  return json([]);
+});
+
+await page.goto(BASE + '/admin');
+await page.getByTestId('resumo-pedidos').waitFor();
+const cards = () => page.locator('div.cursor-pointer').count();
+const nav = page.getByRole('navigation', { name: 'Paginação' });
+
+check('32 pedidos: mostra 10 por página (padrão)', await cards() === 10);
+check('rodapé informa o intervalo', await nav.getByText('Mostrando 1–10 de 32 pedidos').count() === 1);
+check('resumo continua somando todos (não só a página)', (await page.getByTestId('resumo-pedidos').innerText()).includes('32'));
+check('página 1: "anterior" desligado', await nav.getByRole('button', { name: 'Página anterior' }).isDisabled());
+
+await nav.getByRole('button', { name: 'Próxima página' }).click();
+check('próxima página: 11–20', await nav.getByText('Mostrando 11–20 de 32 pedidos').count() === 1 && await cards() === 10);
+check('página atual marcada', await nav.getByRole('button', { name: 'Página 2' }).getAttribute('aria-current') === 'page');
+
+await nav.getByRole('button', { name: 'Página 4' }).click();
+check('última página tem 2 pedidos', await cards() === 2 && await nav.getByText('Mostrando 31–32 de 32 pedidos').count() === 1);
+check('última página: "próxima" desligado', await nav.getByRole('button', { name: 'Próxima página' }).isDisabled());
+
+await nav.getByLabel('Por página').selectOption('20');
+check('trocar para 20 por página volta à página 1', await cards() === 20 && await nav.getByText('Mostrando 1–20 de 32 pedidos').count() === 1);
+check('escolha fica lembrada no navegador', await page.evaluate(() => localStorage.getItem('catalogo-pedidos-por-pagina')) === '20');
+
+await nav.getByRole('button', { name: 'Página 2' }).click();
+await page.getByPlaceholder(/Buscar/).fill('Cliente 05');
+await page.waitForTimeout(300);
+check('filtrar volta à página 1 e mostra só o resultado', await cards() === 1 && await nav.getByText('Mostrando 1–1 de 1 pedidos').count() === 1);
+check('com 1 página não mostra botões de página', await nav.getByRole('button', { name: 'Página 1' }).count() === 0);
+
+await page.reload();
+await page.getByTestId('resumo-pedidos').waitFor();
+check('depois de recarregar continua com 20 por página', await cards() === 20);
+
+// pedidos personalizados
+await page.getByRole('button', { name: /^Pedidos Custom/ }).click();
+await page.getByText('Custom 01').waitFor();
+check('custom: usa a mesma escolha (20 por página): as 12 cabem numa página', await cards() === 12);
+await page.getByLabel('Por página').selectOption('10');
+check('custom: com 10 por página mostra 10', await cards() === 10);
+await page.getByRole('navigation', { name: 'Paginação' }).getByRole('button', { name: 'Página 2' }).click();
+check('custom: página 2 tem 2', await cards() === 2);
+
+await browser.close();
+process.exit(fails ? 1 : 0);

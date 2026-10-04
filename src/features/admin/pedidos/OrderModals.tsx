@@ -1,12 +1,12 @@
 import type { ComponentType, ReactNode } from 'react';
-import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare, ExternalLink } from 'lucide-react';
 import Dialog from '../../../components/Dialog';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
 import { brl, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
-import { ageInfo, orderCode } from '../../../lib/orders';
-import type { CatalogOrder, CustomOrder, OrderStatusId } from '../../../types';
+import { ageInfo, itemProductLink, orderCode } from '../../../lib/orders';
+import type { CatalogOrder, CustomOrder, OrderStatusId, Product } from '../../../types';
 
 type IconType = ComponentType<{ className?: string }>;
 
@@ -124,7 +124,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
   );
 }
 
-export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }: OrderDetailModalProps<CatalogOrder>) {
+export function CatalogOrderDetailModal({ order, products = [], onClose, onDelete, onUpdateStatus }: OrderDetailModalProps<CatalogOrder> & { products?: Product[] }) {
   const { confirm } = useUI();
 
   const handleDelete = async () => {
@@ -162,6 +162,7 @@ export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStat
           {order.items?.map((item, idx) => {
             const imgUrl = item.imageUrls?.[0] ?? null;
             const opt = formatOptions(item.options);
+            const link = itemProductLink(item, products);
             return (
               <div key={idx} className="p-3 bg-white flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -169,7 +170,14 @@ export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStat
                     {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-gray-400" />}
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {link.href ? (
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline inline-flex items-center gap-1" title="Abrir a página do produto em outra aba">
+                          {item.title} <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                        </a>
+                      ) : item.title}
+                      {link.note && <span className="ml-2 text-[11px] font-normal text-gray-400">({link.note})</span>}
+                    </h4>
                     {opt && <span className="text-xs text-blue-700 block">{opt}</span>}
                     <span className="text-xs text-gray-500">{item.quantity}x {brl(item.price)} cada</span>
                   </div>
