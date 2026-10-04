@@ -5,10 +5,10 @@ import type { ViewMode } from '../../../lib/pagination';
 export default function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
   const opt = (id: ViewMode, label: string, Icon: typeof List) => (
     <button
-      type="button" onClick={() => onChange(id)} aria-pressed={value === id}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${value === id ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+      type="button" onClick={() => onChange(id)} aria-pressed={value === id} aria-label={label} title={label}
+      className={`flex items-center justify-center w-9 h-9 transition-colors ${value === id ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
     >
-      <Icon className="w-4 h-4" aria-hidden="true" /> {label}
+      <Icon className="w-4 h-4" aria-hidden="true" />
     </button>
   );
   return (
