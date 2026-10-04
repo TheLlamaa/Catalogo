@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
+import { ENV_LABEL } from './lib/config';
 import { applyTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { useCart } from './hooks/useCart';
 import { useCatalogData } from './hooks/useCatalogData';
@@ -143,6 +144,12 @@ function MainLayout() {
   return (
     <SettingsContext.Provider value={settings}>
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex flex-col">
+
+      {ENV_LABEL && (
+        <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">
+          {ENV_LABEL} — os dados aqui não são os da loja real
+        </div>
+      )}
 
       {isStoreRoute && isBannerActive(settings) && (
         <div role="status" className="bg-blue-600 text-white text-sm text-center px-4 py-2" style={bannerStyle(settings)}>{settings.bannerText}</div>

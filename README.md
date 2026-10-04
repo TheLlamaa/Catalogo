@@ -27,6 +27,7 @@ npm run dev
 | `VITE_STORE_NAME` | Nome da loja (valor inicial) |
 | `VITE_WHATSAPP_NUMBER` | WhatsApp que recebe os pedidos, com DDI e DDD (ex.: `5548999999999`) |
 | `VITE_CONTACT_EMAIL` | E-mail de contato (opcional) |
+| `VITE_AMBIENTE_LABEL` | Só no site de teste: mostra uma faixa amarela de aviso no topo (ex.: `Ambiente de teste`). Deixe em branco no site real |
 | `VITE_NICHE` | Ponto de partida da loja: `3d` (padrão) ou `generico`. Define textos e recursos iniciais; o dono muda tudo depois no painel |
 
 ## Banco de dados
@@ -69,3 +70,12 @@ Regra de arquitetura (garantida por teste): telas e hooks nunca importam o Supab
 ## Publicação
 
 O Cloudflare publica a branch `main` automaticamente. Antes do merge, o CI precisa estar verde.
+
+## Ambiente de teste
+
+Um segundo projeto Supabase (`Catalogo-Teste`) e um segundo site no Cloudflare, só para testar sem mexer nos pedidos e produtos reais.
+
+- **Banco de teste:** mesmo esquema do real (arquivos `supabase/01` a `09`), com produtos, categorias e pedidos de mentira. Todo SQL novo roda primeiro aqui e só depois no banco real.
+- **Site de teste:** um Worker do Cloudflare ligado a este repositório, com as variáveis de build apontando para o Supabase de teste (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) e `VITE_AMBIENTE_LABEL=Ambiente de teste`, que mostra a faixa amarela de aviso no topo.
+- **Login no teste:** crie o usuário em Authentication > Users do projeto de teste e coloque o e-mail na tabela `admins` (aba Equipe, ou `insert into public.admins (email) values ('voce@exemplo.com')`).
+- **Nunca** use as chaves do Supabase real no site de teste, nem as do teste no real.
