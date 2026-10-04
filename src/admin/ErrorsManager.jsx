@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Bug, Trash2, RefreshCw } from 'lucide-react';
 import { useUI } from '../components/UIContext';
-import { clearErrors, listErrors } from '../lib/errorLog';
+import { clearErrors, listErrors } from '../services/errors';
 
 const SOURCES = { window: 'Navegador', promise: 'Requisição', react: 'Tela' };
 const fmt = (d) => new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });

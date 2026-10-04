@@ -8,7 +8,7 @@ import SiteSettings from './SiteSettings';
 import AuraManager from './AuraManager';
 import TeamManager from './TeamManager';
 import ErrorsManager from './ErrorsManager';
-import { fetchSchemaVersion } from '../lib/admins';
+import { fetchSchemaVersion } from '../services/team';
 import { schemaMessage, schemaStatus } from '../lib/schema';
 import { statusInfo } from '../lib/format';
 

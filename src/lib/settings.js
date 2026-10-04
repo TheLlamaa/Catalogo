@@ -1,4 +1,4 @@
-import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './supabase';
+import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { parseCustomAuras, parseAuraOverrides } from './auras';
 import { FONT_CHOICES, isHex, parseFaq, normalizeSocial } from './theme';
 import { NICHE } from './niche';

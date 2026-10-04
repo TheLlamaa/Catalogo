@@ -6,7 +6,7 @@ import {
 import { useUI } from '../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../lib/settings';
 import { applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../lib/theme';
-import { uploadSiteImage } from '../lib/supabase';
+import { uploadSiteImage } from '../services/storage';
 import { formatPhoneBR } from '../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)

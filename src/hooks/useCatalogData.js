@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchCatalog } from '../services/catalog';
+import { getSession, onSessionChange } from '../services/auth';
+import { watchAdminChanges } from '../services/realtime';
 import { mergeSettings } from '../lib/settings';
 import { statusInfo } from '../lib/format';
 import { useUI } from '../components/UIContext';
@@ -44,18 +46,7 @@ export function useCatalogData() {
     lastFetchRef.current = Date.now();
     try {
       const isAdmin = !!userRef.current;
-      const empty = Promise.resolve({ data: null, error: null });
-      const [productsRes, categoriesRes, customOrdersRes, catalogOrdersRes, privateRes, settingsRes] = await Promise.all([
-        supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('categories').select('*').order('name', { ascending: true }),
-        // Pedidos contêm dados de clientes: só são buscados com o admin logado
-        isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : empty,
-        isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : empty,
-        // Link do modelo 3D: tabela separada, só o admin consegue ler
-        isAdmin ? supabase.from('product_private').select('product_id, model_url') : empty,
-        // Textos e menus personalizados (públicos). Se a tabela ainda não existir, usa os padrões.
-        supabase.from('site_settings').select('key, value')
-      ]);
+      const { products: productsRes, categories: categoriesRes, customOrders: customOrdersRes, orders: catalogOrdersRes, modelUrls: privateRes, settings: settingsRes } = await fetchCatalog({ isAdmin });
 
       if (productsRes.error || categoriesRes.error) throw (productsRes.error || categoriesRes.error);
 
@@ -125,9 +116,8 @@ export function useCatalogData() {
         knownOrdersRef.current = { orders: null, custom: null };
       }
     };
-    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-    return () => subscription.unsubscribe();
+    getSession().then(applySession);
+    return onSessionChange(applySession);
   }, [fetchData]);
 
   // Carga inicial. Visitantes não mantêm conexão ao vivo: atualizam ao voltar para a aba
@@ -143,12 +133,7 @@ export function useCatalogData() {
   const userId = user?.id ?? null;
   useEffect(() => {
     if (!userId) return;
-    const adminChannel = supabase.channel('admin-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_orders' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchData)
-      .subscribe();
+    const stopWatching = watchAdminChanges(fetchData);
 
     // Reserva: mesmo sem o tempo real ativo, atualiza a cada 30 s enquanto a aba está visível
     const timer = setInterval(() => {
@@ -156,7 +141,7 @@ export function useCatalogData() {
     }, ADMIN_REFRESH_MS);
 
     return () => {
-      supabase.removeChannel(adminChannel);
+      stopWatching();
       clearInterval(timer);
     };
   }, [userId, fetchData]);

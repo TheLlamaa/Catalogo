@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, AlertCircle, ChevronLeft } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { signIn } from '../services/auth';
 
 export default function LoginView({ onLoginSuccess }) {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ export default function LoginView({ onLoginSuccess }) {
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await signIn(email, password);
     if (signInError) { setError(signInError.message); setLoading(false); } 
     else onLoginSuccess();
   };

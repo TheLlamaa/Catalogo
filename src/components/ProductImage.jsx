@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { thumbUrl } from '../lib/supabase';
+import { thumbUrl } from '../lib/images';
 
 // Mostra a miniatura (quando pedida e existente); se ela não existir (fotos antigas),
 // volta sozinha para a foto grande.
