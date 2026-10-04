@@ -345,7 +345,7 @@ function MainLayout() {
                 onDeleteCatalogOrder={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
                 onSelectCustomOrder={setSelectedCustomOrderId} onSelectCatalogOrder={setSelectedCatalogOrderId}
                 onUpdateOrderStatus={updateOrderStatus}
-                settings={settings} onSaveSettings={saveSettings} onUndoSettings={undoSettings}
+                settings={settings} onSaveSettings={saveSettings} onUndoSettings={undoSettings} user={user}
               />
             ) : (
               <Navigate to="/login" replace />

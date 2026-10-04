@@ -2,22 +2,26 @@
 
 Tudo o que o banco do catálogo precisa, para você poder **recriar o projeto do zero** (ou entender o que existe hoje). Estes arquivos refletem o estado real do banco.
 
-## Importante: e-mails de admin
-Os e-mails dos administradores **não** ficam no repositório. Em `02-funcoes-e-gatilhos.sql` há dois e-mails de exemplo
-(`seu-email-admin-1@exemplo.com` e `seu-email-admin-2@exemplo.com`). **Troque pelos e-mails reais (em minúsculas) antes de rodar** e não faça commit com eles.
+## Quem é administrador
+Os administradores ficam na tabela `public.admins` e são gerenciados pela aba **Equipe** do painel (adicionar e remover). Nenhum e-mail fica no repositório.
+
+- **Banco novo, do zero:** depois de rodar os arquivos abaixo, crie o primeiro admin no SQL Editor: `insert into public.admins (email) values ('voce@exemplo.com');` (em minúsculas). Dali em diante, o resto da equipe se adiciona pelo painel.
+- **Banco que já funcionava:** o `08-administradores.sql` copia sozinho os e-mails que estavam dentro da função antiga. Se não conseguir copiar, ele para sem mudar nada e explica o que fazer.
+- **Importante:** em Authentication → Providers → Email, desligue **"Allow new users to sign up"**. Os admins são criados por você; ninguém de fora precisa se cadastrar.
 
 ## Como recriar o banco
 No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser rodado mais de uma vez sem problema):
 
 | Ordem | Arquivo | O que faz |
 |---|---|---|
-| 1 | `01-tabelas.sql` | Cria as tabelas (categorias, produtos, pedidos, pedidos personalizados, dados privados, textos do site) |
-| 2 | `02-funcoes-e-gatilhos.sql` | `is_admin()`, validação de pedidos e limite anti-spam |
+| 1 | `01-tabelas.sql` | Cria as tabelas (categorias, produtos, pedidos, pedidos personalizados, dados privados, textos do site, administradores) |
+| 2 | `02-funcoes-e-gatilhos.sql` | `is_admin()` (lê a tabela de admins), validação de pedidos e limite anti-spam |
 | 3 | `03-seguranca-rls.sql` | Liga a segurança por linha e cria as regras de acesso (visitante só vê produtos ativos e só cria pedidos) |
 | 4 | `04-storage.sql` | Pasta de fotos `fotos_produtos` (pública para ver, só admin envia/apaga) |
 | 5 | `05-tempo-real.sql` | Atualização em tempo real do painel admin |
 | 6 | `06-personalizacao.sql` | Colunas de selo, seção da vitrine (Destaques / Mais pedidos) e ordem manual de produtos e categorias |
 | 7 | `07-controle-estoque.sql` | Permite desligar o controle de estoque no painel (o banco para de recusar pedidos por falta de estoque) |
+| 8 | `08-administradores.sql` | Admins em tabela (aba Equipe do painel) e versão do banco |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 

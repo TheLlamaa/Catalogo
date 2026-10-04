@@ -66,3 +66,18 @@ create table if not exists public.site_settings (
   value      text not null constraint site_settings_value_len check (char_length(value) <= 5000),
   updated_at timestamptz not null default now()
 );
+
+-- Quem administra a loja (e-mails em minúsculas). Gerenciado pela aba "Equipe" do painel.
+-- Depois de criar o banco do zero, o primeiro admin entra por SQL: insert into public.admins (email) values ('voce@exemplo.com');
+create table if not exists public.admins (
+  email      text primary key
+             constraint admins_email_valido check (email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' and char_length(email) <= 200),
+  added_by   text,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+-- Versão do banco: o painel avisa quando este banco está atrás da versão que o site espera
+create table if not exists public.app_meta (
+  key   text primary key,
+  value text not null
+);

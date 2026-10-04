@@ -7,6 +7,8 @@ alter table public.orders          enable row level security;
 alter table public.custom_orders   enable row level security;
 alter table public.product_private enable row level security;
 alter table public.site_settings   enable row level security;
+alter table public.admins          enable row level security;
+alter table public.app_meta        enable row level security;
 
 -- Políticas antigas, abertas a qualquer visitante (criadas no começo do projeto). Nunca devem existir.
 drop policy if exists "Permitir tudo em categorias"    on public.categories;
@@ -61,5 +63,25 @@ create policy "site_settings leitura publica" on public.site_settings
 drop policy if exists "site_settings admin escreve" on public.site_settings;
 create policy "site_settings admin escreve" on public.site_settings
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- Equipe: só admin vê, adiciona e remove (não existe edição; e o gatilho impede remover o último/o próprio)
+drop policy if exists "admins leitura" on public.admins;
+create policy "admins leitura" on public.admins
+  for select to authenticated using (public.is_admin());
+drop policy if exists "admins adiciona" on public.admins;
+create policy "admins adiciona" on public.admins
+  for insert to authenticated with check (public.is_admin());
+drop policy if exists "admins remove" on public.admins;
+create policy "admins remove" on public.admins
+  for delete to authenticated using (public.is_admin());
+revoke all on public.admins from anon;
+revoke update on public.admins from authenticated;
+
+-- Versão do banco: o admin só lê; quem grava é o SQL de cada atualização
+drop policy if exists "app_meta admin le" on public.app_meta;
+create policy "app_meta admin le" on public.app_meta
+  for select to authenticated using (public.is_admin());
+revoke all on public.app_meta from anon;
+revoke insert, update, delete on public.app_meta from authenticated;
 
 notify pgrst, 'reload schema';
