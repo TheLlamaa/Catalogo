@@ -10,6 +10,12 @@
   --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Reserva sempre o espaço da barra de rolagem: sem isso, o conteúdo "pula" alguns pixels
+   ao trocar entre páginas curtas (sem barra) e longas (com barra), principalmente no Windows. */
+html {
+  overflow-y: scroll;
+}
+
 body {
   margin: 0;
   background-color: #f8fafc;
