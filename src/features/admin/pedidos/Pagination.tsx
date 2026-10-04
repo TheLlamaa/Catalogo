@@ -11,16 +11,17 @@ interface PaginationProps {
   onPage: (page: number) => void;
   onPerPage: (n: number) => void;
   noun?: string; // "pedidos", "solicitações"
+  position?: 'top' | 'bottom';
 }
 
 const btn = 'min-w-[2.25rem] h-9 px-2 inline-flex items-center justify-center rounded-md border text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
 
 // Rodapé da lista: "Mostrando 1–10 de 32", botões de página e itens por página
-export default function Pagination({ page, pages, total, from, to, perPage, onPage, onPerPage, noun = 'pedidos' }: PaginationProps) {
+export default function Pagination({ page, pages, total, from, to, perPage, onPage, onPerPage, noun = 'pedidos', position = 'bottom' }: PaginationProps) {
   if (total === 0) return null;
   return (
-    <nav aria-label="Paginação" className="mt-6 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-gray-500" aria-live="polite">Mostrando {from}–{to} de {total} {noun}</p>
+    <nav aria-label={position === 'top' ? 'Páginas, topo da lista' : 'Paginação'} className={`${position === 'top' ? 'mb-4' : 'mt-6'} flex flex-wrap items-center justify-between gap-3`}>
+      <p className="text-sm text-gray-500" aria-live={position === 'top' ? 'off' : 'polite'}>Mostrando {from}–{to} de {total} {noun}</p>
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-2 text-sm text-gray-500">
           Por página

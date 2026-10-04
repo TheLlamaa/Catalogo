@@ -5,6 +5,8 @@ import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import Pagination from './Pagination';
+import ViewToggle from './ViewToggle';
+import { useViewMode } from '../../../hooks/useViewMode';
 import { usePagination } from '../../../hooks/usePagination';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
@@ -78,6 +80,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(s => [s.id, s.count])), [scoped]);
   const sum = useMemo(() => summarize(visible), [visible]);
   const pager = usePagination(visible, JSON.stringify([filters, status]));
+  const [view, setView] = useViewMode();
 
   const handleDelete = async (order: CatalogOrder) => {
     const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
@@ -126,9 +129,31 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
             <p className="py-10 text-center text-sm text-gray-500">Nenhum pedido com estes filtros.</p>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pager.items.map(order => <OrderCard key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
-              </div>
+              <div className="flex justify-end mb-3"><ViewToggle value={view} onChange={setView} /></div>
+              <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="pedidos" position="top" />
+              {view === 'cards' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {pager.items.map(order => <OrderCard key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white">
+                  <table className="w-full text-sm text-left" data-testid="lista-pedidos">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+                      <tr>
+                        <th scope="col" className="px-3 py-2.5 font-semibold">Cliente</th>
+                        <th scope="col" className="px-3 py-2.5 font-semibold">Itens</th>
+                        <th scope="col" className="px-3 py-2.5 font-semibold">Recebimento</th>
+                        <th scope="col" className="px-3 py-2.5 font-semibold">Status</th>
+                        <th scope="col" className="px-3 py-2.5 font-semibold text-right">Total</th>
+                        <th scope="col" className="px-3 py-2.5"><span className="sr-only">Ações</span></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {pager.items.map(order => <OrderRow key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="pedidos" />
             </>
           )}
@@ -203,5 +228,53 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
         </div>
       </div>
     </div>
+  );
+}
+
+// Uma linha do modo "Lista": mesmas informações do card, em formato compacto
+function OrderRow({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps) {
+  const age = ageInfo(order);
+  const items = order.items || [];
+  const delivery = order.delivery_method === 'entrega';
+  const summary = items.map(i => `${i.quantity}x ${i.title}`).join(', ');
+  return (
+    <tr
+      data-order-row
+      tabIndex={0}
+      onClick={() => onSelect(order.id)}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(order.id); } }}
+      className={`cursor-pointer hover:bg-gray-50 focus-visible:bg-gray-50 outline-none ${age.stale ? 'bg-red-50/40' : ''}`}
+    >
+      <td className="px-3 py-2.5 align-top min-w-[11rem]">
+        <span className="block font-semibold text-gray-900 truncate max-w-[14rem]">{order.client_name}</span>
+        <span className="block text-xs text-blue-600 font-medium">{order.client_phone}</span>
+        <span className="block text-xs text-gray-400" title={new Date(order.created_at).toLocaleString('pt-BR')}>
+          {orderCode(order)} · {age.label}
+          {age.stale && <span className="ml-1.5 inline-flex items-center gap-0.5 font-semibold text-red-600"><AlertTriangle className="w-3 h-3" /> sem resposta</span>}
+        </span>
+      </td>
+      <td className="px-3 py-2.5 align-top text-xs text-gray-600 max-w-[16rem]"><span className="line-clamp-2" title={summary}>{summary}</span></td>
+      <td className="px-3 py-2.5 align-top text-xs text-gray-500 min-w-[9rem]">
+        <span className="flex items-center gap-1.5">
+          {delivery ? <Truck className="w-3.5 h-3.5 flex-shrink-0" /> : <Store className="w-3.5 h-3.5 flex-shrink-0" />}
+          <span className="line-clamp-2">{delivery ? (order.delivery_address || 'Endereço não informado') : order.delivery_method ? 'Retirada' : '—'}</span>
+        </span>
+      </td>
+      <td className="px-3 py-2.5 align-top" onClick={(e) => e.stopPropagation()}><StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} /></td>
+      <td className="px-3 py-2.5 align-top text-right font-bold text-gray-900 whitespace-nowrap">{brl(order.total)}</td>
+      <td className="px-3 py-2.5 align-top">
+        <div className="flex items-center justify-end gap-0.5">
+          <a
+            href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
+            target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+            className="p-1.5 text-[#25D366] hover:bg-green-50 rounded transition-colors" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
+          ><MessageSquare className="w-4 h-4" /></a>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(order); }}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir" aria-label="Excluir pedido"
+          ><Trash2 className="w-4 h-4" /></button>
+        </div>
+      </td>
+    </tr>
   );
 }

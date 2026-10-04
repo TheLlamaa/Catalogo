@@ -44,3 +44,13 @@ export function loadPageSize(): number {
 export function savePageSize(n: number): void {
   try { localStorage.setItem(KEY, String(n)); } catch { /* armazenamento indisponível: só não lembra */ }
 }
+
+// Como a lista de pedidos é exibida (cards ou lista), lembrado neste navegador
+export type ViewMode = 'cards' | 'lista';
+const VIEW_KEY = 'catalogo-pedidos-visao';
+export function loadViewMode(): ViewMode {
+  try { return localStorage.getItem(VIEW_KEY) === 'lista' ? 'lista' : 'cards'; } catch { return 'cards'; }
+}
+export function saveViewMode(v: ViewMode): void {
+  try { localStorage.setItem(VIEW_KEY, v); } catch { /* armazenamento indisponível: só não lembra */ }
+}
