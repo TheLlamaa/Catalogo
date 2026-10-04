@@ -1,16 +1,62 @@
-# React + Vite
+# Catálogo online com pedidos por WhatsApp
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Site de catálogo para pequenas lojas: o cliente escolhe os produtos, monta um orçamento e envia o pedido; o dono recebe tudo em um painel e conversa pelo WhatsApp. Feito para peças impressas em 3D, mas configurável para qualquer loja.
 
-Currently, two official plugins are available:
+**Pilha:** React 19 · Vite · Tailwind · Supabase (banco, login, fotos) · Cloudflare Workers (hospedagem).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## O que tem
 
-## React Compiler
+- **Vitrine:** categorias, busca, ordenação, destaques, mais pedidos, novidades, página de cada produto, produtos relacionados, carrinho/orçamento, pedido personalizado e página Sobre.
+- **Painel do dono (`/admin`):** pedidos com resumo, filtros, relatório e planilhas; produtos e categorias com ordem manual; equipe; personalização completa do site (cores, fonte, logo, textos, menus, faixa de aviso, redes sociais).
+- **Recursos que cada loja liga ou desliga:** controle de estoque, pedidos personalizados, prazo de produção, efeito de aura e link do modelo 3D.
+- **Segurança no banco:** regras de acesso (RLS), preço e total dos pedidos calculados pelo banco, limite anti-spam por telefone, administradores em tabela.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Como rodar
 
-## Expanding the Oxlint configuration
+```bash
+npm install
+cp .env.example .env.local   # preencha com os dados do seu Supabase
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Variáveis de ambiente
+
+| Variável | Para que serve |
+|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Conexão com o Supabase (obrigatórias) |
+| `VITE_STORE_NAME` | Nome da loja (valor inicial) |
+| `VITE_WHATSAPP_NUMBER` | WhatsApp que recebe os pedidos, com DDI e DDD (ex.: `5548999999999`) |
+| `VITE_CONTACT_EMAIL` | E-mail de contato (opcional) |
+| `VITE_NICHE` | Ponto de partida da loja: `3d` (padrão) ou `generico`. Define textos e recursos iniciais; o dono muda tudo depois no painel |
+
+## Banco de dados
+
+Os arquivos em [`supabase/`](supabase/LEIA-ME.md) recriam o banco do zero (rodar em ordem no SQL Editor do Supabase) e cada um grava a versão do banco; o painel avisa quando o banco está atrás do que o site espera. O passo a passo, inclusive como criar o primeiro administrador e o aviso de pedidos pelo Telegram, está no [`supabase/LEIA-ME.md`](supabase/LEIA-ME.md).
+
+## Testes
+
+```bash
+npm run lint       # análise do código
+npm test           # testes unitários (vitest)
+npm run test:e2e   # testes no navegador, com um Supabase de mentira (precisa do Chromium)
+npm run test:sql   # testes do banco num Postgres local (pip install pgserver psycopg2-binary)
+```
+
+O CI do GitHub roda tudo isso a cada pull request.
+
+## Estrutura
+
+```
+src/
+  admin/        painel do dono (pedidos, produtos, categorias, equipe, site)
+  components/   peças compartilhadas (cabeçalho, carrinho, diálogos, contexto)
+  hooks/        carga de dados (useCatalogData) e carrinho (useCart)
+  lib/          regras puras e testadas (pedidos, relatório, tema, configurações…)
+  views/        páginas da vitrine
+supabase/       SQL do banco, testes do banco e função de aviso no Telegram
+tests/          testes unitários e de navegador
+```
+
+## Publicação
+
+O Cloudflare publica a branch `main` automaticamente. Antes do merge, o CI precisa estar verde.

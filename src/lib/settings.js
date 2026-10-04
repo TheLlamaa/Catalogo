@@ -1,6 +1,7 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './supabase';
 import { parseCustomAuras, parseAuraOverrides } from './auras';
 import { FONT_CHOICES, isHex, parseFaq, normalizeSocial } from './theme';
+import { NICHE } from './niche';
 
 // Tudo que o admin pode editar na aba "Site". O padrão é o texto original do site:
 // campo vazio/igual ao padrão = nada fica salvo no banco.
@@ -10,6 +11,7 @@ export const GROUPS = [
   { id: 'textos', label: 'Textos e menus' },
   { id: 'conteudo', label: 'Sobre e perguntas' },
   { id: 'vitrine', label: 'Vitrine' },
+  { id: 'recursos', label: 'Recursos' },
   { id: 'contato', label: 'Redes e rodapé' }
 ];
 
@@ -51,7 +53,6 @@ export const SETTINGS_SCHEMA = [
     group: 'textos', title: 'Menu',
     fields: [
       { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
-      { key: 'customEnabled', label: 'Aceitar peças personalizadas', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, o card de destaque e a página /custom.' },
       { key: 'menuCustom', label: 'Nome do botão de peças personalizadas', type: 'text', max: 24, default: 'Personalizado' },
     ]
   },
@@ -59,14 +60,14 @@ export const SETTINGS_SCHEMA = [
     group: 'textos', title: 'Página inicial (vitrine)',
     fields: [
       { key: 'catalogTitle', label: 'Título', type: 'text', max: 80, default: 'Catálogo Completo' },
-      { key: 'catalogSubtitle', label: 'Texto de apresentação', type: 'textarea', max: 300, default: 'Explore nossa coleção de peças impressas em 3D. Clique em um produto para ver mais fotos e detalhes.' },
+      { key: 'catalogSubtitle', label: 'Texto de apresentação', type: 'textarea', max: 300, default: NICHE.catalogSubtitle },
     ]
   },
   {
     group: 'textos', title: 'Card de destaque (peça personalizada)',
     fields: [
       { key: 'cardBadge', label: 'Etiqueta', type: 'text', max: 40, default: 'Destaque Especial' },
-      { key: 'cardTitle', label: 'Título', type: 'text', max: 60, default: 'Peça Personalizada' },
+      { key: 'cardTitle', label: 'Título', type: 'text', max: 60, default: NICHE.customTitle },
       { key: 'cardText', label: 'Texto', type: 'textarea', max: 220, default: 'Precisa de um projeto exclusivo ou tem uma foto de referência? Envie sua ideia e criaremos um orçamento sob medida.' },
       { key: 'cardButton', label: 'Texto do botão', type: 'text', max: 40, default: 'Solicitar Orçamento' },
     ]
@@ -107,9 +108,18 @@ export const SETTINGS_SCHEMA = [
     ]
   },
   {
-    group: 'vitrine', title: 'Produtos',
+    group: 'recursos', title: 'Recursos da loja',
     fields: [
       { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: todos os produtos ficam sempre disponíveis, sem limite de quantidade, e o estoque some do site e do cadastro.' },
+      { key: 'customEnabled', label: 'Aceitar pedidos personalizados', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, o card de destaque e a página /custom.' },
+      { key: 'leadTimeEnabled', label: 'Prazo de produção nos produtos', type: 'toggle', default: NICHE.features.leadTimeEnabled, hint: 'Ligado: o cadastro ganha o campo "Prazo de produção" e ele aparece no site. Desligado: some dos dois (o que já foi escrito fica guardado).' },
+      { key: 'aurasEnabled', label: 'Efeito de aura (brilho) nos cards', type: 'toggle', default: NICHE.features.aurasEnabled, hint: 'Ligado: aba Auras no painel, e brilho colorido nos cards e categorias. Desligado: tudo isso some (as escolhas feitas ficam guardadas).' },
+      { key: 'modelLinkEnabled', label: 'Link do modelo 3D no cadastro', type: 'toggle', default: NICHE.features.modelLinkEnabled, hint: 'Campo só seu, para guardar o link do arquivo 3D de cada produto. O cliente nunca vê.' },
+    ]
+  },
+  {
+    group: 'vitrine', title: 'Produtos',
+    fields: [
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Aparece nos produtos com 3 unidades ou menos que não tenham outro selo.' },
       { key: 'relatedEnabled', label: 'Mostrar produtos relacionados', type: 'toggle', default: true, hint: 'Na página do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },

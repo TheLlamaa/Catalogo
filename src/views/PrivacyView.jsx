@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useSettings } from '../components/SettingsContext';
+import { NICHE } from '../lib/niche';
 
 export default function PrivacyView() {
   const settings = useSettings();
@@ -14,7 +15,7 @@ export default function PrivacyView() {
       <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Quem somos</h2>
-          <p>{settings.storeName} é uma loja de peças impressas em 3D. Este site é o nosso catálogo e o canal para receber pedidos e orçamentos.</p>
+          <p>{settings.storeName} é {NICHE.about}. Este site é o nosso catálogo e o canal para receber pedidos e orçamentos.</p>
         </section>
 
         <section>

@@ -14,7 +14,7 @@ const LEAD_TIME_SUGGESTIONS = ['Pronta entrega', 'Sob encomenda: 2 a 3 dias', 'S
 
 export default function ProductForm({ initialData, categories, onSave, onCancel }) {
   const { toast } = useUI();
-  const { auraLib, stockControl } = useSettings();
+  const { auraLib, stockControl, leadTimeEnabled, aurasEnabled, modelLinkEnabled } = useSettings();
 
   // Categoria "Geral": usada quando nenhuma outra é escolhida
   const geralCat = categories.find(c => c.name.toLowerCase() === 'geral');
@@ -165,6 +165,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
             </div>
           )}
 
+          {leadTimeEnabled && (
           <div className="sm:col-span-2">
             <label htmlFor="p-prazo" className="block text-sm font-medium text-gray-700 mb-1">Prazo de produção <span className="text-gray-400 font-normal">(opcional)</span></label>
             <input
@@ -173,6 +174,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
             />
             <datalist id="prazos">{LEAD_TIME_SUGGESTIONS.map(s => <option key={s} value={s} />)}</datalist>
           </div>
+          )}
 
           <div>
             <label htmlFor="p-selo" className="block text-sm font-medium text-gray-700 mb-1">Selo no card <span className="text-gray-400 font-normal">(opcional)</span></label>
@@ -191,6 +193,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
             </select>
           </div>
 
+          {modelLinkEnabled && (
           <div className="sm:col-span-2">
             <label htmlFor="p-modelo" className="block text-sm font-medium text-gray-700 mb-1">Link do modelo 3D <span className="text-gray-400 font-normal">(opcional · só você vê, não aparece no site)</span></label>
             <input
@@ -198,6 +201,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
               value={formData.modelUrl} onChange={e => setFormData(p => ({ ...p, modelUrl: e.target.value }))} className={inputCls}
             />
           </div>
+          )}
 
           <div className="sm:col-span-2">
             <span className="block text-sm font-medium text-gray-700 mb-1">Opções para o cliente escolher <span className="text-gray-400 font-normal">(opcional)</span></span>
@@ -226,12 +230,14 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
             )}
           </div>
 
+          {aurasEnabled && (
           <div className="sm:col-span-2">
             <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito Aura Próprio (Sobrescreve a aura da categoria)</label>
             <select id="p-aura" value={formData.auraColor} onChange={e => setFormData(p => ({ ...p, auraColor: e.target.value }))} className={`${inputCls} bg-white`}>
               {optionsFor(auraLib, formData.auraColor).map(aura => <option key={aura.id} value={aura.id}>{aura.name}</option>)}
             </select>
           </div>
+          )}
 
           <div className="sm:col-span-2">
             <span className="block text-sm font-medium text-gray-700 mb-2">Categorias * (selecione uma ou mais)</span>

@@ -56,7 +56,7 @@ export default function AdminView({
         {tab('custom_orders', 'Pedidos Custom', customOrders.length, newCustom)}
         {tab('products', 'Produtos', products.length, 0)}
         {tab('categories', 'Categorias', categories.length, 0)}
-        {tab('auras', 'Auras', null)}
+        {settings.aurasEnabled && tab('auras', 'Auras', null)}
         {tab('site', 'Site', null)}
         {tab('team', 'Equipe', null)}
       </div>
@@ -79,7 +79,7 @@ export default function AdminView({
         )}
         {activeTab === 'products' && <ProductManager products={products} categories={categories} onSave={onSaveProduct} onDelete={onDeleteProduct} onReorder={onReorderProducts} />}
         {activeTab === 'categories' && <CategoryManager categories={categories} onSave={onSaveCategory} onDelete={onDeleteCategory} onReorder={onReorderCategories} />}
-        {activeTab === 'auras' && (
+        {activeTab === 'auras' && settings.aurasEnabled && (
           <AuraManager
             lib={settings.auraLib} products={products} categories={categories}
             onSave={({ custom, overrides }) => onSaveSettings({

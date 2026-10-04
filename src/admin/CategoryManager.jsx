@@ -6,7 +6,7 @@ import { useSettings } from '../components/SettingsContext';
 
 export default function CategoryManager({ categories, onSave, onDelete, onReorder }) {
   const { confirm } = useUI();
-  const { auraLib } = useSettings();
+  const { auraLib, aurasEnabled } = useSettings();
   const [editingCategory, setEditingCategory] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -43,14 +43,14 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
                   <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-6 py-4">Nome</th>
-                  <th className="px-6 py-4">Aura Padrão</th>
+                  {aurasEnabled && <th className="px-6 py-4">Aura Padrão</th>}
                   <th className="px-6 py-4">Descrição</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {categories.length === 0 ? (
-                  <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada até o momento.</td></tr>
+                  <tr><td colSpan={aurasEnabled ? 5 : 4} className="px-6 py-12 text-center text-sm text-gray-500">Nenhuma categoria cadastrada até o momento.</td></tr>
                 ) : (
                   categories.map((category, index) => (
                     <tr key={category.id} className="hover:bg-gray-50">
@@ -61,7 +61,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
-                      <td className="px-6 py-4">
+                      {aurasEnabled && <td className="px-6 py-4">
                         {category.auraColor && category.auraColor !== 'none' ? (
                           <span
                             role="img" title={auraLabel(category.auraColor, auraLib)} aria-label={`Aura: ${auraLabel(category.auraColor, auraLib)}`}
@@ -70,7 +70,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
                         ) : (
                           <span className="text-gray-400 text-xs">Nenhuma</span>
                         )}
-                      </td>
+                      </td>}
                       <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-[300px]">{category.description}</td>
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => { setEditingCategory(category); setIsFormOpen(true); }} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Editar" aria-label={`Editar ${category.name}`}><Edit2 className="w-4 h-4" /></button>
@@ -89,7 +89,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
 }
 
 function CategoryForm({ initialData, onSave, onCancel }) {
-  const { auraLib } = useSettings();
+  const { auraLib, aurasEnabled } = useSettings();
   const [formData, setFormData] = useState({ 
     id: initialData?.id || null, 
     name: initialData?.name || '', 
@@ -111,7 +111,7 @@ function CategoryForm({ initialData, onSave, onCancel }) {
           <input required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
         </div>
 
-        <div>
+        {aurasEnabled && <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Efeito de Aura para os Produtos desta Categoria</label>
           <select 
             value={formData.auraColor} 
@@ -124,7 +124,7 @@ function CategoryForm({ initialData, onSave, onCancel }) {
             ))}
           </select>
           <p className="text-xs text-gray-500 mt-1">Todos os produtos desta categoria ganharão o brilho selecionado na vitrine.</p>
-        </div>
+        </div>}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>

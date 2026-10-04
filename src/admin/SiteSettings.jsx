@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, Package, Share2, Info, Type, PanelBottom
+  Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import { useUI } from '../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../lib/settings';
@@ -15,7 +15,7 @@ const SECTION_ICONS = {
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
-  'Seções no topo da vitrine': LayoutGrid, 'Produtos': Package, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+  'Seções no topo da vitrine': LayoutGrid, 'Produtos': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';

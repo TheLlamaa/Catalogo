@@ -1,3 +1,4 @@
+import { NICHE } from './niche';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -8,7 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // ---------------------------------------------------------------------------
 // Configurações opcionais da loja (variáveis de ambiente, definidas no build)
 // ---------------------------------------------------------------------------
-export const STORE_NAME = import.meta.env.VITE_STORE_NAME || 'Catálogo 3D';
+export const STORE_NAME = import.meta.env.VITE_STORE_NAME || NICHE.storeName;
 export const STORE_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || '';
 
 // WhatsApp da loja: aceita com ou sem 55. Ex: 5548999999999 ou (48) 99999-9999
