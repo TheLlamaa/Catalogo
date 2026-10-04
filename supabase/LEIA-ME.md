@@ -22,6 +22,7 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 6 | `06-personalizacao.sql` | Colunas de selo, seção da vitrine (Destaques / Mais pedidos) e ordem manual de produtos e categorias |
 | 7 | `07-controle-estoque.sql` | Permite desligar o controle de estoque no painel (o banco para de recusar pedidos por falta de estoque) |
 | 8 | `08-administradores.sql` | Admins em tabela (aba Equipe do painel) e versão do banco |
+| 9 | `09-log-de-erros.sql` | Log de erros do site (aba Erros do painel) |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 

@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { reportError } from '../lib/errorLog';
 
 // Evita a tela em branco quando algo quebra durante a exibição
 export default class ErrorBoundary extends Component {
@@ -11,6 +12,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error) {
     console.error('Erro de exibição:', error);
+    reportError(error, 'react');
   }
 
   render() {
