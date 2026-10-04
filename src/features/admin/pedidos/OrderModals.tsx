@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from 'react';
 import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import Dialog from '../../../components/Dialog';
 import ProductImage from '../../vitrine/ProductImage';
@@ -5,11 +6,14 @@ import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
 import { brl, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
 import { ageInfo, orderCode } from '../../../lib/orders';
+import type { CatalogOrder, CustomOrder, OrderStatusId } from '../../../types';
 
-const formatDateTime = (iso) =>
+type IconType = ComponentType<{ className?: string }>;
+
+const formatDateTime = (iso: string) =>
   `${new Date(iso).toLocaleDateString('pt-BR')} às ${new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
-function InfoRow({ icon: Icon, label, children, wide }) {
+function InfoRow({ icon: Icon, label, children, wide }: { icon: IconType; label: string; children: ReactNode; wide?: boolean }) {
   return (
     <div className={`flex items-center gap-3 ${wide ? 'sm:col-span-2' : ''}`}>
       <div className="p-2 bg-blue-100 text-blue-700 rounded-md"><Icon className="w-4 h-4" /></div>
@@ -21,7 +25,15 @@ function InfoRow({ icon: Icon, label, children, wide }) {
   );
 }
 
-function ModalShell({ title, icon: Icon, onClose, children, footer }) {
+interface ModalShellProps {
+  title: string;
+  icon: IconType;
+  onClose: () => void;
+  children: ReactNode;
+  footer: ReactNode;
+}
+
+function ModalShell({ title, icon: Icon, onClose, children, footer }: ModalShellProps) {
   return (
     <Dialog onClose={onClose} label={title} panelClassName="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col relative max-h-[90vh]">
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
@@ -39,7 +51,7 @@ function ModalShell({ title, icon: Icon, onClose, children, footer }) {
   );
 }
 
-function DeleteButton({ onClick }) {
+function DeleteButton({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md font-medium transition-colors flex items-center gap-1.5">
       <Trash2 className="w-4 h-4" /> Excluir Pedido
@@ -47,7 +59,7 @@ function DeleteButton({ onClick }) {
   );
 }
 
-function WhatsappButton({ order, label, message }) {
+function WhatsappButton({ order, label, message }: { order: Pick<CatalogOrder, 'client_phone'>; label: string; message: string }) {
   return (
     <a
       href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, message)}
@@ -59,7 +71,14 @@ function WhatsappButton({ order, label, message }) {
   );
 }
 
-export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }) {
+interface OrderDetailModalProps<T> {
+  order: T;
+  onClose: () => void;
+  onDelete: (id: string) => unknown;
+  onUpdateStatus: (id: string, status: OrderStatusId) => unknown;
+}
+
+export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }: OrderDetailModalProps<CustomOrder>) {
   const { confirm } = useUI();
 
   const handleDelete = async () => {
@@ -105,7 +124,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
   );
 }
 
-export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }) {
+export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }: OrderDetailModalProps<CatalogOrder>) {
   const { confirm } = useUI();
 
   const handleDelete = async () => {
@@ -141,7 +160,7 @@ export function CatalogOrderDetailModal({ order, onClose, onDelete, onUpdateStat
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Itens do Pedido ({order.items?.length || 0})</h3>
         <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 overflow-hidden">
           {order.items?.map((item, idx) => {
-            const imgUrl = item.imageUrls?.length > 0 ? item.imageUrls[0] : null;
+            const imgUrl = item.imageUrls?.[0] ?? null;
             const opt = formatOptions(item.options);
             return (
               <div key={idx} className="p-3 bg-white flex items-center justify-between gap-4">

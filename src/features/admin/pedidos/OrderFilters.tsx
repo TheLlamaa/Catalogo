@@ -2,13 +2,30 @@ import { Search, X } from 'lucide-react';
 import { PERIODS, SORTS } from '../../../lib/orders';
 import { ORDER_STATUS } from '../../../lib/format';
 
-export const DEFAULT_FILTERS = { query: '', period: 'all', from: '', to: '', delivery: 'all', sort: 'recent' };
+// Estado dos filtros de busca, período, recebimento e ordenação
+export interface OrderFiltersValue {
+  query: string;
+  period: string;
+  from: string;
+  to: string;
+  delivery: string;
+  sort: string;
+}
+
+export const DEFAULT_FILTERS: OrderFiltersValue = { query: '', period: 'all', from: '', to: '', delivery: 'all', sort: 'recent' };
 
 const selectCls = 'flex-1 sm:flex-none min-w-[9rem] border border-gray-300 rounded-md bg-white px-2.5 py-2 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500';
 
 // Busca, período, recebimento e ordenação (os chips de status ficam em StatusChips)
-export function OrderFilters({ value, onChange, showDelivery = false, placeholder }) {
-  const set = (patch) => onChange({ ...value, ...patch });
+interface OrderFiltersProps {
+  value: OrderFiltersValue;
+  onChange: (value: OrderFiltersValue) => void;
+  showDelivery?: boolean;
+  placeholder?: string;
+}
+
+export function OrderFilters({ value, onChange, showDelivery = false, placeholder }: OrderFiltersProps) {
+  const set = (patch: Partial<OrderFiltersValue>) => onChange({ ...value, ...patch });
   const active = value.query || value.period !== 'all' || value.delivery !== 'all' || value.sort !== 'recent';
   return (
     <div className="mb-4 space-y-3">
@@ -50,8 +67,15 @@ export function OrderFilters({ value, onChange, showDelivery = false, placeholde
   );
 }
 
-export function StatusChips({ counts, total, value, onChange }) {
-  const chip = (id, label, n) => (
+interface StatusChipsProps {
+  counts: Record<string, number>;
+  total: number;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function StatusChips({ counts, total, value, onChange }: StatusChipsProps) {
+  const chip = (id: string, label: string, n: number) => (
     <button
       key={id} onClick={() => onChange(id)} aria-pressed={value === id}
       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${value === id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}

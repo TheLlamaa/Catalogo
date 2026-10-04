@@ -1,27 +1,60 @@
 import { useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { Plus, Edit2, Trash2, X, RotateCcw, Eye } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { auraProps, customKey, builtinName, BUILTIN_COLORS, BUILTIN_STRONG, BUILTIN_IDS, MAX_CUSTOM_AURAS, MAX_AURA_COLORS } from '../../../lib/auras';
+import type { AuraLib, AuraOverride, CustomAura } from '../../../lib/auras';
+import type { Category, Product } from '../../../types';
 
 const START_COLORS = ['#f97316', '#ec4899'];
 
+// Dados de uma aura no formulário (sem o id)
+interface AuraData { name: string; colors: string[]; strong: boolean }
+
+// O que está sendo editado: aura personalizada (nova ou existente) ou aura do sistema
+type Editing = { kind: 'custom'; aura?: CustomAura } | { kind: 'builtin'; id: string };
+
+interface AuraSampleProps {
+  auraKey?: string;
+  lib?: AuraLib;
+  colors?: string[];
+  strong?: boolean;
+  className?: string;
+  autoHeight?: boolean;
+  children?: ReactNode;
+}
+
+interface AuraFormProps {
+  initial?: AuraData;
+  title: string;
+  onSave: (data: AuraData) => unknown;
+  onCancel: () => void;
+}
+
+interface AuraManagerProps {
+  lib: AuraLib;
+  products: Product[];
+  categories: Category[];
+  onSave: (lib: AuraLib) => Promise<boolean>;
+}
+
 // Caixinha com o efeito aplicado. Com `auraKey` usa a aura (do sistema ou personalizada); senão usa as cores dadas.
-function AuraSample({ auraKey, lib, colors, strong, className = '', autoHeight = false, children }) {
+function AuraSample({ auraKey, lib, colors, strong, className = '', autoHeight = false, children }: AuraSampleProps) {
   const { className: cls, style } = auraKey
     ? auraProps(auraKey, lib)
-    : auraProps('custom-x', { custom: [{ id: 'x', name: '', colors, strong }], overrides: {} });
+    : auraProps('custom-x', { custom: [{ id: 'x', name: '', colors: colors ?? [], strong: !!strong }], overrides: {} });
   return <div className={`aura ${cls} ${className}`} style={autoHeight ? { ...style, height: 'auto' } : style}>{children}</div>;
 }
 
-function AuraForm({ initial, title, onSave, onCancel }) {
+function AuraForm({ initial, title, onSave, onCancel }: AuraFormProps) {
   const { toast } = useUI();
   const [name, setName] = useState(initial?.name || '');
   const [colors, setColors] = useState(initial?.colors || START_COLORS);
   const [strong, setStrong] = useState(!!initial?.strong);
 
-  const setColor = (i, v) => setColors(cs => cs.map((c, j) => (j === i ? v : c)));
+  const setColor = (i: number, v: string) => setColors(cs => cs.map((c, j) => (j === i ? v : c)));
 
-  const submit = (e) => {
+  const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim()) return toast.error('Dê um nome para a aura.');
     onSave({ name: name.trim(), colors, strong });
@@ -84,7 +117,7 @@ function AuraForm({ initial, title, onSave, onCancel }) {
   );
 }
 
-function ColorDots({ colors }) {
+function ColorDots({ colors }: { colors: string[] }) {
   return (
     <div className="flex gap-1.5 mt-3">
       {colors.map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-gray-200" style={{ background: c }} />)}
@@ -92,47 +125,48 @@ function ColorDots({ colors }) {
   );
 }
 
-export default function AuraManager({ lib, products, categories, onSave }) {
+export default function AuraManager({ lib, products, categories, onSave }: AuraManagerProps) {
   const { confirm } = useUI();
   // editing: null | { kind: 'custom', aura? } | { kind: 'builtin', id }
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
   const [saving, setSaving] = useState(false);
   const { custom, overrides } = lib;
 
-  const usage = (key) => products.filter(p => p.auraColor === key).length + categories.filter(c => c.auraColor === key).length;
+  const usage = (key: string) => products.filter(p => p.auraColor === key).length + categories.filter(c => c.auraColor === key).length;
 
-  const persist = async (nextCustom, nextOverrides) => {
+  const persist = async (nextCustom: CustomAura[], nextOverrides: Record<string, AuraOverride>) => {
     setSaving(true);
     const ok = await onSave({ custom: nextCustom, overrides: nextOverrides });
     setSaving(false);
     return ok;
   };
-  const setOverride = (id, value) => {
+  const setOverride = (id: string, value: AuraOverride | null) => {
     const next = { ...overrides };
     if (value && Object.keys(value).length) next[id] = value; else delete next[id];
     return next;
   };
 
   // --- personalizadas ---
-  const saveCustom = async (data) => {
-    const current = editing.aura;
-    const aura = { id: current?.id || Math.random().toString(36).slice(2, 8), ...data };
+  const saveCustom = async (data: AuraData) => {
+    const current = editing?.kind === 'custom' ? editing.aura : undefined;
+    const aura: CustomAura = { id: current?.id || Math.random().toString(36).slice(2, 8), ...data };
     const next = current ? custom.map(a => (a.id === aura.id ? aura : a)) : [...custom, aura];
     if (await persist(next, overrides)) setEditing(null);
   };
-  const deleteCustom = async (a) => {
+  const deleteCustom = async (a: CustomAura) => {
     const n = usage(customKey(a.id));
     const ok = await confirm({ title: 'Excluir aura', message: n > 0 ? `“${a.name}” está em ${n} produto(s)/categoria(s), que ficarão sem brilho. Excluir mesmo assim?` : `Excluir a aura “${a.name}”?` });
     if (ok) persist(custom.filter(x => x.id !== a.id), overrides);
   };
 
   // --- do sistema ---
-  const saveBuiltin = async (data) => {
+  const saveBuiltin = async (data: AuraData) => {
+    if (editing?.kind !== 'builtin') return;
     const id = editing.id;
-    const rest = overrides[id]?.hidden ? { hidden: true } : {};
+    const rest: AuraOverride = overrides[id]?.hidden ? { hidden: true } : {};
     if (await persist(custom, setOverride(id, { ...rest, name: data.name, colors: data.colors, strong: data.strong }))) setEditing(null);
   };
-  const hideBuiltin = async (id) => {
+  const hideBuiltin = async (id: string) => {
     const n = usage(id);
     const ok = await confirm({
       title: 'Excluir aura do sistema',
@@ -140,10 +174,10 @@ export default function AuraManager({ lib, products, categories, onSave }) {
     });
     if (ok) persist(custom, setOverride(id, { ...overrides[id], hidden: true }));
   };
-  const restoreVisible = (id) => { const rest = { ...overrides[id] }; delete rest.hidden; return persist(custom, setOverride(id, rest)); };
-  const resetBuiltin = (id) => persist(custom, setOverride(id, null));
+  const restoreVisible = (id: string) => { const rest = { ...overrides[id] }; delete rest.hidden; return persist(custom, setOverride(id, rest)); };
+  const resetBuiltin = (id: string) => persist(custom, setOverride(id, null));
 
-  const builtinInitial = (id) => {
+  const builtinInitial = (id: string): AuraData => {
     const ov = overrides[id];
     return { name: ov?.name || builtinName(id), colors: ov?.colors || BUILTIN_COLORS[id], strong: ov?.strong ?? !!BUILTIN_STRONG[id] };
   };
@@ -155,7 +189,7 @@ export default function AuraManager({ lib, products, categories, onSave }) {
     <div className="space-y-10">
       {editing && (
         <AuraForm
-          key={editing.kind + (editing.id || editing.aura?.id || 'nova')}
+          key={editing.kind + (editing.kind === 'builtin' ? editing.id : (editing.aura?.id || 'nova'))}
           title={editing.kind === 'builtin' ? `Editar aura “${builtinName(editing.id)}”` : (editing.aura ? 'Editar aura' : 'Nova aura')}
           initial={editing.kind === 'builtin' ? builtinInitial(editing.id) : editing.aura}
           onSave={editing.kind === 'builtin' ? saveBuiltin : saveCustom}

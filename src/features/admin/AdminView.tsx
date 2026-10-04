@@ -10,7 +10,38 @@ import TeamManager from './equipe/TeamManager';
 import ErrorsManager from './erros/ErrorsManager';
 import { fetchSchemaVersion } from '../../services/team';
 import { schemaMessage, schemaStatus } from '../../lib/schema';
+import type { SchemaStatus } from '../../lib/schema';
 import { statusInfo } from '../../lib/format';
+import type { AuraLib } from '../../lib/auras';
+import type { Settings } from '../../lib/settings';
+import type { useAdminActions } from '../../hooks/useAdminActions';
+import type { AuthUser } from '../../services/auth';
+import type { CatalogOrder, Category, CustomOrder, OrderStatusId, OrderTable, Product } from '../../types';
+
+type AdminActions = ReturnType<typeof useAdminActions>;
+type Tab = 'orders' | 'custom_orders' | 'products' | 'categories' | 'auras' | 'site' | 'team' | 'errors';
+
+interface AdminViewProps {
+  products: Product[];
+  categories: Category[];
+  customOrders: CustomOrder[];
+  catalogOrders: CatalogOrder[];
+  onSaveProduct: AdminActions['saveProduct'];
+  onDeleteProduct: AdminActions['deleteProduct'];
+  onReorderProducts: AdminActions['reorderProducts'];
+  onSaveCategory: AdminActions['saveCategory'];
+  onDeleteCategory: AdminActions['deleteCategory'];
+  onReorderCategories: AdminActions['reorderCategories'];
+  onDeleteCustomOrder: (id: string) => unknown;
+  onDeleteCatalogOrder: (id: string) => unknown;
+  onSelectCustomOrder: (id: string) => void;
+  onSelectCatalogOrder: (id: string) => void;
+  onUpdateOrderStatus: (table: OrderTable, id: string, status: OrderStatusId) => unknown;
+  settings: Settings;
+  onSaveSettings: AdminActions['saveSettings'];
+  onUndoSettings: AdminActions['undoSettings'];
+  user: AuthUser | null;
+}
 
 export default function AdminView({
   products, categories, customOrders, catalogOrders,
@@ -18,20 +49,20 @@ export default function AdminView({
   onDeleteCustomOrder, onDeleteCatalogOrder,
   onSelectCustomOrder, onSelectCatalogOrder, onUpdateOrderStatus,
   settings, onSaveSettings, onUndoSettings, user
-}) {
-  const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, auras, site, team, errors
-  const [schema, setSchema] = useState(null);
+}: AdminViewProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const [schema, setSchema] = useState<SchemaStatus | null>(null);
   useEffect(() => {
     let alive = true;
     fetchSchemaVersion().then(({ data, error }) => { if (alive) setSchema(schemaStatus(data, error)); });
     return () => { alive = false; };
   }, []);
 
-  const newCount = (list) => list.filter(o => statusInfo(o.status).id === 'novo').length;
+  const newCount = (list: { status?: unknown }[]) => list.filter(o => statusInfo(o.status).id === 'novo').length;
   const newOrders = newCount(catalogOrders);
   const newCustom = newCount(customOrders);
 
-  const tab = (id, label, count, badge = 0) => (
+  const tab = (id: Tab, label: string, count: number | null, badge = 0) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`py-4 px-4 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap flex items-center gap-1.5 ${activeTab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
@@ -84,7 +115,7 @@ export default function AdminView({
         {activeTab === 'auras' && settings.aurasEnabled && (
           <AuraManager
             lib={settings.auraLib} products={products} categories={categories}
-            onSave={({ custom, overrides }) => onSaveSettings({
+            onSave={({ custom, overrides }: AuraLib) => onSaveSettings({
               customAuras: custom.length ? JSON.stringify(custom) : null,
               auraOverrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null
             }, 'Auras atualizadas.')}

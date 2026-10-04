@@ -1,16 +1,17 @@
 import { Component } from 'react';
+import type { ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { reportError } from '../services/errors';
 
 // Evita a tela em branco quando algo quebra durante a exibição
-export default class ErrorBoundary extends Component {
+export default class ErrorBoundary extends Component<{ children?: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
     return { failed: true };
   }
 
-  componentDidCatch(error) {
+  componentDidCatch(error: Error) {
     console.error('Erro de exibição:', error);
     reportError(error, 'react');
   }

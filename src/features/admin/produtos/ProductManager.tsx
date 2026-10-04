@@ -6,22 +6,31 @@ import ProductForm from './ProductForm';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { brl, isHttpUrl } from '../../../lib/format';
+import type { Category, Product, StoredProduct } from '../../../types';
 
-export default function ProductManager({ products, categories, onSave, onDelete, onReorder }) {
+interface ProductManagerProps {
+  products: Product[];
+  categories: Category[];
+  onSave: (product: Partial<StoredProduct>) => Promise<boolean>;
+  onDelete: (id: string) => unknown;
+  onReorder: (orderedIds: string[]) => unknown;
+}
+
+export default function ProductManager({ products, categories, onSave, onDelete, onReorder }: ProductManagerProps) {
   const { confirm } = useUI();
   const { auraLib, stockControl, aurasEnabled } = useSettings();
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const handleAddNew = () => { setEditingProduct(null); setIsFormOpen(true); };
 
-  const handleDelete = async (product) => {
+  const handleDelete = async (product: Product) => {
     const ok = await confirm({ title: 'Excluir produto', message: `Excluir “${product.title}”? Isso não pode ser desfeito.` });
     if (ok) onDelete(product.id);
   };
 
   // Sobe ou desce um produto: a ordem desta lista é a ordem da vitrine
-  const move = (index, direction) => {
+  const move = (index: number, direction: number) => {
     const target = index + direction;
     if (target < 0 || target >= products.length) return;
     const ids = products.map(p => p.id);
@@ -30,7 +39,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
   };
 
   // Cópia inativa (rascunho): o admin ajusta e ativa quando estiver pronta
-  const handleDuplicate = (product) => onSave({ ...product, id: null, title: `${product.title} (cópia)`, active: false });
+  const handleDuplicate = (product: Product) => onSave({ ...product, id: undefined, title: `${product.title} (cópia)`, active: false });
 
   return (
     <div>
@@ -74,7 +83,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                     let displayAura = product.auraColor || 'inherit';
                     if (displayAura === 'inherit' && product.categoryIds?.length > 0) {
                       const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
-                      if (matchedCategory) displayAura = matchedCategory.auraColor;
+                      if (matchedCategory?.auraColor) displayAura = matchedCategory.auraColor;
                     }
 
                     return (

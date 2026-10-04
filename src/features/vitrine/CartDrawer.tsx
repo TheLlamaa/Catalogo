@@ -1,28 +1,49 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2, MessageSquare } from 'lucide-react';
 import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
+import type { CartItem, DeliveryMethod } from '../../types';
 import { brl, formatOptions, formatPhoneBR, validateContact, buildOrderMessage, whatsappLink } from '../../lib/format';
 
-export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, onCheckout }) {
+interface CartDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  cart: CartItem[];
+  updateQuantity: (key: string, delta: number) => void;
+  removeItem: (key: string) => void;
+  total: number;
+  onCheckout: (order: Record<string, unknown>) => Promise<boolean>;
+}
+
+// Dados do último pedido enviado, usados na mensagem do WhatsApp.
+interface LastOrder {
+  name: string;
+  items: { id: string; title: string; price: number; quantity: number; options: Record<string, string>; imageUrls: string[] }[];
+  total: number;
+  notes: string | null;
+  deliveryMethod: DeliveryMethod;
+  deliveryAddress: string | null;
+}
+
+export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, onCheckout }: CartDrawerProps) {
   const settings = useSettings();
   const { toast } = useUI();
-  const [step, setStep] = useState('cart'); // cart, checkout, success
+  const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart'); // cart, checkout, success
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [deliveryMethod, setDeliveryMethod] = useState('retirada');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('retirada');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [trap, setTrap] = useState(''); // campo-isca anti-robô
-  const [lastOrder, setLastOrder] = useState(null);
+  const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
 
   if (!isOpen) return null;
 
-  const handleFinishOrder = async (e) => {
+  const handleFinishOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!clientName || !clientPhone) return toast.error('Preencha nome e WhatsApp.');
     const contactError = validateContact(clientName, clientPhone);
@@ -166,7 +187,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           <fieldset>
             <legend className="block text-sm font-medium text-gray-700 mb-2">Como prefere receber?</legend>
             <div className="grid grid-cols-2 gap-3">
-              {[{ id: 'retirada', label: 'Retirada' }, { id: 'entrega', label: 'Entrega' }].map(opt => (
+              {([{ id: 'retirada', label: 'Retirada' }, { id: 'entrega', label: 'Entrega' }] as { id: DeliveryMethod; label: string }[]).map(opt => (
                 <label
                   key={opt.id}
                   className={`flex items-center justify-center gap-2 border rounded-md py-2 text-sm cursor-pointer transition-colors ${deliveryMethod === opt.id ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}

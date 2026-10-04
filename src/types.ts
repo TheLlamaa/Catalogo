@@ -11,6 +11,8 @@ export interface OrderItem {
   quantity: number;
   options?: Record<string, string>;
   image?: string | null;
+  /** Miniaturas gravadas junto do item no momento da compra (só a primeira é usada). */
+  imageUrls?: string[];
 }
 
 export interface CatalogOrder {
@@ -87,6 +89,8 @@ export type StoredProduct = Omit<Product, 'available'>;
 export interface CartItem extends CartLine { product: Product }
 
 /** Métodos de aviso expostos por useUI() (UIProvider.jsx); `error` é usado em `return toast.error(...)`. */
+export interface ConfirmOptions { title?: string; message?: string; confirmLabel?: string; danger?: boolean }
+export interface UIApi { toast: Toast; confirm: (options: ConfirmOptions) => Promise<boolean> }
 export interface Toast { success(m: string): void; error(m: string): void; info(m: string): void }
 
 /** Tabelas de pedidos aceitas pelos serviços. */

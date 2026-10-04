@@ -1,16 +1,26 @@
 import { useMemo, useState } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquare, Truck, Store, AlertTriangle } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
+import type { OrderFiltersValue } from './OrderFilters';
 import { brl, downloadCsv, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
 import { ageInfo, filterOrders, itemsCsv, orderCode, ordersCsv, periodLabel, summarize } from '../../../lib/orders';
 import { buildReportHtml, openReport } from '../../../lib/report';
+import type { CatalogOrder, OrderStatusId } from '../../../types';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-function Card({ label, value, sub, tone = 'text-gray-900' }) {
+interface CardProps {
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  tone?: string;
+}
+
+function Card({ label, value, sub, tone = 'text-gray-900' }: CardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
       <span className="block text-xs text-gray-500 font-medium">{label}</span>
@@ -20,7 +30,15 @@ function Card({ label, value, sub, tone = 'text-gray-900' }) {
   );
 }
 
-function ActionButton({ icon: Icon, children, onClick, disabled, primary }) {
+interface ActionButtonProps {
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+}
+
+function ActionButton({ icon: Icon, children, onClick, disabled, primary }: ActionButtonProps) {
   return (
     <button
       onClick={onClick} disabled={disabled}
@@ -31,18 +49,25 @@ function ActionButton({ icon: Icon, children, onClick, disabled, primary }) {
   );
 }
 
-function filtersText(f, status) {
-  const parts = [];
+function filtersText(f: OrderFiltersValue, status: string) {
+  const parts: string[] = [];
   if (status !== 'all') parts.push(`status ${status.replace('_', ' ')}`);
   if (f.query) parts.push(`busca “${f.query}”`);
   if (f.delivery !== 'all') parts.push(f.delivery === 'entrega' ? 'só entrega' : 'só retirada');
   return parts.join(' · ');
 }
 
-export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, onUpdateStatus }) {
+interface CatalogOrdersManagerProps {
+  orders: CatalogOrder[];
+  onDelete: (id: string) => unknown;
+  onSelectOrder: (id: string) => void;
+  onUpdateStatus: (id: string, status: OrderStatusId) => unknown;
+}
+
+export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, onUpdateStatus }: CatalogOrdersManagerProps) {
   const { confirm, toast } = useUI();
   const { storeName } = useSettings();
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
   const [status, setStatus] = useState('all');
 
   // "scoped" ignora o status (para os números dos chips); "visible" é o que aparece na lista
@@ -51,7 +76,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(s => [s.id, s.count])), [scoped]);
   const sum = useMemo(() => summarize(visible), [visible]);
 
-  const handleDelete = async (order) => {
+  const handleDelete = async (order: CatalogOrder) => {
     const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
     if (ok) onDelete(order.id);
   };
@@ -107,7 +132,14 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   );
 }
 
-function OrderCard({ order, onSelect, onDelete, onUpdateStatus }) {
+interface OrderCardProps {
+  order: CatalogOrder;
+  onSelect: (id: string) => void;
+  onDelete: (order: CatalogOrder) => void;
+  onUpdateStatus: (id: string, status: OrderStatusId) => unknown;
+}
+
+function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps) {
   const age = ageInfo(order);
   const items = order.items || [];
   const first = items.slice(0, 2);

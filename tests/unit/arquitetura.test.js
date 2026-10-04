@@ -5,7 +5,7 @@ import { join } from 'node:path';
 const walk = (dir) => readdirSync(dir).flatMap(n => {
   const p = join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : [p];
-}).filter(f => /\.(js|jsx)$/.test(f));
+}).filter(f => /\.(js|jsx|ts|tsx)$/.test(f));
 
 describe('arquitetura', () => {
   const files = walk('src');

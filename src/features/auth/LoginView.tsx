@@ -1,16 +1,17 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, AlertCircle, ChevronLeft } from 'lucide-react';
 import { signIn } from '../../services/auth';
 
-export default function LoginView({ onLoginSuccess }) {
+export default function LoginView({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError(''); setLoading(true);
     const { error: signInError } = await signIn(email, password);
     if (signInError) { setError(signInError.message); setLoading(false); } 

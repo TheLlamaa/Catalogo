@@ -4,13 +4,15 @@ import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
+import type { OrderFiltersValue } from './OrderFilters';
 import { downloadCsv, statusInfo } from '../../../lib/format';
 import { ageInfo, filterOrders, orderCode, summarize } from '../../../lib/orders';
+import type { CustomOrder, OrderStatusId } from '../../../types';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const dateTime = (iso) => new Date(iso).toLocaleString('pt-BR');
+const dateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR');
 
-function ExportButton({ onClick, disabled }) {
+function ExportButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
@@ -22,15 +24,22 @@ function ExportButton({ onClick, disabled }) {
   );
 }
 
-export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onUpdateStatus }) {
+interface CustomOrdersManagerProps {
+  customOrders: CustomOrder[];
+  onDelete: (id: string) => unknown;
+  onSelectOrder: (id: string) => void;
+  onUpdateStatus: (id: string, status: OrderStatusId) => unknown;
+}
+
+export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onUpdateStatus }: CustomOrdersManagerProps) {
   const { confirm } = useUI();
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
   const [filter, setFilter] = useState('all');
   const scoped = useMemo(() => filterOrders(customOrders, { ...filters, status: 'all' }), [customOrders, filters]);
   const visible = useMemo(() => (filter === 'all' ? scoped : filterOrders(scoped, { status: filter, sort: filters.sort })), [scoped, filter, filters.sort]);
   const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(x => [x.id, x.count])), [scoped]);
 
-  const handleDelete = async (order) => {
+  const handleDelete = async (order: CustomOrder) => {
     const ok = await confirm({ title: 'Excluir solicitação', message: `Excluir a solicitação de ${order.client_name}? Isso não pode ser desfeito.` });
     if (ok) onDelete(order.id);
   };

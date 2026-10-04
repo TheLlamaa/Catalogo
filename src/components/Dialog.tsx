@@ -1,14 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 // Pilha de diálogos abertos: só o de cima reage ao Esc e ao Tab
-const stack = [];
+const stack: symbol[] = [];
+
+interface DialogProps {
+  onClose?: () => void;
+  label: string;
+  variant?: 'modal' | 'drawer';
+  zClass?: string;
+  panelClassName?: string;
+  children: ReactNode;
+}
 
 // Janela (modal) ou gaveta lateral: fecha com Esc ou clique fora, prende o foco
 // dentro dela e devolve o foco ao elemento que a abriu.
-export default function Dialog({ onClose, label, variant = 'modal', zClass = 'z-50', panelClassName = '', children }) {
-  const panelRef = useRef(null);
+export default function Dialog({ onClose, label, variant = 'modal', zClass = 'z-50', panelClassName = '', children }: DialogProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
 
   useEffect(() => { onCloseRef.current = onClose; });
@@ -17,14 +26,15 @@ export default function Dialog({ onClose, label, variant = 'modal', zClass = 'z-
     const token = Symbol('dialog');
     stack.push(token);
     const panel = panelRef.current;
+    if (!panel) return;
     const previous = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const focusables = () => [...panel.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+    const focusables = () => [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(el => el.offsetParent !== null);
     (focusables()[0] || panel).focus();
 
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (stack[stack.length - 1] !== token) return;
       if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
@@ -44,7 +54,7 @@ export default function Dialog({ onClose, label, variant = 'modal', zClass = 'z-
       const i = stack.indexOf(token);
       if (i >= 0) stack.splice(i, 1);
       document.body.style.overflow = previousOverflow;
-      if (previous && typeof previous.focus === 'function' && document.contains(previous)) previous.focus();
+      if (previous instanceof HTMLElement && document.contains(previous)) previous.focus();
     };
   }, []);
 
