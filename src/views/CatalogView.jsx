@@ -113,7 +113,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
               className={`text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between gap-2 whitespace-nowrap flex-shrink-0 max-md:border max-md:rounded-full ${activeCategoryId === category.id ? 'bg-blue-50 text-blue-700 font-medium max-md:border-blue-200' : 'text-gray-700 hover:bg-gray-100 max-md:border-gray-200 max-md:bg-white'}`}
             >
               <span>{category.name}</span>
-              {category.auraColor && category.auraColor !== 'none' && (
+              {settings.aurasEnabled && category.auraColor && category.auraColor !== 'none' && (
                 <span {...auraDot(category.auraColor, settings.auraLib, 10)} />
               )}
             </button>
@@ -126,7 +126,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <span>{activeCategory ? activeCategory.name : settings.catalogTitle}</span>
-              {activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
+              {settings.aurasEnabled && activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
                 <span {...auraDot(activeCategory.auraColor, settings.auraLib, 12)} />
               )}
             </h1>
@@ -242,6 +242,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
     const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
     if (matchedCategory) effectiveAuraKey = matchedCategory.auraColor;
   }
+  if (!settings.aurasEnabled) effectiveAuraKey = 'none';
   const aura = auraProps(effectiveAuraKey, auraLib);
 
   const nextImage = (e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % images.length); };
@@ -287,7 +288,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }) {
             {isOutOfStock ? 'Sem estoque disponível' : `${product.stock} unidade(s) disponível(is)`}
           </span>
         )}
-        {product.leadTime && (
+        {settings.leadTimeEnabled && product.leadTime && (
           <span className="hidden sm:flex text-xs text-gray-500 mb-2 font-medium items-center gap-1"><Clock className="w-3 h-3" /> {product.leadTime}</span>
         )}
         <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p>

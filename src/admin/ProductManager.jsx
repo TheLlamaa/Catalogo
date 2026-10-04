@@ -9,7 +9,7 @@ import { brl, isHttpUrl } from '../lib/format';
 
 export default function ProductManager({ products, categories, onSave, onDelete, onReorder }) {
   const { confirm } = useUI();
-  const { auraLib, stockControl } = useSettings();
+  const { auraLib, stockControl, aurasEnabled } = useSettings();
   const [editingProduct, setEditingProduct] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -57,14 +57,14 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                   <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-6 py-4">Produto</th>
                   {stockControl && <th className="px-6 py-4">Estoque</th>}
-                  <th className="px-6 py-4">Aura (Edição Rápida)</th>
+                  {aurasEnabled && <th className="px-6 py-4">Aura (Edição Rápida)</th>}
                   <th className="px-6 py-4">Visibilidade</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {products.length === 0 ? (
-                  <tr><td colSpan={stockControl ? 6 : 5} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
+                  <tr><td colSpan={4 + (stockControl ? 1 : 0) + (aurasEnabled ? 1 : 0)} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado até o momento.</td></tr>
                 ) : (
                   products.map((product, index) => {
                     const displayImage = product.imageUrls?.length > 0 ? product.imageUrls[0] : null;
@@ -112,7 +112,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                           </span>
                         </td>}
 
-                        <td className="px-6 py-4">
+                        {aurasEnabled && <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {displayAura !== 'none' && displayAura !== 'inherit' ? (
                               <span role="img" title={auraLabel(displayAura, auraLib)} aria-label={`Aura atual: ${auraLabel(displayAura, auraLib)}`} {...auraDot(displayAura, auraLib, 20)} />
@@ -130,7 +130,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                               ))}
                             </select>
                           </div>
-                        </td>
+                        </td>}
 
                         <td className="px-6 py-4">
                           <button
