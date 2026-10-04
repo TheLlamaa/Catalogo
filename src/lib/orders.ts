@@ -1,4 +1,4 @@
-import { ORDER_STATUS, formatOptions, statusInfo } from './format';
+import { ORDER_STATUS, formatOptions, isHttpUrl, statusInfo } from './format';
 import type { OrderLike } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -191,15 +191,13 @@ export const itemsCsv = (orders: OrderLike[]) => ({
   ])),
 });
 
-// Link do produto de um item de pedido (página pública /produto/:id).
-// Só vale para produto que ainda existe e está ativo; senão devolve o motivo para o painel avisar.
-export const itemProductLink = (
+// Link do modelo 3D do produto de um item de pedido (campo só do admin, vem em product.modelUrl).
+// Devolve null quando o item não tem produto, o produto foi removido ou o link não é http(s) válido.
+export const itemModelUrl = (
   item: { id?: string },
-  products: { id: string; active?: boolean }[],
-): { href: string | null; note: string } => {
-  if (!item.id) return { href: null, note: '' };
-  const product = products.find(p => p.id === item.id);
-  if (!product) return { href: null, note: 'produto removido' };
-  if (product.active === false) return { href: null, note: 'produto inativo' };
-  return { href: `/produto/${item.id}`, note: '' };
+  products: { id: string; modelUrl?: string }[],
+): string | null => {
+  if (!item.id) return null;
+  const url = products.find(p => p.id === item.id)?.modelUrl;
+  return isHttpUrl(url) ? url : null;
 };

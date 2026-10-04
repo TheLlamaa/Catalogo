@@ -139,11 +139,11 @@ describe('CSV', () => {
   });
 });
 
-import { itemProductLink } from '../../src/lib/orders';
-describe('link do produto no item do pedido', () => {
-  const products = [{ id: 'a', active: true }, { id: 'b', active: false }];
-  it('produto ativo vira link da página pública', () => expect(itemProductLink({ id: 'a' }, products)).toEqual({ href: '/produto/a', note: '' }));
-  it('produto inativo não vira link e avisa', () => expect(itemProductLink({ id: 'b' }, products)).toEqual({ href: null, note: 'produto inativo' }));
-  it('produto removido não vira link e avisa', () => expect(itemProductLink({ id: 'z' }, products)).toEqual({ href: null, note: 'produto removido' }));
-  it('item sem id (pedido antigo) fica como texto', () => expect(itemProductLink({}, products)).toEqual({ href: null, note: '' }));
+import { itemModelUrl } from '../../src/lib/orders';
+describe('link do modelo 3D no item do pedido', () => {
+  const products = [{ id: 'a', modelUrl: 'https://drive.example.com/modelo.stl' }, { id: 'b', modelUrl: '' }, { id: 'c', modelUrl: 'javascript:alert(1)' }, { id: 'd' }];
+  it('devolve o link quando o produto tem modelo', () => expect(itemModelUrl({ id: 'a' }, products)).toBe('https://drive.example.com/modelo.stl'));
+  it('sem modelo cadastrado: null', () => { expect(itemModelUrl({ id: 'b' }, products)).toBeNull(); expect(itemModelUrl({ id: 'd' }, products)).toBeNull(); });
+  it('link que não é http(s) é ignorado', () => expect(itemModelUrl({ id: 'c' }, products)).toBeNull());
+  it('produto removido ou item antigo sem id: null', () => { expect(itemModelUrl({ id: 'z' }, products)).toBeNull(); expect(itemModelUrl({}, products)).toBeNull(); });
 });
