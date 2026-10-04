@@ -4,6 +4,8 @@ import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquar
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
+import Pagination from './Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
 import { brl, downloadCsv, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
@@ -75,6 +77,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const visible = useMemo(() => (status === 'all' ? scoped : filterOrders(scoped, { status, sort: filters.sort })), [scoped, status, filters.sort]);
   const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(s => [s.id, s.count])), [scoped]);
   const sum = useMemo(() => summarize(visible), [visible]);
+  const pager = usePagination(visible, JSON.stringify([filters, status]));
 
   const handleDelete = async (order: CatalogOrder) => {
     const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
@@ -122,9 +125,12 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
           {visible.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500">Nenhum pedido com estes filtros.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visible.map(order => <OrderCard key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pager.items.map(order => <OrderCard key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
+              </div>
+              <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="pedidos" />
+            </>
           )}
         </>
       )}

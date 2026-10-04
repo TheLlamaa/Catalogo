@@ -3,6 +3,8 @@ import { Trash2, ExternalLink, FileText, Download, Image as ImageIcon } from 'lu
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
+import Pagination from './Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
 import { downloadCsv, statusInfo } from '../../../lib/format';
@@ -38,6 +40,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
   const scoped = useMemo(() => filterOrders(customOrders, { ...filters, status: 'all' }), [customOrders, filters]);
   const visible = useMemo(() => (filter === 'all' ? scoped : filterOrders(scoped, { status: filter, sort: filters.sort })), [scoped, filter, filters.sort]);
   const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(x => [x.id, x.count])), [scoped]);
+  const pager = usePagination(visible, JSON.stringify([filters, filter]));
 
   const handleDelete = async (order: CustomOrder) => {
     const ok = await confirm({ title: 'Excluir solicitação', message: `Excluir a solicitação de ${order.client_name}? Isso não pode ser desfeito.` });
@@ -73,8 +76,9 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
       ) : visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-500">Nenhuma solicitação com estes filtros.</p>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {visible.map(order => (
+          {pager.items.map(order => (
             <div
               key={order.id}
               role="button"
@@ -118,6 +122,8 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
             </div>
           ))}
         </div>
+        <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="solicitações" />
+        </>
       )}
     </div>
   );
