@@ -7,6 +7,7 @@ import CategoryManager from './CategoryManager';
 import SiteSettings from './SiteSettings';
 import AuraManager from './AuraManager';
 import TeamManager from './TeamManager';
+import ErrorsManager from './ErrorsManager';
 import { fetchSchemaVersion } from '../lib/admins';
 import { schemaMessage, schemaStatus } from '../lib/schema';
 import { statusInfo } from '../lib/format';
@@ -18,7 +19,7 @@ export default function AdminView({
   onSelectCustomOrder, onSelectCatalogOrder, onUpdateOrderStatus,
   settings, onSaveSettings, onUndoSettings, user
 }) {
-  const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, auras, site, team
+  const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, auras, site, team, errors
   const [schema, setSchema] = useState(null);
   useEffect(() => {
     let alive = true;
@@ -59,6 +60,7 @@ export default function AdminView({
         {settings.aurasEnabled && tab('auras', 'Auras', null)}
         {tab('site', 'Site', null)}
         {tab('team', 'Equipe', null)}
+        {tab('errors', 'Erros', null)}
       </div>
       <div className="p-6">
         {activeTab === 'orders' && (
@@ -90,6 +92,7 @@ export default function AdminView({
         )}
         {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} onUndo={onUndoSettings} />}
         {activeTab === 'team' && <TeamManager currentEmail={user?.email} />}
+        {activeTab === 'errors' && <ErrorsManager />}
       </div>
     </div>
     </>

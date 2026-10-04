@@ -34,7 +34,7 @@ check('2ª execução de todos os arquivos sem erro', True)
 cur.execute("select policyname from pg_policies where schemaname='public' order by 1"); pol=[r[0] for r in cur.fetchall()]
 check('política aberta antiga foi removida', 'Permitir tudo em categorias' not in pol, str(pol))
 cur.execute("select count(*) from pg_policies where schemaname in ('public','storage')"); n=cur.fetchone()[0]
-check('quantidade de políticas = 18 (15 public + 3 storage)', n==18, str(n))
+check('quantidade de políticas = 21 (18 public + 3 storage)', n==21, str(n))
 cur.execute("select tgname from pg_trigger where not tgisinternal and tgrelid::regclass::text in ('orders','custom_orders','public.orders','public.custom_orders') order by 1"); tg=[r[0] for r in cur.fetchall()]
 check('5 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
 cur.execute("select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1"); check('tempo real nas 4 tabelas', [r[0] for r in cur.fetchall()]==['categories','custom_orders','orders','products'])
@@ -114,12 +114,28 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (8)', cur.fetchone()[0]=='8')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='8')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (9)', cur.fetchone()[0]=='9')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='9')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
-cur.execute("reset role"); cur.execute("update public.app_meta set value='9' where key='schema_version'")
+cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
-cur.execute("select value from public.app_meta where key='schema_version'"); check('rodar o 08 de novo não faz a versão voltar para trás', cur.fetchone()[0]=='9')
+cur.execute("select value from public.app_meta where key='schema_version'"); check('rodar o 08 de novo não faz a versão voltar para trás', cur.fetchone()[0]=='99')
+
+# --- log de erros (09) ---
+cur.execute("reset role"); cur.execute("delete from public.error_log")
+role('anon'); ok,m=att("insert into public.error_log (source, message, page) values ('window','Boom','/')"); check('visitante registra um erro', ok, m)
+ok,m=att("select * from public.error_log"); check('visitante não lê o log de erros', not ok, m)
+ok,m=att("insert into public.error_log (source, message) values ('hack','x')"); check('origem inválida é recusada', not ok, m)
+ok,m=att("insert into public.error_log (message) values ('')"); check('mensagem vazia é recusada', not ok, m)
+ok,m=att("insert into public.error_log (message) values (repeat('a',501))"); check('mensagem gigante é recusada', not ok, m)
+role('authenticated','outro@x.com'); cur.execute("select count(*) from public.error_log"); check('logado que não é admin vê 0 erros', cur.fetchone()[0]==0)
+role('authenticated','admin@teste.com'); cur.execute("select count(*) from public.error_log"); check('admin vê o erro registrado', cur.fetchone()[0]==1)
+ok,m=att("update public.error_log set message='editado'"); check('ninguém edita o log', not ok, m)
+role('anon')
+for i in range(40): att("insert into public.error_log (message) values (%s)",(f'e{i}',))
+role('authenticated','admin@teste.com'); cur.execute("select count(*) from public.error_log"); n=cur.fetchone()[0]; check('limite de 30 erros por minuto', n==30, str(n))
+cur.execute("delete from public.error_log"); cur.execute("select count(*) from public.error_log"); check('admin limpa o log', cur.fetchone()[0]==0)
+
 
 # --- migração de um banco antigo (e-mails dentro da função is_admin) ---
 srv2=pgserver.get_server(tempfile.mkdtemp()); conn2=psycopg2.connect(srv2.get_uri()); conn2.autocommit=True; c2=conn2.cursor()
