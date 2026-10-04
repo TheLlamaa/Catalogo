@@ -44,6 +44,7 @@ const browser = await launch();
   await page.getByRole('button', { name: /^Equipe/ }).click();
   await page.getByRole('list', { name: 'Administradores' }).waitFor();
   check('banco na versão esperada: sem aviso de atualização', await page.getByText(/versão \d+/).count() === 0);
+  await page.getByText('você', { exact: true }).first().waitFor({ timeout: 10000 }).catch(() => {});
   check('lista mostra o admin e marca "você" (mesmo com maiúsculas no login)', await page.getByText('admin@teste.com').count() === 1 && await page.getByText('você', { exact: true }).count() === 1);
   check('não dá para remover a si mesmo', await page.getByRole('button', { name: 'Remover acesso de admin@teste.com' }).isDisabled());
 
