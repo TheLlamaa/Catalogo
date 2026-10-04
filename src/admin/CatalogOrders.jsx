@@ -115,7 +115,10 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }) {
   const delivery = order.delivery_method === 'entrega';
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(order.id)}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(order.id); } }}
       className={`bg-white border rounded-lg p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${age.stale ? 'border-red-300' : 'border-gray-200'}`}
     >
       <div className="flex items-start justify-between gap-2">

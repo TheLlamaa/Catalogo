@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { supabase } from './lib/supabase';
@@ -16,13 +16,14 @@ import CartDrawer from './components/CartDrawer';
 import { StoreHeader, AdminHeader, StoreFooter } from './components/Layout';
 
 import CatalogView from './views/CatalogView';
-import CustomRequestView from './views/CustomRequestView';
-import LoginView from './views/LoginView';
-import PrivacyView from './views/PrivacyView';
-import AboutView from './views/AboutView';
+const CustomRequestView = lazy(() => import('./views/CustomRequestView'));
+const LoginView = lazy(() => import('./views/LoginView'));
+const PrivacyView = lazy(() => import('./views/PrivacyView'));
+const AboutView = lazy(() => import('./views/AboutView'));
 
-import AdminView from './admin/AdminView';
-import { CustomOrderDetailModal, CatalogOrderDetailModal } from './admin/OrderModals';
+const AdminView = lazy(() => import('./admin/AdminView'));
+const CustomOrderDetailModal = lazy(() => import('./admin/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
+const CatalogOrderDetailModal = lazy(() => import('./admin/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
 
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)
@@ -328,6 +329,7 @@ function MainLayout() {
       )}
 
       <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+        <Suspense fallback={<p role="status" className="py-16 text-center text-sm text-gray-500">Carregando...</p>}>
         <Routes>
           <Route path="/" element={catalogElement} />
           <Route path="/produto/:id" element={catalogElement} />
@@ -353,6 +355,7 @@ function MainLayout() {
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
 
       {isStoreRoute && (
@@ -371,6 +374,7 @@ function MainLayout() {
         />
       )}
 
+      <Suspense fallback={null}>
       {selectedCustomOrder && (
         <CustomOrderDetailModal
           order={selectedCustomOrder}
@@ -388,6 +392,7 @@ function MainLayout() {
           onUpdateStatus={(id, status) => updateOrderStatus('orders', id, status)}
         />
       )}
+      </Suspense>
 
       {isStoreRoute && (
         <CartDrawer

@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "react-hooks",
+    "jsx-a11y"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "no-undef": "error",
+    "no-unused-vars": "warn",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "react/set-state-in-effect": "warn",
+    "react/refs": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "tests/e2e/**",
+    "supabase/functions/**"
+  ]
+}

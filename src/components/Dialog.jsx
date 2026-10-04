@@ -53,7 +53,7 @@ export default function Dialog({ onClose, label, variant = 'modal', zClass = 'z-
     : `fixed inset-0 ${zClass} flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm`;
 
   return (
-    <div className={overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+    <div role="presentation" className={overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
       <div ref={panelRef} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} className={`outline-none ${panelClassName}`}>
         {children}
       </div>

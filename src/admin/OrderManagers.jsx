@@ -68,7 +68,10 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
           {visible.map(order => (
             <div
               key={order.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectOrder(order.id)}
+              onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelectOrder(order.id); } }}
               className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex gap-4 items-start relative group"
             >
               {order.image_url ? (
