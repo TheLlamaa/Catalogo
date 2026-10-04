@@ -1,20 +1,43 @@
 -- 02 · Funções e gatilhos (quem é admin, validação e limite de pedidos).
 -- Pode rodar mais de uma vez.
 
--- ATENÇÃO: troque pelos e-mails dos admins (em minúsculas) ANTES de rodar.
--- Este arquivo fica público no GitHub de propósito sem os e-mails reais.
--- Se rodar sem trocar, ninguém será admin (o painel não abre), mas nada fica exposto.
+-- Admin = e-mail que está na tabela public.admins (a aba "Equipe" do painel gerencia isso).
+-- security definer: precisa ler a tabela mesmo quando quem pergunta é um visitante.
 create or replace function public.is_admin()
 returns boolean
 language sql
 stable
+security definer
 set search_path = ''
 as $$
-  select lower(coalesce(auth.jwt() ->> 'email', '')) in (
-    'seu-email-admin-1@exemplo.com',
-    'seu-email-admin-2@exemplo.com'
+  select exists (
+    select 1 from public.admins a
+    where a.email = lower(coalesce(auth.jwt() ->> 'email', ''))
   )
 $$;
+
+-- Protege contra ficar sem ninguém no comando: não dá para remover o próprio acesso nem o último admin.
+create or replace function public.proteger_admins()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if lower(coalesce(auth.jwt() ->> 'email', '')) = OLD.email then
+    raise exception 'Você não pode remover o seu próprio acesso.';
+  end if;
+  if (select count(*) from public.admins) <= 1 then
+    raise exception 'Precisa existir pelo menos um administrador.';
+  end if;
+  return OLD;
+end;
+$$;
+revoke execute on function public.proteger_admins() from public, anon, authenticated;
+
+drop trigger if exists proteger_admins on public.admins;
+create trigger proteger_admins before delete on public.admins
+  for each row execute function public.proteger_admins();
 
 -- Validação dos pedidos (só no INSERT, para não travar a edição de pedidos antigos).
 -- Também força status = 'novo': o visitante nunca escolhe o status.

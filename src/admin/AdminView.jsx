@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import CatalogOrdersManager from './CatalogOrders';
 import { CustomOrdersManager } from './OrderManagers';
 import ProductManager from './ProductManager';
 import CategoryManager from './CategoryManager';
 import SiteSettings from './SiteSettings';
 import AuraManager from './AuraManager';
+import TeamManager from './TeamManager';
+import { fetchSchemaVersion } from '../lib/admins';
+import { schemaMessage, schemaStatus } from '../lib/schema';
 import { statusInfo } from '../lib/format';
 
 export default function AdminView({
@@ -12,9 +16,15 @@ export default function AdminView({
   onSaveProduct, onDeleteProduct, onReorderProducts, onSaveCategory, onDeleteCategory, onReorderCategories,
   onDeleteCustomOrder, onDeleteCatalogOrder,
   onSelectCustomOrder, onSelectCatalogOrder, onUpdateOrderStatus,
-  settings, onSaveSettings, onUndoSettings
+  settings, onSaveSettings, onUndoSettings, user
 }) {
-  const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, site
+  const [activeTab, setActiveTab] = useState('orders'); // orders, custom_orders, products, categories, auras, site, team
+  const [schema, setSchema] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    fetchSchemaVersion().then(({ data, error }) => { if (alive) setSchema(schemaStatus(data, error)); });
+    return () => { alive = false; };
+  }, []);
 
   const newCount = (list) => list.filter(o => statusInfo(o.status).id === 'novo').length;
   const newOrders = newCount(catalogOrders);
@@ -34,6 +44,12 @@ export default function AdminView({
   );
 
   return (
+    <>
+    {schema && !schema.ok && (
+      <div role="alert" className="mb-4 p-4 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-900 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" /> <span>{schemaMessage(schema)}</span>
+      </div>
+    )}
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
       <div className="flex border-b border-gray-200 px-6 bg-gray-50/50 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tab('orders', 'Pedidos', catalogOrders.length, newOrders)}
@@ -42,6 +58,7 @@ export default function AdminView({
         {tab('categories', 'Categorias', categories.length, 0)}
         {tab('auras', 'Auras', null)}
         {tab('site', 'Site', null)}
+        {tab('team', 'Equipe', null)}
       </div>
       <div className="p-6">
         {activeTab === 'orders' && (
@@ -72,7 +89,9 @@ export default function AdminView({
           />
         )}
         {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} onUndo={onUndoSettings} />}
+        {activeTab === 'team' && <TeamManager currentEmail={user?.email} />}
       </div>
     </div>
+    </>
   );
 }

@@ -25,14 +25,16 @@ create policy "Permitir tudo em categorias" on public.categories for all to publ
 files=sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '0*.sql')))
 for rep in (1,2):
     for f in files:
-        sql=open(f,encoding='utf-8').read().replace("'seu-email-admin-1@exemplo.com'","'admin@teste.com'")
+        sql=open(f,encoding='utf-8').read()
         ok,m=att(sql)
         if rep==1 or not ok: check(f'{os.path.basename(f)} (execução {rep})',ok,m)
+    if rep==1:
+        ok,m=att("insert into public.admins (email, added_by) values ('admin@teste.com','teste')"); check('primeiro admin entra por SQL',ok,m)
 check('2ª execução de todos os arquivos sem erro', True)
 cur.execute("select policyname from pg_policies where schemaname='public' order by 1"); pol=[r[0] for r in cur.fetchall()]
 check('política aberta antiga foi removida', 'Permitir tudo em categorias' not in pol, str(pol))
 cur.execute("select count(*) from pg_policies where schemaname in ('public','storage')"); n=cur.fetchone()[0]
-check('quantidade de políticas = 14 (11 public + 3 storage)', n==14, str(n))
+check('quantidade de políticas = 18 (15 public + 3 storage)', n==18, str(n))
 cur.execute("select tgname from pg_trigger where not tgisinternal and tgrelid::regclass::text in ('orders','custom_orders','public.orders','public.custom_orders') order by 1"); tg=[r[0] for r in cur.fetchall()]
 check('5 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
 cur.execute("select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1"); check('tempo real nas 4 tabelas', [r[0] for r in cur.fetchall()]==['categories','custom_orders','orders','products'])
@@ -52,7 +54,7 @@ cur.execute("select count(*) from public.orders"); check('admin lê pedidos', cu
 ok,m=att("insert into public.product_private(product_id, model_url) values (%s,'https://makerworld.com/m/1')",(pid,)); check('admin grava link do modelo', ok, m)
 ok,m=att("insert into storage.objects(bucket_id,name) values ('fotos_produtos','a.jpg')"); check('admin envia foto', ok, m)
 role('authenticated','outro@x.com'); ok,m=att("insert into storage.objects(bucket_id,name) values ('fotos_produtos','b.jpg')"); check('não-admin não envia foto', not ok, m)
-role('authenticated','seu-email-admin-2@exemplo.com'); cur.execute("select public.is_admin()"); check('e-mail genérico do arquivo ainda dá acesso a quem usar (por isso deve ser trocado) — aqui só confirmamos que funciona', cur.fetchone()[0] is True)
+role('authenticated','seu-email-admin-2@exemplo.com'); cur.execute("select public.is_admin()"); check('e-mail de exemplo NÃO é admin (nada vem pré-configurado)', cur.fetchone()[0] is False)
 
 cur.execute("select column_name from information_schema.columns where table_schema='public' and ((table_name='products' and column_name in ('badge','section','sort_order')) or (table_name='categories' and column_name='sort_order'))"); check('colunas novas existem', len(cur.fetchall())==4)
 role('authenticated','admin@teste.com'); ok,m=att("update public.products set badge='Novo', section='destaque', sort_order=3 where id=%s",(pid,)); check('admin grava selo, seção e ordem',ok,m)
@@ -96,5 +98,54 @@ role('authenticated','admin@teste.com'); att("update public.site_settings set va
 ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2323'); check('controle ligado de novo: volta a recusar',not ok,m)
 role('authenticated','admin@teste.com'); att("delete from public.site_settings where key='stockControl'")
 ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2424'); check('sem a configuração: padrão é controlar estoque',not ok,m)
+# --- administradores em tabela ---
+role('anon'); ok,m=att("select * from public.admins"); check('visitante não lê a lista de admins', not ok, m)
+role('authenticated','outro@x.com'); cur.execute("select count(*) from public.admins"); check('logado que não é admin vê 0 admins', cur.fetchone()[0]==0)
+ok,m=att("insert into public.admins(email) values ('invasor@x.com')"); check('não-admin não se adiciona como admin', not ok, m)
+role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin da tabela é admin', cur.fetchone()[0] is True)
+ok,m=att("insert into public.admins(email, added_by) values ('segundo@teste.com','admin@teste.com')"); check('admin adiciona outro admin', ok, m)
+ok,m=att("insert into public.admins(email) values ('MAIUSCULA@teste.com')"); check('e-mail em maiúsculas é recusado', not ok, m)
+ok,m=att("insert into public.admins(email) values ('sem-arroba')"); check('e-mail inválido é recusado', not ok, m)
+ok,m=att("update public.admins set email='x@teste.com' where email='segundo@teste.com'"); check('não dá para editar admin (só adicionar/remover)', not ok, m)
+role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('o novo admin já tem acesso', cur.fetchone()[0] is True)
+ok,m=att("select count(*) from public.products"); ok2,m2=att("update public.products set stock=stock where false"); check('novo admin consegue usar as tabelas protegidas', ok and ok2, m+m2)
+role('authenticated','admin@teste.com'); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('admin não remove o próprio acesso', not ok, m)
+ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('admin remove outro admin', ok, m)
+role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
+role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
+cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (8)', cur.fetchone()[0]=='8')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='8')
+role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
+cur.execute("reset role"); cur.execute("update public.app_meta set value='9' where key='schema_version'")
+sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
+cur.execute("select value from public.app_meta where key='schema_version'"); check('rodar o 08 de novo não faz a versão voltar para trás', cur.fetchone()[0]=='9')
+
+# --- migração de um banco antigo (e-mails dentro da função is_admin) ---
+srv2=pgserver.get_server(tempfile.mkdtemp()); conn2=psycopg2.connect(srv2.get_uri()); conn2.autocommit=True; c2=conn2.cursor()
+def legacy(emails):
+    c2.execute("drop schema if exists public cascade; create schema public; drop schema if exists auth cascade; create schema auth;")
+    c2.execute("create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;")
+    lista=", ".join(f"'{e}'" for e in emails)
+    c2.execute(f"create function public.is_admin() returns boolean language sql stable set search_path = '' as $$ select lower(coalesce(auth.jwt() ->> 'email', '')) in ({lista}) $$;")
+def rodar08():
+    try: c2.execute(sql08); return True,''
+    except Exception as e: return False,str(e).strip().splitlines()[0]
+c2.execute("do $$ begin if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin; end if; if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if; end $$;")
+legacy(['dono@loja.com','Socio@Loja.com'])
+ok,m=rodar08(); check('migração: roda sobre um banco antigo', ok, m)
+c2.execute("select email, added_by from public.admins order by 1"); rows=c2.fetchall()
+check('migração: copia os e-mails da função antiga (em minúsculas)', rows==[('dono@loja.com','migração 08'),('socio@loja.com','migração 08')], str(rows))
+c2.execute("select set_config('request.jwt.claims', %s, false)",(json.dumps({'email':'socio@loja.com'}),)); c2.execute("select public.is_admin()"); check('migração: quem era admin continua sendo', c2.fetchone()[0] is True)
+c2.execute("select set_config('request.jwt.claims', %s, false)",(json.dumps({'email':'outro@x.com'}),)); c2.execute("select public.is_admin()"); check('migração: quem não era continua sem acesso', c2.fetchone()[0] is False)
+ok,m=rodar08(); c2.execute("select count(*) from public.admins"); check('migração: rodar de novo não duplica', ok and c2.fetchone()[0]==2, m)
+legacy(['seu-email-admin-1@exemplo.com','seu-email-admin-2@exemplo.com'])
+ok,m=rodar08(); c2.execute("select count(*) from public.admins"); check('migração: e-mails de exemplo do repositório não viram admin', ok and c2.fetchone()[0]==0, m)
+legacy(['dono'])  # função antiga com algo que não dá para copiar: tem que parar sem mudar nada
+ok,m=rodar08(); c2.execute("select pg_get_functiondef('public.is_admin()'::regprocedure)"); d=c2.fetchone()[0]
+check('migração: se não conseguir copiar os e-mails, para com aviso', not ok and 'Nada foi alterado' in m, m)
+check('migração: ...e a função antiga continua como estava (ninguém perde acesso)', 'public.admins' not in d and "'dono'" in d)
+c2.execute("select to_regclass('public.admins')"); check('migração: ...e nem a tabela fica criada pela metade', c2.fetchone()[0] is None)
+
 import sys
 print('TUDO OK' if allok else 'HÁ FALHAS'); sys.exit(0 if allok else 1)
