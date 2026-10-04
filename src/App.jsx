@@ -11,19 +11,19 @@ import UIProvider from './components/UIProvider';
 import { useUI } from './components/UIContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
-import ProductDetailModal from './components/ProductDetailModal';
-import CartDrawer from './components/CartDrawer';
+import ProductDetailModal from './features/vitrine/ProductDetailModal';
+import CartDrawer from './features/vitrine/CartDrawer';
 import { StoreHeader, AdminHeader, StoreFooter } from './components/Layout';
 
-import CatalogView from './views/CatalogView';
-const CustomRequestView = lazy(() => import('./views/CustomRequestView'));
-const LoginView = lazy(() => import('./views/LoginView'));
-const PrivacyView = lazy(() => import('./views/PrivacyView'));
-const AboutView = lazy(() => import('./views/AboutView'));
+import CatalogView from './features/vitrine/CatalogView';
+const CustomRequestView = lazy(() => import('./features/vitrine/CustomRequestView'));
+const LoginView = lazy(() => import('./features/auth/LoginView'));
+const PrivacyView = lazy(() => import('./features/vitrine/PrivacyView'));
+const AboutView = lazy(() => import('./features/vitrine/AboutView'));
 
-const AdminView = lazy(() => import('./admin/AdminView'));
-const CustomOrderDetailModal = lazy(() => import('./admin/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
-const CatalogOrderDetailModal = lazy(() => import('./admin/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
+const AdminView = lazy(() => import('./features/admin/AdminView'));
+const CustomOrderDetailModal = lazy(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
+const CatalogOrderDetailModal = lazy(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
 
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)

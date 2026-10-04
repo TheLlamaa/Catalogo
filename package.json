@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "node tests/e2e/run.mjs",
-    "test:sql": "python3 supabase/tests/test_sql.py"
+    "test:sql": "python3 supabase/tests/test_sql.py",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -28,6 +29,7 @@
     "playwright-core": "^1.63.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
     "vite": "^8.3.0",
     "vitest": "^5.0.3"
   }
