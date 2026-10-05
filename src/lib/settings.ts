@@ -34,7 +34,7 @@ export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
   options: { value: string; label: string }[];
-  display?: 'columns'; // mostra ícones em vez de lista (usado em "Produtos por linha")
+  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort'; // mostra exemplos visuais em vez de lista
 }
 export interface RangeField extends SettingFieldBase {
   type: 'range';
@@ -109,14 +109,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'aparencia', title: 'Cores e fonte',
     fields: [
       { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Vazio = azul padrão. Prefira cores escuras ou médias: com cor clara o texto dos botões fica ruim de ler.' },
-      { key: 'fontChoice', label: 'Fonte', type: 'select', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
-      { key: 'bgTone', label: 'Fundo da loja', type: 'select', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
+      { key: 'fontChoice', label: 'Fonte', type: 'select', display: 'font', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
+      { key: 'bgTone', label: 'Fundo da loja', type: 'select', display: 'tone', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
     ]
   },
   {
     group: 'aparencia', title: 'Estilo dos cards',
     fields: [
-      { key: 'cardStyle', label: 'Cantos', type: 'select', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
+      { key: 'cardStyle', label: 'Cantos', type: 'select', display: 'corners', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
       { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', display: 'columns', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
     ]
   },
@@ -263,7 +263,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     group: 'vitrine', title: 'Exibição da vitrine',
     fields: [
-      { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
+      { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', display: 'sort', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
       { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
       { key: 'hidePrices', label: 'Esconder os preços', type: 'toggle', default: false, hint: 'Some dos cards, do produto e do carrinho. Use se combina o valor pelo WhatsApp.' },
     ]

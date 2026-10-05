@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
-  RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
+  RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
   Palette, Search, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -10,7 +10,7 @@ import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhats
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { LINK_LABEL_MAX, parseLinkDraft, linkToStored, isCompleteLink, type LinkDraft } from '../../../lib/links';
 import { PAGE_TITLE_MAX, PAGE_TEXT_MAX, parsePageDraft, pageToStored, isCompletePage, type PageDraft } from '../../../lib/pages';
-import { THEME_PRESETS, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 
@@ -313,24 +313,8 @@ function Field({ f, form, set, resetField }: FieldProps) {
       control = <textarea id={id} rows={f.rows || 3} maxLength={f.max} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={inputCls} />;
       break;
     case 'select':
-      if (f.display === 'columns') {
-        control = (
-          <div role="radiogroup" aria-label={f.label} className="flex gap-2">
-            {f.options.map(o => {
-              const on = str(form[f.key]) === o.value;
-              return (
-                <button
-                  key={o.value} type="button" role="radio" aria-checked={on} aria-label={o.label} title={o.label}
-                  onClick={() => set(f.key, o.value)}
-                  className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border text-xs font-medium transition-colors ${on ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  <ColumnsIcon n={Number(o.value)} />
-                  {o.value}
-                </button>
-              );
-            })}
-          </div>
-        );
+      if (f.display) {
+        control = <ChoiceGroup f={f} display={f.display} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
         break;
       }
       control = (
@@ -436,6 +420,50 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         <input id={id} type="file" accept="image/*" onChange={pick} className="sr-only" aria-label={label} />
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
       </div>
+    </div>
+  );
+}
+
+// Escolha com exemplo visual: cada opção mostra como ela fica (colunas, cantos, fonte, fundo ou ordem)
+function ChoicePreview({ display, value }: { display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string }) {
+  if (display === 'columns') return <ColumnsIcon n={Number(value)} />;
+  if (display === 'corners') {
+    const radius = CARD_STYLES.find(c => c.id === value)?.radius || '0.75rem';
+    return (
+      <div className="w-14 h-12 border border-gray-300 bg-white p-1.5 flex flex-col gap-1" style={{ borderRadius: radius }} aria-hidden="true">
+        <div className="flex-1 bg-gray-200" style={{ borderRadius: `calc(${radius} / 2)` }} />
+        <div className="h-1.5 w-8 bg-gray-300 rounded-sm" />
+      </div>
+    );
+  }
+  if (display === 'font') {
+    const stack = FONT_CHOICES.find(f => f.id === value)?.stack;
+    return <span style={{ fontFamily: stack }} className="text-3xl leading-none text-gray-800" aria-hidden="true">Aa</span>;
+  }
+  if (display === 'tone') {
+    const hex = BG_TONES.find(t => t.id === value)?.hex || '#ffffff';
+    return <div className="w-14 h-10 rounded-md border border-gray-300" style={{ backgroundColor: hex }} aria-hidden="true" />;
+  }
+  const SortIcon = value === 'price_asc' ? ArrowUp : value === 'price_desc' ? ArrowDown : Clock;
+  return <SortIcon className="w-7 h-7" aria-hidden="true" />;
+}
+
+function ChoiceGroup({ f, display, value, onChange }: { f: Extract<SettingField, { type: 'select' }>; display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string; onChange: (v: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label={f.label} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      {f.options.map(o => {
+        const on = value === o.value;
+        return (
+          <button
+            key={o.value} type="button" role="radio" aria-checked={on} aria-label={o.label} title={o.label}
+            onClick={() => onChange(o.value)}
+            className={`flex flex-col items-center justify-center gap-2 px-3 py-3 rounded-lg border text-xs font-medium text-center transition-colors min-h-[5.5rem] ${on ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            <ChoicePreview display={display} value={o.value} />
+            <span>{display === 'columns' ? o.value : o.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
