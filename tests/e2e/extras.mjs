@@ -186,6 +186,41 @@ const rowsExtra = [
   check('mínimo guardado como digitado', post2?.body.find(r => r.key === 'minOrder')?.value === '30,50');
   await p.close();
 }
+
+// ============ ADMIN: busca de configurações e ícones de colunas ============
+{
+  const { p, writes } = await newPage({ rows: [], admin: true });
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
+  await p.waitForSelector('[role=tablist]');
+  const search = p.getByLabel('Buscar configurações');
+  await search.fill('frete');
+  check('busca esconde as abas', await p.locator('[role=tablist]').count() === 0);
+  check('busca acha campo em outra aba (frete)', await p.getByText('Aviso sobre frete e prazo').count() >= 1);
+  check('busca mostra a contagem', await p.getByRole('status').filter({ hasText: /configura/ }).count() >= 1);
+  await search.fill('voce tambem');
+  check('busca ignora acentos', await p.getByText(/Você também pode gostar/).count() >= 1);
+  await search.fill('zzzxxx');
+  check('busca sem resultado avisa', await p.getByText(/Nenhuma configuração encontrada/).count() === 1);
+  await search.press('Escape');
+  check('Esc limpa a busca e volta às abas', (await search.inputValue()) === '' && await p.locator('[role=tablist]').count() === 1);
+  // edita pela busca e a edição vale
+  await search.fill('cor principal');
+  await p.getByLabel('Cor principal (código)').fill('#7c3aed');
+  await search.fill('');
+  await p.getByRole('tab', { name: 'Aparência' }).click();
+  check('edição feita pela busca é mantida', (await p.getByLabel('Cor principal (código)').inputValue()) === '#7c3aed');
+  // ícones de colunas
+  const radios = p.getByRole('radiogroup', { name: /Produtos por linha/ }).getByRole('radio');
+  check('3 ícones de colunas (2, 3, 4)', await radios.count() === 3);
+  check('3 colunas é o padrão marcado', (await p.getByRole('radio', { name: '3 colunas' }).getAttribute('aria-checked')) === 'true');
+  await p.getByRole('radio', { name: '4 colunas' }).click();
+  check('clicar no ícone troca a seleção', (await p.getByRole('radio', { name: '4 colunas' }).getAttribute('aria-checked')) === 'true');
+  const n1 = writes.length;
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
+  const pst = writes.slice(n1).find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
+  check('publica colunas escolhidas', pst?.body.find(r => r.key === 'gridCols')?.value === '4', JSON.stringify(pst?.body.map(r => r.key)));
+  await p.close();
+}
 await br.close();
 console.log(fails ? `\n${fails} FALHA(S)` : '\nTUDO OK');
 process.exit(fails ? 1 : 0);

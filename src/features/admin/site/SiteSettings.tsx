@@ -23,6 +23,13 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
+// Sem acento e em minúsculas, para a busca achar "voce" em "Você"
+const normalizeText = (v: string): string => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const fieldMatches = (f: SettingField, q: string): boolean => {
+  const optionText = f.type === 'select' ? f.options.map(o => o.label).join(' ') : '';
+  return normalizeText(`${f.label} ${f.hint || ''} ${optionText}`).includes(q);
+};
+
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DB_VALUE_MAX = 5000;
@@ -71,6 +78,7 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
   const [base, setBase] = useState(form);
   const [group, setGroup] = useState(GROUPS[0].id);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
 
   const dirty = Object.keys(DEFAULT_SETTINGS).some(k => toStored(k, form[k]) !== toStored(k, base[k]));
   const dirtyRef = useRef(dirty);
@@ -168,7 +176,16 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
     await onUndo();
   };
 
-  const sections = SETTINGS_SCHEMA.filter(s => s.group === group);
+  const q = normalizeText(query);
+  const searching = q.length > 0;
+  const groupLabel = (id: string) => GROUPS.find(g => g.id === id)?.label || '';
+  const sections: SettingsSection[] = searching
+    ? SETTINGS_SCHEMA.map(s => {
+        const sectionHit = normalizeText(`${s.title} ${groupLabel(s.group)}`).includes(q);
+        return { ...s, fields: sectionHit ? s.fields : s.fields.filter(f => fieldMatches(f, q)) };
+      }).filter(s => s.fields.length > 0)
+    : SETTINGS_SCHEMA.filter(s => s.group === group);
+  const resultCount = sections.reduce((n, s) => n + s.fields.length, 0);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -181,16 +198,33 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
         </div>
       )}
 
-      <div role="tablist" aria-label="Áreas do site" className="flex flex-wrap gap-2">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+        <input
+          type="search" value={query} onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); setQuery(''); } }}
+          placeholder="Buscar configuração… ex: cor, WhatsApp, frete, selo" aria-label="Buscar configurações"
+          className="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {searching && (
+        <div className="flex items-center justify-between gap-3 text-sm text-gray-600" role="status">
+          <span>{resultCount === 0 ? `Nenhuma configuração encontrada para “${query.trim()}”.` : `${resultCount} ${resultCount === 1 ? 'configuração encontrada' : 'configurações encontradas'} em todas as abas.`}</span>
+          <button type="button" onClick={() => setQuery('')} className="text-blue-700 font-medium hover:underline whitespace-nowrap">Limpar busca</button>
+        </div>
+      )}
+
+      {!searching && <div role="tablist" aria-label="Áreas do site" className="flex flex-wrap gap-2">
         {GROUPS.map(g => (
           <button
             key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}
             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${group === g.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
           >{g.label}</button>
         ))}
-      </div>
+      </div>}
 
-      {group === 'aparencia' && (
+      {!searching && group === 'aparencia' && (
         <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
           <legend className="sr-only">Temas prontos</legend>
           <h3 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h3>
@@ -218,8 +252,9 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
               <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
                 {section.title}
+                {searching && <span className="text-xs font-normal text-gray-500">· {groupLabel(section.group)}</span>}
               </h3>
-              <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>
+              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
             </div>
             <div className="p-5 space-y-5">
               {section.fields.map(f => (
@@ -278,6 +313,26 @@ function Field({ f, form, set, resetField }: FieldProps) {
       control = <textarea id={id} rows={f.rows || 3} maxLength={f.max} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={inputCls} />;
       break;
     case 'select':
+      if (f.display === 'columns') {
+        control = (
+          <div role="radiogroup" aria-label={f.label} className="flex gap-2">
+            {f.options.map(o => {
+              const on = str(form[f.key]) === o.value;
+              return (
+                <button
+                  key={o.value} type="button" role="radio" aria-checked={on} aria-label={o.label} title={o.label}
+                  onClick={() => set(f.key, o.value)}
+                  className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border text-xs font-medium transition-colors ${on ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <ColumnsIcon n={Number(o.value)} />
+                  {o.value}
+                </button>
+              );
+            })}
+          </div>
+        );
+        break;
+      }
       control = (
         <select id={id} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={`${inputCls} bg-white`}>
           {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -382,6 +437,22 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
       </div>
     </div>
+  );
+}
+
+// Miniatura com n colunas de cards, para escolher quantos produtos por linha
+function ColumnsIcon({ n }: { n: number }) {
+  const gap = 2, w = 40, h = 24;
+  const cw = (w - gap * (n - 1)) / n;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" fill="currentColor">
+      {Array.from({ length: n }, (_, i) => (
+        <g key={i}>
+          <rect x={i * (cw + gap)} y={0} width={cw} height={11} rx={1.5} opacity={0.85} />
+          <rect x={i * (cw + gap)} y={13} width={cw} height={11} rx={1.5} opacity={0.45} />
+        </g>
+      ))}
+    </svg>
   );
 }
 

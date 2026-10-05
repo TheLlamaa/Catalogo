@@ -34,6 +34,7 @@ export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
   options: { value: string; label: string }[];
+  display?: 'columns'; // mostra ícones em vez de lista (usado em "Produtos por linha")
 }
 export interface RangeField extends SettingFieldBase {
   type: 'range';
@@ -116,7 +117,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'aparencia', title: 'Estilo dos cards',
     fields: [
       { key: 'cardStyle', label: 'Cantos', type: 'select', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
-      { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
+      { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', display: 'columns', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
     ]
   },
   {
