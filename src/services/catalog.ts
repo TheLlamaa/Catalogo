@@ -16,7 +16,7 @@ export function fetchCatalog({ isAdmin }: { isAdmin: boolean }) {
     isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : none(),
     isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : none(),
     isAdmin ? supabase.from('product_private').select('product_id, model_url') : none(),
-    // Textos e menus personalizados (públicos). Se a tabela ainda não existir, usa os padrões.
+    // Textos personalizados (públicos). Se a tabela ainda não existir, usa os padrões.
     supabase.from('site_settings').select('key, value'),
   ]).then(([products, categories, customOrders, orders, modelUrls, settings]) => ({ products, categories, customOrders, orders, modelUrls, settings }));
 }

@@ -96,7 +96,7 @@ export interface Settings {
 // "group" decide em qual aba do painel a seção aparece.
 export const GROUPS: SettingsGroup[] = [
   { id: 'aparencia', label: 'Aparência' },
-  { id: 'textos', label: 'Textos e menus' },
+  { id: 'textos', label: 'Textos' },
   { id: 'conteudo', label: 'Sobre e perguntas' },
   { id: 'menus', label: 'Menus e páginas' },
   { id: 'vitrine', label: 'Vitrine' },
@@ -155,13 +155,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'textos', title: 'Menu',
-    fields: [
-      { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
-      { key: 'menuCustom', label: 'Nome do botão de peças personalizadas', type: 'text', max: 24, default: 'Personalizado' },
-    ]
-  },
-  {
     group: 'textos', title: 'Página inicial (vitrine)',
     fields: [
       { key: 'catalogTitle', label: 'Título', type: 'text', max: 80, default: 'Catálogo Completo' },
@@ -192,6 +185,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     group: 'menus', title: 'Menu do topo',
     fields: [{ key: 'menuTop', label: 'Menu do topo', type: 'menu', default: '', hint: 'Ordem e itens do menu no alto da loja. Vitrine, Sobre e Personalizado podem mudar de lugar, mas não saem.' }]
+  },
+  {
+    group: 'menus', title: 'Nomes dos botões do menu',
+    fields: [
+      { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
+      { key: 'menuAbout', label: 'Nome do botão “Sobre”', type: 'text', max: 24, default: 'Sobre' },
+      { key: 'menuCustom', label: 'Nome do botão de peças personalizadas', type: 'text', max: 24, default: 'Personalizado' },
+    ]
   },
   {
     group: 'menus', title: 'Links do rodapé',
@@ -232,7 +233,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'conteudo', title: 'Página "Sobre / Como funciona"',
     fields: [
       { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
-      { key: 'menuAbout', label: 'Nome do botão no menu', type: 'text', max: 24, default: 'Sobre' },
       { key: 'aboutTitle', label: 'Título da página', type: 'text', max: 80, default: 'Como funciona' },
       { key: 'aboutText', label: 'Texto', type: 'textarea', rows: 10, max: 3500, default: '', hint: 'Quem você é, materiais, prazos e entrega. Linha em branco = novo parágrafo.' },
       { key: 'aboutImage', label: 'Foto (opcional)', type: 'image', default: '', max: 700 },

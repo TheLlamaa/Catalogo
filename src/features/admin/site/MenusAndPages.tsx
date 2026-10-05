@@ -168,7 +168,7 @@ export function MenuEditor({ value, onChange, withBuiltins, max, form, categorie
           <li key={i} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50 flex flex-wrap items-center gap-2">
             <div className="flex-1 min-w-[12rem] space-y-2">
               {isBuiltin(it.kind) ? (
-                <p className="text-sm text-gray-900"><span className="font-medium">{str(form[BUILTIN_NAME[it.kind].key]) || BUILTIN_NAME[it.kind].fallback}</span> <span className="text-xs text-gray-500">· botão da loja (o nome muda na seção “Menu”)</span></p>
+                <p className="text-sm text-gray-900"><span className="font-medium">{str(form[BUILTIN_NAME[it.kind].key]) || BUILTIN_NAME[it.kind].fallback}</span> <span className="text-xs text-gray-500">· botão da loja (o nome muda em “Nomes dos botões do menu”)</span></p>
               ) : it.kind === 'page' ? (
                 <div className="grid sm:grid-cols-2 gap-2">
                   <select aria-label="Página do item" value={it.ref} onChange={e => update(i, { ref: e.target.value })} className={inputCls}>

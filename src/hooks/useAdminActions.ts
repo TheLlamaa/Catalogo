@@ -78,7 +78,7 @@ export function useAdminActions({
     return true;
   };
 
-  // Textos e menus do site: changes = { chave: 'valor' | null }. null volta ao padrão.
+  // Textos do site: changes = { chave: 'valor' | null }. null volta ao padrão.
   // Antes de gravar, guarda o valor antigo das chaves mudadas (settingsBackup) para o botão "Desfazer".
   const saveSettings = async (changes: SettingChanges, successMessage = 'Site atualizado.', { noBackup = false } = {}) => {
     const now = new Date().toISOString();
