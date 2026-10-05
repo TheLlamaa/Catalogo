@@ -171,7 +171,7 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
   const sections = SETTINGS_SCHEMA.filter(s => s.group === group);
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <p className="text-sm text-gray-600">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
 
       {settings.backup && (
