@@ -156,7 +156,7 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-      <p className="text-sm text-gray-600">Mude a aparência e os textos do site sem mexer em código. O que você edita aqui é um rascunho: os clientes só veem depois que você clicar em <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia neste painel enquanto você escolhe.</p>
+      <p className="text-sm text-gray-600">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
 
       {settings.backup && (
         <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm">

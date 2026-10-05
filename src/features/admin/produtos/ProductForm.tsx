@@ -238,7 +238,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel 
 
           <div className="sm:col-span-2">
             <span className="block text-sm font-medium text-gray-700 mb-1">Opções para o cliente escolher <span className="text-gray-400 font-normal">(opcional)</span></span>
-            <p className="text-xs text-gray-500 mb-3">Ex: “Cor” com valores “Branco, Preto, Azul”. O cliente escolhe antes de adicionar.</p>
+            <p className="text-xs text-gray-500 mb-3">Ex: Cor → Branco, Preto, Azul.</p>
             <div className="space-y-3">
               {formData.options.map((opt, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:items-center">

@@ -233,7 +233,7 @@ export default function AuraManager({ lib, products, categories, onSave }: AuraM
 
       <section aria-label="Auras do sistema">
         <h2 className="text-lg font-medium text-gray-900 mb-1">Auras do sistema ({visibleBuiltins.length})</h2>
-        <p className="text-sm text-gray-500 mb-6">Auras que já vêm no site. Dá para mudar nome e cores, voltar ao original ou excluir (e restaurar depois).</p>
+        <p className="text-sm text-gray-500 mb-6">Auras que já vêm no site. Dá para editar, voltar ao original ou excluir (e restaurar).</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleBuiltins.map(id => {
             const ov = overrides[id];

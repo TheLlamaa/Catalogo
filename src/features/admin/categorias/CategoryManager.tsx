@@ -54,7 +54,7 @@ export default function CategoryManager({ categories, onSave, onDelete, onReorde
               <Plus className="w-4 h-4" /> Nova Categoria
             </button>
           </div>
-          <p className="text-xs text-gray-500 -mt-3 mb-4">Esta é a ordem do menu da vitrine; categoria nova entra no fim.</p>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">Ordem do menu da vitrine; categoria nova entra no fim.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse">
               <thead>

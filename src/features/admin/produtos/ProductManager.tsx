@@ -58,7 +58,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               <Plus className="w-4 h-4" /> Novo Produto
             </button>
           </div>
-          <p className="text-xs text-gray-500 -mt-3 mb-4">Esta é a ordem da vitrine. Use as setas para reordenar; produto novo entra no topo.</p>
+          <p className="text-xs text-gray-500 -mt-3 mb-4">Ordem da vitrine; produto novo entra no topo.</p>
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
