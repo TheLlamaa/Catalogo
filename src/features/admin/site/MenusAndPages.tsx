@@ -142,6 +142,7 @@ interface MenuEditorProps {
   value: string; onChange: (v: string) => void;
   withBuiltins: boolean; max: number;
   form: Form; categories: Category[];
+  setFlag: (key: string, value: boolean) => void;
 }
 
 const BUILTIN_NAME: Record<string, { key: string; fallback: string }> = {
@@ -151,7 +152,7 @@ const BUILTIN_NAME: Record<string, { key: string; fallback: string }> = {
 // Sobre e Personalizado só aparecem na loja se estiverem ligados nas configurações
 const builtinOff = (kind: string, form: Form): boolean => (kind === 'about' && form.aboutEnabled !== true) || (kind === 'custom' && form.customEnabled === false);
 
-export function MenuEditor({ value, onChange, withBuiltins, max, form, categories }: MenuEditorProps) {
+export function MenuEditor({ value, onChange, withBuiltins, max, form, categories, setFlag }: MenuEditorProps) {
   const items = editMenu(value, withBuiltins);
   const pages = PAGE_KEYS.filter(k => isCompletePage(str(form[k]))).map(k => ({ key: k, title: (parsePageDraft(str(form[k])).t || '').trim() }));
   const save = (next: MenuItem[]) => onChange(serializeMenu(next));
@@ -171,7 +172,19 @@ export function MenuEditor({ value, onChange, withBuiltins, max, form, categorie
           <li key={i} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50 flex flex-wrap items-center gap-2">
             <div className="flex-1 min-w-[12rem] space-y-2">
               {isBuiltin(it.kind) ? (
-                <p className="text-sm text-gray-900"><span className="font-medium">{str(form[BUILTIN_NAME[it.kind].key]) || BUILTIN_NAME[it.kind].fallback}</span> <span className="text-xs text-gray-500">· botão da loja{builtinOff(it.kind, form) ? ` — desligado, não aparece (ligue em ${it.kind === 'about' ? 'Sobre e perguntas' : 'Recursos'})` : ''}</span></p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="text-sm font-medium text-gray-900">{str(form[BUILTIN_NAME[it.kind].key]) || BUILTIN_NAME[it.kind].fallback}</span>
+                  <span className="text-xs text-gray-500">botão da loja</span>
+                  {it.kind !== 'home' && (
+                    <label className="flex items-center gap-1.5 text-xs text-gray-700">
+                      <input
+                        type="checkbox" checked={!builtinOff(it.kind, form)}
+                        onChange={e => setFlag(it.kind === 'about' ? 'aboutEnabled' : 'customEnabled', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                      /> Mostrar na loja
+                    </label>
+                  )}
+                </div>
               ) : it.kind === 'page' ? (
                 <div className="grid sm:grid-cols-2 gap-2">
                   <select aria-label="Página do item" value={it.ref} onChange={e => update(i, { ref: e.target.value })} className={inputCls}>

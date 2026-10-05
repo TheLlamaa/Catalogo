@@ -210,6 +210,20 @@ const rowsExtra = [
   await p.close();
 }
 
+// ============ ADMIN: ligar o botão Sobre direto no menu ============
+{
+  const { p, writes } = await newPage({ rows: [], admin: true });
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
+  await p.getByRole('tab', { name: 'Menus e páginas' }).click();
+  await p.getByRole('listitem').filter({ hasText: 'Sobre' }).getByLabel('Mostrar na loja').check();
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
+  const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
+  check('ligar Sobre no menu grava aboutEnabled', post?.body.some(r => r.key === 'aboutEnabled' && r.value === 'true'));
+  await p.goto(BASE + '/'); await p.waitForSelector('h1');
+  check('botão Sobre aparece no menu da loja', await p.locator('header nav').getByRole('button', { name: 'Sobre' }).count() === 1);
+  await p.close();
+}
+
 // ============ ADMIN: busca de configurações e ícones de colunas ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
