@@ -10,11 +10,11 @@ export const LOW_STOCK_MAX = 3;
 // Selo do card: o que o admin escreveu; se não houver e a opção estiver ligada, "Últimas unidades"
 export const badgeFor = (
   product: Pick<Product, 'badge' | 'stock'>,
-  settings: { stockControl?: boolean; lowStockBadge?: boolean },
+  settings: { stockControl?: boolean; lowStockBadge?: boolean; lowStockText?: string },
 ): string => {
   const manual = (product.badge || '').trim();
   if (manual) return manual;
-  if (settings.stockControl && settings.lowStockBadge && product.stock > 0 && product.stock <= LOW_STOCK_MAX) return 'Últimas unidades';
+  if (settings.stockControl && settings.lowStockBadge && product.stock > 0 && product.stock <= LOW_STOCK_MAX) return (settings.lowStockText || '').trim() || 'Últimas unidades';
   return '';
 };
 

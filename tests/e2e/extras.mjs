@@ -113,6 +113,36 @@ const rowsExtra = [
   await p.close();
 }
 
+
+// ============ VITRINE: exibição e pedidos ============
+{
+  const linkA = JSON.stringify({ l: 'Mercado Livre', u: 'https://ml.test/loja', m: true, f: true });
+  const { p } = await newPage({ rows: [
+    { key: 'hidePrices', value: 'true' }, { key: 'showSearch', value: 'false' }, { key: 'defaultSort', value: 'price_desc' },
+    { key: 'linkA', value: linkA }, { key: 'ordersPaused', value: 'true' }, { key: 'pausedMessage', value: 'Voltamos em março!' },
+  ] });
+  await p.goto(BASE + '/'); await p.waitForSelector('h1');
+  check('preços escondidos na vitrine', !(await p.locator('body').innerText()).includes('R$'));
+  check('busca escondida', await p.getByPlaceholder('Buscar modelos...').count() === 0);
+  check('ordem padrão vem das configurações', (await p.locator('#ordem').inputValue()) === 'price_desc');
+  check('link extra no menu', await p.locator('header').getByRole('link', { name: 'Mercado Livre' }).count() === 1);
+  check('link extra no rodapé abre em nova aba', (await p.locator('footer').getByRole('link', { name: 'Mercado Livre' }).getAttribute('target')) === '_blank');
+  await p.goto(BASE + '/custom'); await p.waitForSelector('form');
+  check('pedidos pausados: aviso aparece', await p.getByText('Voltamos em março!').count() >= 1);
+  check('pedidos pausados: botão de enviar desligado', await p.getByRole('button', { name: /Enviar Solicitação/ }).isDisabled());
+  await p.close();
+}
+{
+  const { p } = await newPage({ rows: [] });
+  await p.goto(BASE + '/'); await p.waitForSelector('h1');
+  check('padrão: preços aparecem', (await p.locator('body').innerText()).includes('R$'));
+  check('padrão: busca aparece', await p.getByPlaceholder('Buscar modelos...').count() === 1);
+  check('padrão: ordem = mais recentes', (await p.locator('#ordem').inputValue()) === 'recent');
+  await p.goto(BASE + '/custom'); await p.waitForSelector('form');
+  check('padrão: pedidos abertos', await p.getByRole('button', { name: /Enviar Solicitação/ }).isEnabled());
+  await p.close();
+}
+
 // ============ ADMIN ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
@@ -136,6 +166,24 @@ const rowsExtra = [
   check('publica a página extra e o tema', ['bgTone', 'cardStyle', 'fontChoice', 'pageA', 'primaryColor'].every(k => keys.includes(k)), JSON.stringify(keys));
   const pg = post?.body.find(r => r.key === 'pageA')?.value;
   check('página guardada como JSON enxuto', pg && JSON.parse(pg).t === 'Só título' && JSON.parse(pg).x === 'Conteúdo da página', pg);
+  // pedido mínimo inválido e link incompleto bloqueiam
+  await p.getByRole('tab', { name: 'Recursos' }).click();
+  await p.getByLabel('Pedido mínimo (R$)').fill('abc');
+  const n0 = writes.length;
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
+  check('pedido mínimo inválido bloqueia', writes.length === n0 && await p.getByText(/Pedido mínimo: use um número/).count() >= 1);
+  await p.getByLabel('Pedido mínimo (R$)').fill('30,50');
+  await p.getByRole('tab', { name: 'Redes e rodapé' }).click();
+  await p.getByPlaceholder('Nome do link').first().fill('Loja');
+  await p.getByLabel('Endereço do link').first().fill('javascript:alert(1)');
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
+  check('link com endereço inválido bloqueia', writes.length === n0 && await p.getByText(/começando com https/).count() >= 1);
+  await p.getByLabel('Endereço do link').first().fill('https://ml.test/loja');
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
+  const post2 = writes.slice(n0).find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
+  const keys2 = post2 ? post2.body.map(r => r.key) : [];
+  check('publica link e pedido mínimo', keys2.includes('linkA') && keys2.includes('minOrder'), JSON.stringify(keys2));
+  check('mínimo guardado como digitado', post2?.body.find(r => r.key === 'minOrder')?.value === '30,50');
   await p.close();
 }
 await br.close();

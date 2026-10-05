@@ -64,7 +64,7 @@ describe('tipo de loja (niche)', () => {
 describe('painel Recursos', () => {
   it('os 5 recursos estão juntos na aba Recursos', async () => {
     const m = await load(undefined);
-    const sec = m.SETTINGS_SCHEMA.filter(x => x.group === 'recursos').flatMap(x => x.fields.map(f => f.key));
+    const sec = m.SETTINGS_SCHEMA.filter(x => x.group === 'recursos' && x.title === 'Recursos da loja').flatMap(x => x.fields.map(f => f.key));
     expect(sec).toEqual(['stockControl', 'customEnabled', 'leadTimeEnabled', 'aurasEnabled', 'modelLinkEnabled']);
     expect(m.GROUPS.map(g => g.id)).toContain('recursos');
   });

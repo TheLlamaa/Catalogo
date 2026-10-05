@@ -64,3 +64,55 @@ describe('temas prontos', () => {
     expect(s.gridCols).toBe('3');
   });
 });
+
+import { LINK_KEYS, buildLinks, linkToStored } from '../../src/lib/links';
+import { minOrderValue, isValidMinOrder } from '../../src/lib/settings';
+import { badgeFor } from '../../src/lib/catalog';
+import { badgeStyle } from '../../src/lib/theme';
+
+describe('links extras', () => {
+  it('só aceita endereços http(s) completos', () => {
+    const ok = JSON.stringify({ l: 'Loja', u: 'https://exemplo.com/x', m: true, f: false });
+    const js = JSON.stringify({ l: 'Ruim', u: 'javascript:alert(1)', m: true, f: true });
+    const semNome = JSON.stringify({ l: '', u: 'https://a.com', m: true, f: true });
+    const links = buildLinks([ok, js, semNome, undefined]);
+    expect(links).toHaveLength(1);
+    expect(links[0]).toMatchObject({ label: 'Loja', menu: true, footer: false });
+  });
+  it('mergeSettings lê linkA..linkD', () => {
+    const s = mergeSettings([{ key: LINK_KEYS[0], value: JSON.stringify({ l: 'ML', u: 'https://ml.com', m: false, f: true }) }]);
+    expect(s.links).toEqual([{ label: 'ML', url: 'https://ml.com/', menu: false, footer: true }]);
+    expect(linkToStored('{"l":"","u":""}')).toBe('');
+  });
+});
+
+describe('pedido mínimo e selos', () => {
+  it('minOrderValue entende vírgula e ignora lixo', () => {
+    expect(minOrderValue('30,50')).toBe(30.5);
+    expect(minOrderValue('abc')).toBe(0);
+    expect(minOrderValue('-5')).toBe(0);
+    expect(minOrderValue('')).toBe(0);
+    expect(isValidMinOrder('')).toBe(true);
+    expect(isValidMinOrder('abc')).toBe(false);
+  });
+  it('texto do selo automático é editável', () => {
+    const p = { badge: null, stock: 2 };
+    expect(badgeFor(p, { stockControl: true, lowStockBadge: true })).toBe('Últimas unidades');
+    expect(badgeFor(p, { stockControl: true, lowStockBadge: true, lowStockText: 'Corre!' })).toBe('Corre!');
+  });
+  it('cor do selo só vale se for hexadecimal', () => {
+    expect(badgeStyle('#ff0000')).toEqual({ backgroundColor: '#ff0000' });
+    expect(badgeStyle('red')).toEqual({});
+  });
+  it('padrões novos não mudam o comportamento atual', () => {
+    const s = mergeSettings([]);
+    expect(s.defaultSort).toBe('recent');
+    expect(s.showSearch).toBe(true);
+    expect(s.hidePrices).toBe(false);
+    expect(s.ordersPaused).toBe(false);
+    expect(s.deliveryEnabled).toBe(true);
+    expect(s.notesEnabled).toBe(true);
+    expect(s.deliveryNote).toBe('O frete é combinado com você pelo WhatsApp.');
+    expect(s.links).toEqual([]);
+  });
+});

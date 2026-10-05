@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
-import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../../../lib/settings';
+import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
+import { LINK_LABEL_MAX, parseLinkDraft, linkToStored, isCompleteLink, type LinkDraft } from '../../../lib/links';
 import { PAGE_TITLE_MAX, PAGE_TEXT_MAX, parsePageDraft, pageToStored, isCompletePage, type PageDraft } from '../../../lib/pages';
 import { THEME_PRESETS, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
@@ -15,7 +16,7 @@ import { formatPhoneBR } from '../../../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas extras': FileText, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas extras': FileText, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Links extras': Share2, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
@@ -51,8 +52,9 @@ const toStored = (key: string, value: unknown): string | null => {
   let v = String(value ?? '').trim();
   if (key === 'whatsapp') v = v ? normalizeWhatsapp(v) : '';
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
-  else if (key === 'primaryColor' || key === 'bannerColor') v = v.toLowerCase();
+  else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
   else if (/^page[A-F]$/.test(key)) v = pageToStored(v);
+  else if (/^link[A-D]$/.test(key)) v = linkToStored(v);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
   return !v || v === def ? null : v;
 };
@@ -103,21 +105,29 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
     if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
     if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return 'E-mail inválido.';
     if (!str(form.storeName).trim()) return 'O nome da loja não pode ficar vazio.';
-    for (const k of ['primaryColor', 'bannerColor']) {
+    for (const k of ['primaryColor', 'bannerColor', 'badgeColor']) {
       if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
     }
     for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
       if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
     }
+    if (!isValidMinOrder(form.minOrder)) return 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.';
+    for (const f of SETTING_FIELDS.filter(x => x.type === 'link')) {
+      const raw = str(form[f.key]);
+      if (linkToStored(raw) && !isCompleteLink(raw)) return `${f.label}: informe o nome e um endereço começando com https://`;
+    }
     for (const f of SETTING_FIELDS.filter(x => x.type === 'page')) {
       const raw = str(form[f.key]);
       if (pageToStored(raw) && !isCompletePage(raw)) return `${f.label}: preencha o título e o texto (ou apague os dois).`;
+      if (pageToStored(raw).length > DB_VALUE_MAX) return `${f.label}: o texto ficou grande demais. Encurte um pouco.`;
     }
     try {
       const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
       if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
       if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return 'Toda resposta precisa de uma pergunta.';
     } catch { /* texto vazio */ }
+    const privacy = toStored('privacyText', form.privacyText) || '';
+    if (privacy.length > DB_VALUE_MAX) return 'O texto da política ficou grande demais.';
     if ((toStored('faqItems', form.faqItems) || '').length > DB_VALUE_MAX) return 'As perguntas frequentes ficaram grandes demais. Encurte algumas respostas.';
     return null;
   };
@@ -300,6 +310,9 @@ function Field({ f, form, set, resetField }: FieldProps) {
     case 'image':
       control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
+    case 'link':
+      control = <LinkEditor id={id} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
+      break;
     case 'page':
       control = <PageEditor id={id} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
@@ -367,6 +380,23 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         </label>
         <input id={id} type="file" accept="image/*" onChange={pick} className="sr-only" aria-label={label} />
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
+      </div>
+    </div>
+  );
+}
+
+function LinkEditor({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const d = parseLinkDraft(value);
+  const patch = (p: LinkDraft) => onChange(JSON.stringify({ ...d, ...p }));
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50/50">
+      <div className="grid sm:grid-cols-2 gap-2">
+        <input id={id} type="text" maxLength={LINK_LABEL_MAX} value={d.l || ''} onChange={e => patch({ l: e.target.value })} placeholder="Nome do link" className={inputCls} />
+        <input type="url" maxLength={500} value={d.u || ''} onChange={e => patch({ u: e.target.value })} placeholder="https://..." aria-label="Endereço do link" className={inputCls} />
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-700">
+        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.m} onChange={e => patch({ m: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Mostrar no menu</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.f} onChange={e => patch({ f: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Mostrar no rodapé</label>
       </div>
     </div>
   );

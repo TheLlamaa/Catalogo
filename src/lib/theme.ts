@@ -103,6 +103,9 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTo
   }
 };
 
+// Cor dos selos dos produtos (vazio = laranja padrão da classe)
+export const badgeStyle = (color: unknown): Record<string, string> => (isHex(color) ? { backgroundColor: color } : {});
+
 // Faixa de aviso: aparece se está ligada, tem texto e a data final (se houver) não passou.
 // "bannerUntil" é um dia (AAAA-MM-DD) e vale até o fim desse dia, no horário do visitante.
 export const localDay = (d = new Date()): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

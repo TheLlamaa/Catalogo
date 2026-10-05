@@ -2,6 +2,7 @@ import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
 import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
+import { LINK_KEYS, LINK_LABEL_MAX, buildLinks, isCompleteLink, type ExtraLink } from './links';
 import { PAGE_KEYS, PAGE_TITLE_MAX, PAGE_TEXT_MAX, buildPages, isCompletePage, type ExtraPage } from './pages';
 import type { SettingRow } from '../types';
 
@@ -27,6 +28,7 @@ export interface TextareaField extends SettingFieldBase { type: 'textarea'; defa
 export interface ColorField extends SettingFieldBase { type: 'color'; default: string }
 export interface DateField extends SettingFieldBase { type: 'date'; default: string }
 export interface FaqField extends SettingFieldBase { type: 'faq'; default: string }
+export interface LinkField extends SettingFieldBase { type: 'link'; default: string }
 export interface PageField extends SettingFieldBase { type: 'page'; default: string }
 export interface SelectField extends SettingFieldBase {
   type: 'select';
@@ -44,7 +46,7 @@ export interface RangeField extends SettingFieldBase {
 export interface ToggleField extends SettingFieldBase { type: 'toggle'; default: boolean }
 
 // União discriminada por "type": cada tipo traz só os campos que usa
-export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | SelectField | RangeField | ToggleField;
+export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | LinkField | SelectField | RangeField | ToggleField;
 
 export interface SettingsGroup { id: string; label: string }
 
@@ -77,11 +79,14 @@ export interface Settings {
   showFeatured: boolean; featuredTitle: string; showPopular: boolean; popularTitle: string; showNew: boolean; newTitle: string;
   stockControl: boolean; customEnabled: boolean; leadTimeEnabled: boolean; aurasEnabled: boolean; modelLinkEnabled: boolean;
   lowStockBadge: boolean; relatedEnabled: boolean; relatedTitle: string;
+  defaultSort: string; showSearch: boolean; hidePrices: boolean; badgeColor: string; lowStockText: string;
+  ordersPaused: boolean; pausedMessage: string; minOrder: string; deliveryEnabled: boolean; notesEnabled: boolean; deliveryNote: string;
   socialInstagram: string; socialTiktok: string; socialFacebook: string; socialYoutube: string;
   footerText: string;
   auraLib: AuraLib;
   faq: FaqItem[];
   pages: ExtraPage[];
+  links: ExtraLink[];
   backup: SettingsBackup | null;
 }
 
@@ -189,6 +194,21 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
+    group: 'recursos', title: 'Pedidos',
+    fields: [
+      { key: 'ordersPaused', label: 'Pausar pedidos', type: 'toggle', default: false, hint: 'Ótimo para férias ou fila cheia: o site continua no ar, mas não aceita novos pedidos.' },
+      { key: 'pausedMessage', label: 'Aviso enquanto pausado', type: 'textarea', rows: 2, max: 200, default: 'Estamos sem receber pedidos no momento. Volte em breve!' },
+      { key: 'minOrder', label: 'Pedido mínimo (R$)', type: 'text', max: 8, default: '', hint: 'Ex: 30. Vazio = sem mínimo. O carrinho avisa o cliente.' },
+      { key: 'deliveryEnabled', label: 'Oferecer entrega', type: 'toggle', default: true, hint: 'Desligado: só retirada, sem pedir endereço.' },
+      { key: 'deliveryNote', label: 'Aviso sobre frete e prazo', type: 'text', max: 160, default: 'O frete é combinado com você pelo WhatsApp.', hint: 'Aparece abaixo do endereço de entrega.' },
+      { key: 'notesEnabled', label: 'Pedir observações', type: 'toggle', default: true },
+    ]
+  },
+  {
+    group: 'contato', title: 'Links extras',
+    fields: LINK_KEYS.map((key, i): SettingField => ({ key, label: `Link extra ${i + 1}`, type: 'link', default: '', hint: i === 0 ? `Ex: sua loja no Mercado Livre. Nome até ${LINK_LABEL_MAX} caracteres; só endereços https://. Deixe vazio para não usar.` : undefined }))
+  },
+  {
     group: 'textos', title: 'Carrinho e pedido',
     fields: [
       { key: 'addToCartLabel', label: 'Botão de adicionar ao carrinho', type: 'text', max: 40, default: 'Adicionar ao Orçamento' },
@@ -240,9 +260,19 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
+    group: 'vitrine', title: 'Exibição da vitrine',
+    fields: [
+      { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
+      { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
+      { key: 'hidePrices', label: 'Esconder os preços', type: 'toggle', default: false, hint: 'Some dos cards, do produto e do carrinho. Use se combina o valor pelo WhatsApp.' },
+    ]
+  },
+  {
     group: 'vitrine', title: 'Produtos',
     fields: [
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
+      { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
+      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão.' },
       { key: 'relatedEnabled', label: 'Mostrar produtos relacionados', type: 'toggle', default: true },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },
     ]
@@ -280,6 +310,13 @@ export const normalizeWhatsapp = (value: unknown): string => {
   const d = String(value || '').replace(/\D/g, '');
   return d.length === 10 || d.length === 11 ? `55${d}` : d;
 };
+// Pedido mínimo em reais ("30" ou "30,50"); 0 = sem mínimo ou valor inválido
+export const minOrderValue = (value: unknown): number => {
+  const n = Number(String(value ?? '').trim().replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n <= 100000 ? Math.round(n * 100) / 100 : 0;
+};
+export const isValidMinOrder = (value: unknown): boolean => !String(value ?? '').trim() || minOrderValue(value) > 0;
+
 export const isValidWhatsapp = (value: unknown): boolean => /^55\d{10,11}$/.test(normalizeWhatsapp(value));
 
 const isUrl = (v: string): boolean => { try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; } };
@@ -293,6 +330,7 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
     case 'page': return isCompletePage(value);
+    case 'link': return isCompleteLink(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;
   }
@@ -310,7 +348,7 @@ export const parseBackup = (value: string): SettingsBackup | null => {
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
   // Os padrões cobrem todas as chaves conhecidas de Settings; o cast só informa isso ao compilador
-  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], backup: null } as unknown as Settings;
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], links: [], backup: null } as unknown as Settings;
   const byKey = new Map<string, SettingField>(SETTING_FIELDS.map(f => [f.key, f]));
   (rows || []).forEach(({ key, value }) => {
     if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
@@ -323,6 +361,7 @@ export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
     out[key] = value;
     if (key === 'faqItems') out.faq = parseFaq(value);
   });
+  out.links = buildLinks(LINK_KEYS.map(k => (typeof out[k] === 'string' ? out[k] as string : '')));
   out.pages = buildPages(PAGE_KEYS.map(k => (typeof out[k] === 'string' ? out[k] as string : '')));
   return out;
 };

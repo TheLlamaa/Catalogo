@@ -9,6 +9,7 @@ import ProductImage from './ProductImage';
 import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
 import { brl } from '../../lib/format';
+import { badgeStyle } from '../../lib/theme';
 import { badgeFor, newProducts } from '../../lib/catalog';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
@@ -32,7 +33,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const [params, setParams] = useSearchParams();
   const categoryParam = params.get('categoria') || 'all';
   const searchQuery = params.get('q') || '';
-  const sortOrder = params.get('ordem') || 'recent';
+  const sortOrder = params.get('ordem') || settings.defaultSort;
 
   const updateParam = (key: string, value: string, defaultValue: string) => {
     const next = new URLSearchParams(params);
@@ -71,7 +72,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const remaining = filteredProducts.length - visibleProducts.length;
 
   // Seções no topo (Destaques, Mais pedidos, Novidades): só na vitrine "limpa", sem filtro nem busca
-  const showShelves = activeCategoryId === 'all' && !searchQuery && sortOrder === 'recent';
+  const showShelves = activeCategoryId === 'all' && !searchQuery && sortOrder === settings.defaultSort;
   const activeProducts = products.filter(p => p.active !== false);
   const shelves: { id: string; title: string; items: Product[] }[] = showShelves ? [
     settings.showFeatured && { id: 'destaque', title: settings.featuredTitle, items: activeProducts.filter(p => p.section === 'destaque') },
@@ -95,7 +96,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-8">
       <aside className="w-full md:w-64 flex-shrink-0">
-        <div className="mb-3 md:mb-8">
+        {settings.showSearch && <div className="mb-3 md:mb-8">
           <label htmlFor="busca" className="sr-only">Buscar produtos</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -110,7 +111,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-        </div>
+        </div>}
 
         <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorias">
           <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Categorias</h2>
@@ -165,7 +166,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             <select
               id="ordem"
               value={sortOrder}
-              onChange={(e) => updateParam('ordem', e.target.value, 'recent')}
+              onChange={(e) => updateParam('ordem', e.target.value, settings.defaultSort)}
               className="block w-full border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm bg-white cursor-pointer"
             >
               <option value="recent">Mais recentes</option>
@@ -309,7 +310,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
         )}
 
         {badge && (
-          <span className="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
+          <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
         )}
         {isOutOfStock && (
           <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">Esgotado</span>
@@ -327,7 +328,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
         )}
         <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-auto pt-2 sm:pt-4 border-t border-gray-100">
-          <span className="text-base sm:text-lg font-bold text-gray-900">{brl(product.price)}</span>
+          {!settings.hidePrices && <span className="text-base sm:text-lg font-bold text-gray-900">{brl(product.price)}</span>}
           <button
             disabled={isOutOfStock}
             onClick={(e) => { e.stopPropagation(); if (hasOptions) onClick(); else onAddToCart(); }}

@@ -60,6 +60,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (settings.ordersPaused) return toast.error(settings.pausedMessage);
     if (!formData.clientName || !formData.clientPhone || !formData.description) {
       return toast.error('Preencha nome, WhatsApp e a descrição do pedido.');
     }
@@ -129,6 +130,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6 relative">
+        {settings.ordersPaused && <p role="status" className="text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">{settings.pausedMessage}</p>}
         {/* Campo-isca: invisível para pessoas, robôs costumam preenchê-lo */}
         <input
           type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
@@ -202,7 +204,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || settings.ordersPaused}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-50"
         >
           {isSubmitting ? (
