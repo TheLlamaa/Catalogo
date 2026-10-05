@@ -129,8 +129,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
             <p className="py-10 text-center text-sm text-gray-500">Nenhum pedido com estes filtros.</p>
           ) : (
             <>
-              <div className="flex justify-end mb-3"><ViewToggle value={view} onChange={setView} /></div>
-              <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="pedidos" position="top" />
+              <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="pedidos" position="top" extra={<ViewToggle value={view} onChange={setView} />} />
               {view === 'cards' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {pager.items.map(order => <OrderCard key={order.id} order={order} onSelect={onSelectOrder} onDelete={handleDelete} onUpdateStatus={onUpdateStatus} />)}
