@@ -1,11 +1,6 @@
 import { ORDER_STATUS, statusInfo } from '../../../lib/format';
 import type { OrderStatusId } from '../../../types';
 
-export function StatusBadge({ status }: { status: unknown }) {
-  const info = statusInfo(status);
-  return <span className={`inline-block text-[11px] font-semibold rounded-full border px-2 py-0.5 ${info.cls}`}>{info.label}</span>;
-}
-
 interface StatusSelectProps {
   value: unknown;
   onChange: (status: OrderStatusId) => void;

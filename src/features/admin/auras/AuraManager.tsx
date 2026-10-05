@@ -76,7 +76,7 @@ function AuraForm({ initial, title, onSave, onCancel }: AuraFormProps) {
 
           <div>
             <span className="block text-sm font-medium text-gray-700 mb-1">Cores ({colors.length} de {MAX_AURA_COLORS})</span>
-            <p className="text-xs text-gray-500 mb-3">A luz gira passando por todas as cores, na ordem. Use de 2 a {MAX_AURA_COLORS}.</p>
+            <p className="text-xs text-gray-500 mb-3">A luz passa por todas as cores, na ordem. Use de 2 a {MAX_AURA_COLORS}.</p>
             <div className="flex flex-wrap gap-3">
               {colors.map((c, i) => (
                 <div key={i} className="relative">
@@ -207,7 +207,7 @@ export default function AuraManager({ lib, products, categories, onSave }: AuraM
           )}
         </div>
         {custom.length === 0 ? (
-          <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-8 text-center">Nenhuma aura criada ainda. Crie uma nova ou edite uma das auras do sistema abaixo.</p>
+          <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-8 text-center">Nenhuma aura criada. Crie uma ou edite as do sistema abaixo.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {custom.map(a => (
@@ -233,7 +233,7 @@ export default function AuraManager({ lib, products, categories, onSave }: AuraM
 
       <section aria-label="Auras do sistema">
         <h2 className="text-lg font-medium text-gray-900 mb-1">Auras do sistema ({visibleBuiltins.length})</h2>
-        <p className="text-sm text-gray-500 mb-6">As auras que já vinham no site. Você pode mudar nome e cores, voltar ao original ou excluir (dá para restaurar depois).</p>
+        <p className="text-sm text-gray-500 mb-6">Auras que já vêm no site. Dá para editar, voltar ao original ou excluir (e restaurar).</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleBuiltins.map(id => {
             const ov = overrides[id];

@@ -68,10 +68,16 @@ interface OrderMessageInput {
   notes?: string | null;
   deliveryMethod?: string | null;
   deliveryAddress?: string | null;
+  intro?: string;
 }
 
-export const buildOrderMessage = ({ name, items, total, notes, deliveryMethod, deliveryAddress }: OrderMessageInput): string => {
-  const lines = [`Olá! Acabei de enviar um pedido pelo site. Meu nome é ${name}.`, ''];
+export const DEFAULT_ORDER_INTRO = 'Olá! Acabei de enviar um pedido pelo site. Meu nome é {nome}.';
+
+// Troca {nome} pelo nome do cliente (se o texto não tiver {nome}, fica como está)
+export const fillName = (template: string, name: string): string => template.split('{nome}').join(name);
+
+export const buildOrderMessage = ({ name, items, total, notes, deliveryMethod, deliveryAddress, intro }: OrderMessageInput): string => {
+  const lines = [fillName(intro?.trim() || DEFAULT_ORDER_INTRO, name), ''];
   items.forEach(i => {
     const opt = formatOptions(i.options);
     lines.push(`• ${i.quantity}x ${i.title}${opt ? ` (${opt})` : ''} - ${brl(i.price * i.quantity)}`);

@@ -1,7 +1,9 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
-import { FONT_CHOICES, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
+import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
+import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
+import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -26,10 +28,13 @@ export interface TextareaField extends SettingFieldBase { type: 'textarea'; defa
 export interface ColorField extends SettingFieldBase { type: 'color'; default: string }
 export interface DateField extends SettingFieldBase { type: 'date'; default: string }
 export interface FaqField extends SettingFieldBase { type: 'faq'; default: string }
+export interface MenuField extends SettingFieldBase { type: 'menu'; default: string }
+export interface PageField extends SettingFieldBase { type: 'page'; default: string }
 export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
   options: { value: string; label: string }[];
+  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort'; // mostra exemplos visuais em vez de lista
 }
 export interface RangeField extends SettingFieldBase {
   type: 'range';
@@ -42,7 +47,7 @@ export interface RangeField extends SettingFieldBase {
 export interface ToggleField extends SettingFieldBase { type: 'toggle'; default: boolean }
 
 // União discriminada por "type": cada tipo traz só os campos que usa
-export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | SelectField | RangeField | ToggleField;
+export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | MenuField | SelectField | RangeField | ToggleField;
 
 export interface SettingsGroup { id: string; label: string }
 
@@ -59,7 +64,8 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 // A assinatura de índice cobre chaves dinâmicas (ex.: acesso por field.key).
 export interface Settings {
   [key: string]: unknown;
-  primaryColor: string; fontChoice: string;
+  primaryColor: string; fontChoice: string; bgTone: string; cardStyle: string; gridCols: string; heroImage: string;
+  faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
   storeName: string; whatsapp: string; email: string;
@@ -67,15 +73,21 @@ export interface Settings {
   catalogTitle: string; catalogSubtitle: string;
   cardBadge: string; cardTitle: string; cardText: string; cardButton: string;
   customTitle: string; customIntro: string; customSuccess: string;
+  cartTitle: string; cartEmpty: string; cartIntro: string; addToCartLabel: string;
+  orderDoneTitle: string; orderDoneText: string; whatsappButton: string; orderMessageIntro: string; customMessage: string;
   aboutEnabled: boolean; menuAbout: string; aboutTitle: string; aboutText: string; aboutImage: string;
-  faqItems: string;
+  faqItems: string; privacyText: string;
   showFeatured: boolean; featuredTitle: string; showPopular: boolean; popularTitle: string; showNew: boolean; newTitle: string;
   stockControl: boolean; customEnabled: boolean; leadTimeEnabled: boolean; aurasEnabled: boolean; modelLinkEnabled: boolean;
   lowStockBadge: boolean; relatedEnabled: boolean; relatedTitle: string;
+  defaultSort: string; showSearch: boolean; hidePrices: boolean; badgeColor: string; lowStockText: string;
+  ordersPaused: boolean; pausedMessage: string; minOrder: string; deliveryEnabled: boolean; notesEnabled: boolean; deliveryNote: string;
   socialInstagram: string; socialTiktok: string; socialFacebook: string; socialYoutube: string;
   footerText: string;
   auraLib: AuraLib;
   faq: FaqItem[];
+  pages: ExtraPage[];
+  menus: { top: MenuItem[]; foot: MenuItem[] };
   backup: SettingsBackup | null;
 }
 
@@ -84,37 +96,54 @@ export interface Settings {
 // "group" decide em qual aba do painel a seção aparece.
 export const GROUPS: SettingsGroup[] = [
   { id: 'aparencia', label: 'Aparência' },
-  { id: 'textos', label: 'Textos e menus' },
+  { id: 'textos', label: 'Textos' },
   { id: 'conteudo', label: 'Sobre e perguntas' },
+  { id: 'menus', label: 'Menus e páginas' },
   { id: 'vitrine', label: 'Vitrine' },
   { id: 'recursos', label: 'Recursos' },
-  { id: 'contato', label: 'Redes e rodapé' }
+  { id: 'contato', label: 'Redes e rodapé' },
+  { id: 'busca', label: 'Google e compartilhamento' }
 ];
 
 export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     group: 'aparencia', title: 'Cores e fonte',
     fields: [
-      { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Muda botões, links e destaques do site inteiro. Vazio = azul padrão. Prefira cores escuras ou médias: com cor muito clara o texto branco dos botões fica ruim de ler.' },
-      { key: 'fontChoice', label: 'Fonte', type: 'select', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })), hint: 'Usa fontes que já existem no aparelho do cliente, então o site não fica mais lento.' },
+      { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Vazio = azul padrão. Prefira cores escuras ou médias: com cor clara o texto dos botões fica ruim de ler.' },
+      { key: 'fontChoice', label: 'Fonte', type: 'select', display: 'font', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
+      { key: 'bgTone', label: 'Fundo da loja', type: 'select', display: 'tone', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
+    ]
+  },
+  {
+    group: 'aparencia', title: 'Estilo dos cards',
+    fields: [
+      { key: 'cardStyle', label: 'Cantos', type: 'select', display: 'corners', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
+      { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', display: 'columns', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
+    ]
+  },
+  {
+    group: 'aparencia', title: 'Capa da vitrine',
+    fields: [
+      { key: 'heroImage', label: 'Imagem de capa (opcional)', type: 'image', default: '', max: 700, hint: 'Aparece no topo da página inicial, com o título e o texto por cima. Use uma imagem larga.' },
     ]
   },
   {
     group: 'aparencia', title: 'Logo',
     fields: [
-      { key: 'logoUrl', label: 'Logo da loja', type: 'image', default: '', max: 700, hint: 'Aparece no topo no lugar do ícone e vira o ícone da aba do navegador. PNG com fundo transparente fica melhor.' },
-      { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura da logo no topo. No celular ela é limitada a 48 px para não ocupar a tela.' },
+      { key: 'logoUrl', label: 'Logo da loja', type: 'image', default: '', max: 700, hint: 'Aparece no topo e na aba do navegador. PNG com fundo transparente fica melhor.' },
+      { key: 'faviconUrl', label: 'Ícone da aba (opcional)', type: 'image', default: '', max: 700, hint: 'Vazio = usa a logo. Quadrado fica melhor.' },
+      { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura no topo. No celular é limitada a 48 px.' },
       { key: 'logoShowName', label: 'Mostrar o nome da loja ao lado da logo', type: 'toggle', default: true },
     ]
   },
   {
     group: 'aparencia', title: 'Faixa de aviso no topo',
     fields: [
-      { key: 'bannerEnabled', label: 'Faixa ligada', type: 'toggle', default: true, hint: 'Desligue para esconder a faixa sem apagar o texto.' },
-      { key: 'bannerText', label: 'Texto da faixa', type: 'text', max: 160, default: '', hint: 'Ex: Pedidos de Natal até 10/12. Vazio = não mostra.' },
-      { key: 'bannerUntil', label: 'Mostrar até (opcional)', type: 'date', default: '', hint: 'A faixa some sozinha depois desse dia. Vazio = fica até você tirar.' },
-      { key: 'bannerColor', label: 'Cor da faixa', type: 'color', default: '', hint: 'Vazio = usa a cor principal.' },
-      { key: 'bannerImage', label: 'Imagem de fundo da faixa (opcional)', type: 'image', default: '', max: 700, hint: 'Uma imagem larga e baixa. O texto fica por cima, com a cor da faixa escurecida para ler bem.' },
+      { key: 'bannerEnabled', label: 'Faixa ligada', type: 'toggle', default: true },
+      { key: 'bannerText', label: 'Texto da faixa', type: 'text', max: 160, default: '', hint: 'Ex: Pedidos de Natal até 10/12. Vazio = sem faixa.' },
+      { key: 'bannerUntil', label: 'Mostrar até (opcional)', type: 'date', default: '', hint: 'Depois desse dia a faixa some sozinha.' },
+      { key: 'bannerColor', label: 'Cor da faixa', type: 'color', default: '' },
+      { key: 'bannerImage', label: 'Imagem de fundo da faixa (opcional)', type: 'image', default: '', max: 700, hint: 'Imagem larga e baixa; o texto fica por cima.' },
     ]
   },
   {
@@ -122,14 +151,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'storeName', label: 'Nome da loja', type: 'text', max: 60, default: STORE_NAME },
       { key: 'whatsapp', label: 'WhatsApp da loja', type: 'phone', default: STORE_WHATSAPP, hint: 'Recebe os pedidos. Ex: (48) 99999-9999' },
-      { key: 'email', label: 'E-mail de contato', type: 'email', max: 120, default: STORE_EMAIL, hint: 'Aparece na política de privacidade. Pode ficar vazio.' },
-    ]
-  },
-  {
-    group: 'textos', title: 'Menu',
-    fields: [
-      { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
-      { key: 'menuCustom', label: 'Nome do botão de peças personalizadas', type: 'text', max: 24, default: 'Personalizado' },
+      { key: 'email', label: 'E-mail de contato', type: 'email', max: 120, default: STORE_EMAIL, hint: 'Aparece na política de privacidade. Opcional.' },
     ]
   },
   {
@@ -157,54 +179,122 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
+    group: 'menus', title: 'Páginas',
+    fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página ${i + 1}`, type: 'page', default: '' }))
+  },
+  {
+    group: 'menus', title: 'Menu do topo',
+    fields: [{ key: 'menuTop', label: 'Menu do topo', type: 'menu', default: '', hint: 'Ordem e itens do menu no alto da loja. Vitrine, Sobre e Personalizado podem mudar de lugar, mas não saem.' }]
+  },
+  {
+    group: 'menus', title: 'Nomes dos botões do menu',
+    fields: [
+      { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
+      { key: 'menuAbout', label: 'Nome do botão “Sobre”', type: 'text', max: 24, default: 'Sobre' },
+      { key: 'menuCustom', label: 'Nome do botão de peças personalizadas', type: 'text', max: 24, default: 'Personalizado' },
+    ]
+  },
+  {
+    group: 'menus', title: 'Links do rodapé',
+    fields: [{ key: 'menuFoot', label: 'Links extras do rodapé', type: 'menu', default: '', hint: 'Páginas, categorias e links externos que aparecem no rodapé, além de Sobre, redes sociais, WhatsApp e privacidade.' }]
+  },
+  {
+    group: 'conteudo', title: 'Política de privacidade',
+    fields: [
+      { key: 'privacyText', label: 'Texto próprio da política', type: 'textarea', rows: 10, max: 4000, default: '', hint: 'Vazio = usa o texto padrão do site. Linha em branco = novo parágrafo.' },
+    ]
+  },
+  {
+    group: 'recursos', title: 'Pedidos',
+    fields: [
+      { key: 'ordersPaused', label: 'Pausar pedidos', type: 'toggle', default: false, hint: 'Ótimo para férias ou fila cheia: o site continua no ar, mas não aceita novos pedidos.' },
+      { key: 'pausedMessage', label: 'Aviso enquanto pausado', type: 'textarea', rows: 2, max: 200, default: 'Estamos sem receber pedidos no momento. Volte em breve!' },
+      { key: 'minOrder', label: 'Pedido mínimo (R$)', type: 'text', max: 8, default: '', hint: 'Ex: 30. Vazio = sem mínimo. O carrinho avisa o cliente.' },
+      { key: 'deliveryEnabled', label: 'Oferecer entrega', type: 'toggle', default: true, hint: 'Desligado: só retirada, sem pedir endereço.' },
+      { key: 'deliveryNote', label: 'Aviso sobre frete e prazo', type: 'text', max: 160, default: 'O frete é combinado com você pelo WhatsApp.', hint: 'Aparece abaixo do endereço de entrega.' },
+      { key: 'notesEnabled', label: 'Pedir observações', type: 'toggle', default: true },
+    ]
+  },
+  {
+    group: 'textos', title: 'Carrinho e pedido',
+    fields: [
+      { key: 'addToCartLabel', label: 'Botão de adicionar ao carrinho', type: 'text', max: 40, default: 'Adicionar ao Orçamento' },
+      { key: 'cartTitle', label: 'Título do carrinho', type: 'text', max: 40, default: 'Seu Orçamento' },
+      { key: 'cartEmpty', label: 'Mensagem do carrinho vazio', type: 'text', max: 80, default: 'Seu orçamento está vazio.' },
+      { key: 'cartIntro', label: 'Texto acima dos dados de contato', type: 'text', max: 160, default: 'Preencha seus dados para registrarmos seu pedido de orçamento.' },
+      { key: 'orderDoneTitle', label: 'Título depois de enviar o pedido', type: 'text', max: 60, default: 'Pedido Registrado!' },
+      { key: 'orderDoneText', label: 'Mensagem depois de enviar o pedido', type: 'textarea', max: 300, default: 'Recebemos sua solicitação de orçamento. Entraremos em contato com você via WhatsApp para confirmar os detalhes.' },
+      { key: 'whatsappButton', label: 'Botão do WhatsApp', type: 'text', max: 40, default: 'Continuar no WhatsApp' },
+      { key: 'orderMessageIntro', label: 'Abertura da mensagem do pedido no WhatsApp', type: 'text', max: 200, default: 'Olá! Acabei de enviar um pedido pelo site. Meu nome é {nome}.', hint: 'Use {nome} para o nome do cliente. Os itens, o total e a entrega vêm logo abaixo.' },
+      { key: 'customMessage', label: 'Mensagem do WhatsApp (peça personalizada)', type: 'text', max: 200, default: 'Olá! Meu nome é {nome}. Acabei de enviar uma solicitação de peça personalizada pelo site.', hint: 'Use {nome} para o nome do cliente.' },
+    ]
+  },
+  {
     group: 'conteudo', title: 'Página "Sobre / Como funciona"',
     fields: [
-      { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Ligado: aparece um botão no menu e um link no rodapé, e a página /sobre passa a existir.' },
-      { key: 'menuAbout', label: 'Nome do botão no menu', type: 'text', max: 24, default: 'Sobre' },
+      { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
       { key: 'aboutTitle', label: 'Título da página', type: 'text', max: 80, default: 'Como funciona' },
-      { key: 'aboutText', label: 'Texto', type: 'textarea', rows: 10, max: 3500, default: '', hint: 'Conte quem você é, os materiais, prazos e formas de entrega. Linhas em branco viram parágrafos.' },
+      { key: 'aboutText', label: 'Texto', type: 'textarea', rows: 10, max: 3500, default: '', hint: 'Quem você é, materiais, prazos e entrega. Linha em branco = novo parágrafo.' },
       { key: 'aboutImage', label: 'Foto (opcional)', type: 'image', default: '', max: 700 },
     ]
   },
   {
     group: 'conteudo', title: 'Perguntas frequentes',
     fields: [
-      { key: 'faqItems', label: 'Perguntas e respostas', type: 'faq', default: '', hint: 'Aparecem na página Sobre. Até 20 perguntas.' },
+      { key: 'faqItems', label: 'Perguntas e respostas', type: 'faq', default: '', hint: 'Até 20 perguntas, na página Sobre.' },
     ]
   },
   {
     group: 'vitrine', title: 'Seções no topo da vitrine',
     fields: [
-      { key: 'showFeatured', label: 'Mostrar "Destaques"', type: 'toggle', default: true, hint: 'Produtos marcados como Destaque no cadastro. Só aparece se houver algum.' },
+      { key: 'showFeatured', label: 'Mostrar "Destaques"', type: 'toggle', default: true },
       { key: 'featuredTitle', label: 'Título de Destaques', type: 'text', max: 40, default: 'Destaques' },
-      { key: 'showPopular', label: 'Mostrar "Mais pedidos"', type: 'toggle', default: true, hint: 'Produtos que você marcar como Mais pedido no cadastro.' },
+      { key: 'showPopular', label: 'Mostrar "Mais pedidos"', type: 'toggle', default: true },
       { key: 'popularTitle', label: 'Título de Mais pedidos', type: 'text', max: 40, default: 'Mais pedidos' },
-      { key: 'showNew', label: 'Mostrar "Novidades"', type: 'toggle', default: true, hint: 'Automático: produtos cadastrados nos últimos 30 dias.' },
+      { key: 'showNew', label: 'Mostrar "Novidades"', type: 'toggle', default: true, hint: 'Produtos dos últimos 30 dias.' },
       { key: 'newTitle', label: 'Título de Novidades', type: 'text', max: 40, default: 'Novidades' },
     ]
   },
   {
     group: 'recursos', title: 'Recursos da loja',
     fields: [
-      { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: todos os produtos ficam sempre disponíveis, sem limite de quantidade, e o estoque some do site e do cadastro.' },
+      { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: tudo fica sempre disponível e o estoque some do site e do cadastro.' },
       { key: 'customEnabled', label: 'Aceitar pedidos personalizados', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, o card de destaque e a página /custom.' },
-      { key: 'leadTimeEnabled', label: 'Prazo de produção nos produtos', type: 'toggle', default: NICHE.features.leadTimeEnabled, hint: 'Ligado: o cadastro ganha o campo "Prazo de produção" e ele aparece no site. Desligado: some dos dois (o que já foi escrito fica guardado).' },
-      { key: 'aurasEnabled', label: 'Efeito de aura (brilho) nos cards', type: 'toggle', default: NICHE.features.aurasEnabled, hint: 'Ligado: aba Auras no painel, e brilho colorido nos cards e categorias. Desligado: tudo isso some (as escolhas feitas ficam guardadas).' },
-      { key: 'modelLinkEnabled', label: 'Link do modelo 3D no cadastro', type: 'toggle', default: NICHE.features.modelLinkEnabled, hint: 'Campo só seu, para guardar o link do arquivo 3D de cada produto. O cliente nunca vê.' },
+      { key: 'leadTimeEnabled', label: 'Prazo de produção nos produtos', type: 'toggle', default: NICHE.features.leadTimeEnabled, hint: 'Mostra o campo “Prazo de produção” no cadastro e no site. Desligado, o que foi escrito fica guardado.' },
+      { key: 'aurasEnabled', label: 'Efeito de aura (brilho) nos cards', type: 'toggle', default: NICHE.features.aurasEnabled, hint: 'Ativa a aba Auras e o brilho nos cards e categorias. Desligado, as escolhas ficam guardadas.' },
+      { key: 'modelLinkEnabled', label: 'Link do modelo 3D no cadastro', type: 'toggle', default: NICHE.features.modelLinkEnabled, hint: 'Campo só seu para guardar o link do arquivo 3D. O cliente não vê.' },
     ]
   },
   {
-    group: 'vitrine', title: 'Produtos',
+    group: 'vitrine', title: 'Exibição da vitrine',
     fields: [
-      { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Aparece nos produtos com 3 unidades ou menos que não tenham outro selo.' },
-      { key: 'relatedEnabled', label: 'Mostrar produtos relacionados', type: 'toggle', default: true, hint: 'Na página do produto, sugere outros da mesma categoria.' },
+      { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', display: 'sort', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
+      { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
+      { key: 'hidePrices', label: 'Esconder os preços', type: 'toggle', default: false, hint: 'Some dos cards, do produto e do carrinho. Use se combina o valor pelo WhatsApp.' },
+    ]
+  },
+  {
+    group: 'vitrine', title: 'Janela do produto',
+    fields: [
+      { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
+      { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
+      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão.' },
+      { key: 'relatedEnabled', label: 'Mostrar “Você também pode gostar” (produtos relacionados)', type: 'toggle', default: true, hint: 'Na janela do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },
+    ]
+  },
+  {
+    group: 'busca', title: 'Google e compartilhamento',
+    fields: [
+      { key: 'seoTitle', label: 'Título do site', type: 'text', max: 70, default: '', hint: 'Aparece na aba do navegador e nos resultados do Google. Vazio = título padrão.' },
+      { key: 'seoDescription', label: 'Descrição', type: 'textarea', rows: 3, max: 160, default: '', hint: 'Resumo da loja para o Google (até 160 caracteres).' },
+      { key: 'seoImage', label: 'Imagem de compartilhamento', type: 'image', default: '', max: 700, hint: 'Imagem de ~1200×630 usada ao compartilhar o link.' },
     ]
   },
   {
     group: 'contato', title: 'Redes sociais',
     fields: [
-      { key: 'socialInstagram', label: 'Instagram', type: 'social', max: 200, default: '', hint: '@usuario ou o link do perfil.' },
+      { key: 'socialInstagram', label: 'Instagram', type: 'social', max: 200, default: '' },
       { key: 'socialTiktok', label: 'TikTok', type: 'social', max: 200, default: '' },
       { key: 'socialFacebook', label: 'Facebook', type: 'social', max: 200, default: '' },
       { key: 'socialYoutube', label: 'YouTube', type: 'social', max: 200, default: '' },
@@ -213,7 +303,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     group: 'contato', title: 'Rodapé',
     fields: [
-      { key: 'footerText', label: 'Linha extra no rodapé', type: 'text', max: 160, default: '', hint: 'Ex: Atendimento de segunda a sexta, das 9h às 18h. Vazio = não mostra.' },
+      { key: 'footerText', label: 'Linha extra no rodapé', type: 'text', max: 160, default: '', hint: 'Ex: Atendimento de segunda a sexta, das 9h às 18h. Vazio = sem linha.' },
     ]
   }
 ];
@@ -226,6 +316,13 @@ export const normalizeWhatsapp = (value: unknown): string => {
   const d = String(value || '').replace(/\D/g, '');
   return d.length === 10 || d.length === 11 ? `55${d}` : d;
 };
+// Pedido mínimo em reais ("30" ou "30,50"); 0 = sem mínimo ou valor inválido
+export const minOrderValue = (value: unknown): number => {
+  const n = Number(String(value ?? '').trim().replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n <= 100000 ? Math.round(n * 100) / 100 : 0;
+};
+export const isValidMinOrder = (value: unknown): boolean => !String(value ?? '').trim() || minOrderValue(value) > 0;
+
 export const isValidWhatsapp = (value: unknown): boolean => /^55\d{10,11}$/.test(normalizeWhatsapp(value));
 
 const isUrl = (v: string): boolean => { try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; } };
@@ -238,6 +335,7 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'date': return /^\d{4}-\d{2}-\d{2}$/.test(value);
     case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
+    case 'page': return isCompletePage(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;
   }
@@ -255,7 +353,7 @@ export const parseBackup = (value: string): SettingsBackup | null => {
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
   // Os padrões cobrem todas as chaves conhecidas de Settings; o cast só informa isso ao compilador
-  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], backup: null } as unknown as Settings;
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], menus: { top: [], foot: [] }, backup: null } as unknown as Settings;
   const byKey = new Map<string, SettingField>(SETTING_FIELDS.map(f => [f.key, f]));
   (rows || []).forEach(({ key, value }) => {
     if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
@@ -268,5 +366,7 @@ export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
     out[key] = value;
     if (key === 'faqItems') out.faq = parseFaq(value);
   });
+  out.pages = buildPages(Object.fromEntries(PAGE_KEYS.map(k => [k, typeof out[k] === 'string' ? out[k] as string : ''])));
+  out.menus = { top: parseMenu(out.menuTop, MAX_TOP, true), foot: parseMenu(out.menuFoot, MAX_FOOT, false) };
   return out;
 };

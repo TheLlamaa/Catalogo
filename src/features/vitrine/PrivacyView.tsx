@@ -5,6 +5,7 @@ import { NICHE } from '../../lib/niche';
 
 export default function PrivacyView() {
   const settings = useSettings();
+  const custom = settings.privacyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   return (
     <article className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-8">
       <Link to="/" className="mb-6 text-sm font-medium text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 transition-colors">
@@ -12,6 +13,11 @@ export default function PrivacyView() {
       </Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Política de privacidade</h1>
 
+      {custom.length > 0 ? (
+        <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+          {custom.map((p, i) => <p key={i} className="whitespace-pre-line">{p}</p>)}
+        </div>
+      ) : (
       <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Quem somos</h2>
@@ -53,6 +59,7 @@ export default function PrivacyView() {
           <p>Guardamos os pedidos pelo tempo necessário para atender você e cumprir obrigações legais. Depois disso, os dados são apagados.</p>
         </section>
       </div>
+      )}
     </article>
   );
 }

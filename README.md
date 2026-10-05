@@ -79,3 +79,4 @@ Um segundo projeto Supabase (`Catalogo-Teste`) e um segundo site no Cloudflare, 
 - **Site de teste:** um Worker do Cloudflare ligado a este repositório, com as variáveis de build apontando para o Supabase de teste (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) e `VITE_AMBIENTE_LABEL=Ambiente de teste`, que mostra a faixa amarela de aviso no topo.
 - **Login no teste:** crie o usuário em Authentication > Users do projeto de teste e coloque o e-mail na tabela `admins` (aba Equipe, ou `insert into public.admins (email) values ('voce@exemplo.com')`).
 - **Nunca** use as chaves do Supabase real no site de teste, nem as do teste no real.
+- **Branch `teste`:** o Worker de teste publica a partir da branch `teste`; o site real, a partir da `main`. Mudanças novas entram primeiro na `teste`, são validadas no site de teste e só depois vão para a `main`.

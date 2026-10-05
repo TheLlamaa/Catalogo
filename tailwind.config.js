@@ -15,6 +15,7 @@ export default {
   theme: {
     extend: {
       colors: { blue },
+      borderRadius: { xl: 'var(--radius-xl)' },
       fontFamily: { sans: ['var(--font-body)', ...defaultTheme.fontFamily.sans] },
     },
   },

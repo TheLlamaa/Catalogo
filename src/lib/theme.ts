@@ -11,6 +11,35 @@ export const FONT_CHOICES: FontChoice[] = [
   { id: 'tecnica', name: 'Técnica (monoespaçada)', stack: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }
 ];
 
+// Tom de fundo da loja (sempre claro, para o texto continuar legível)
+export const BG_TONES = [
+  { id: 'padrao', name: 'Cinza claro (padrão)', hex: '#f8fafc' },
+  { id: 'branco', name: 'Branco', hex: '#ffffff' },
+  { id: 'creme', name: 'Creme', hex: '#fdf8ee' },
+  { id: 'azulado', name: 'Azulado', hex: '#f0f6ff' },
+  { id: 'rosado', name: 'Rosado', hex: '#fff5f7' }
+];
+
+// Cantos dos cards, caixas e janelas
+export const CARD_STYLES = [
+  { id: 'arredondado', name: 'Arredondado (padrão)', radius: '0.75rem' },
+  { id: 'reto', name: 'Quase reto', radius: '0.25rem' },
+  { id: 'redondo', name: 'Bem arredondado', radius: '1.25rem' }
+];
+
+export const GRID_COLUMNS = ['2', '3', '4'];
+
+// Temas prontos: preenchem cor, fonte, fundo e cantos de uma vez (o admin ainda pode ajustar e depois publica)
+export interface ThemePreset { id: string; name: string; values: Record<string, string> }
+export const THEME_PRESETS: ThemePreset[] = [
+  { id: 'padrao', name: 'Padrão', values: { primaryColor: '', fontChoice: 'padrao', bgTone: 'padrao', cardStyle: 'arredondado' } },
+  { id: 'oceano', name: 'Oceano', values: { primaryColor: '#0e7490', fontChoice: 'moderna', bgTone: 'azulado', cardStyle: 'arredondado' } },
+  { id: 'floresta', name: 'Floresta', values: { primaryColor: '#15803d', fontChoice: 'arredondada', bgTone: 'creme', cardStyle: 'redondo' } },
+  { id: 'por-do-sol', name: 'Pôr do sol', values: { primaryColor: '#c2410c', fontChoice: 'arredondada', bgTone: 'creme', cardStyle: 'redondo' } },
+  { id: 'classico', name: 'Clássico', values: { primaryColor: '#1e293b', fontChoice: 'serifa', bgTone: 'branco', cardStyle: 'reto' } },
+  { id: 'rosa', name: 'Rosa', values: { primaryColor: '#be185d', fontChoice: 'arredondada', bgTone: 'rosado', cardStyle: 'redondo' } }
+];
+
 export const DEFAULT_PRIMARY = '#2563eb'; // = blue-600 do Tailwind
 export const isHex = (v: unknown): v is string => /^#[0-9a-fA-F]{6}$/.test(String(v || '').trim());
 
@@ -42,9 +71,9 @@ export const isTooLight = (hex: unknown): boolean => isHex(hex) && luminance(hex
 
 // Escreve a aparência no documento. Sem argumentos úteis, volta ao padrão do site.
 // Campos de aparência lidos das configurações do site
-export interface ThemeInput { primaryColor?: string; fontChoice?: string; logoUrl?: string }
+export interface ThemeInput { primaryColor?: string; fontChoice?: string; logoUrl?: string; faviconUrl?: string; bgTone?: string; cardStyle?: string }
 
-export const applyTheme = ({ primaryColor, fontChoice, logoUrl }: ThemeInput = {}): void => {
+export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTone, cardStyle }: ThemeInput = {}): void => {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   if (isHex(primaryColor) && primaryColor.toLowerCase() !== DEFAULT_PRIMARY) {
@@ -57,16 +86,25 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl }: ThemeInput = {
   if (font && font.id !== 'padrao') root.style.setProperty('--font-body', font.stack);
   else root.style.removeProperty('--font-body');
 
+  const tone = BG_TONES.find(t => t.id === bgTone);
+  if (tone && tone.id !== 'padrao') root.style.setProperty('--page-bg', tone.hex); else root.style.removeProperty('--page-bg');
+  const card = CARD_STYLES.find(c => c.id === cardStyle);
+  if (card && card.id !== 'arredondado') root.style.setProperty('--radius-xl', card.radius); else root.style.removeProperty('--radius-xl');
+
   const theme = document.querySelector('meta[name="theme-color"]');
   if (theme) theme.setAttribute('content', isHex(primaryColor) ? primaryColor : DEFAULT_PRIMARY);
 
   const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (icon) {
     if (!icon.dataset.original) icon.dataset.original = icon.getAttribute('href') || '';
-    if (/^https?:\/\//i.test(logoUrl || '')) { icon.setAttribute('href', String(logoUrl)); icon.removeAttribute('type'); }
+    const iconUrl = /^https?:\/\//i.test(faviconUrl || '') ? faviconUrl : logoUrl;
+    if (/^https?:\/\//i.test(iconUrl || '')) { icon.setAttribute('href', String(iconUrl)); icon.removeAttribute('type'); }
     else { icon.setAttribute('href', icon.dataset.original); icon.setAttribute('type', 'image/svg+xml'); }
   }
 };
+
+// Cor dos selos dos produtos (vazio = laranja padrão da classe)
+export const badgeStyle = (color: unknown): Record<string, string> => (isHex(color) ? { backgroundColor: color } : {});
 
 // Faixa de aviso: aparece se está ligada, tem texto e a data final (se houver) não passou.
 // "bannerUntil" é um dia (AAAA-MM-DD) e vale até o fim desse dia, no horário do visitante.

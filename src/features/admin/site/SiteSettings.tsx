@@ -1,24 +1,35 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
-  RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
+  Palette, Search, Megaphone, Link2, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
-import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../../../lib/settings';
+import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
-import { applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
+import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
+import { PagesEditor, MenuEditor } from './MenusAndPages';
+import type { Category } from '../../../types';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
-  'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Identidade e contato': Store, 'Nomes dos botões do menu': Type, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
-  'Seções no topo da vitrine': LayoutGrid, 'Produtos': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+  'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+};
+
+// Sem acento e em minúsculas, para a busca achar "voce" em "Você"
+const normalizeText = (v: string): string => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const fieldMatches = (f: SettingField, q: string): boolean => {
+  const optionText = f.type === 'select' ? f.options.map(o => o.label).join(' ') : '';
+  return normalizeText(`${f.label} ${f.hint || ''} ${optionText}`).includes(q);
 };
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
@@ -50,7 +61,10 @@ const toStored = (key: string, value: unknown): string | null => {
   let v = String(value ?? '').trim();
   if (key === 'whatsapp') v = v ? normalizeWhatsapp(v) : '';
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
-  else if (key === 'primaryColor' || key === 'bannerColor') v = v.toLowerCase();
+  else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
+  else if (/^page[A-T]$/.test(key)) v = pageToStored(v);
+  else if (key === 'menuTop') v = menuToStored(v, MAX_TOP, true);
+  else if (key === 'menuFoot') v = menuToStored(v, MAX_FOOT, false);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
   return !v || v === def ? null : v;
 };
@@ -59,14 +73,16 @@ interface SiteSettingsProps {
   settings: Settings;
   onSave: (changes: SettingChanges, successMessage?: string) => Promise<boolean>;
   onUndo: () => unknown;
+  categories: Category[];
 }
 
-export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsProps) {
+export default function SiteSettings({ settings, categories, onSave, onUndo }: SiteSettingsProps) {
   const { toast, confirm } = useUI();
   const [form, setForm] = useState<FormValues>(() => formFrom(settings));
   const [base, setBase] = useState(form);
   const [group, setGroup] = useState(GROUPS[0].id);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
 
   const dirty = Object.keys(DEFAULT_SETTINGS).some(k => toStored(k, form[k]) !== toStored(k, base[k]));
   const dirtyRef = useRef(dirty);
@@ -81,8 +97,8 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
 
   // Prévia ao vivo de cor, fonte e logo; ao sair, volta ao que está publicado
   useEffect(() => {
-    applyTheme({ primaryColor: str(form.primaryColor), fontChoice: str(form.fontChoice), logoUrl: str(form.logoUrl) });
-  }, [form.primaryColor, form.fontChoice, form.logoUrl]);
+    applyTheme({ primaryColor: str(form.primaryColor), fontChoice: str(form.fontChoice), logoUrl: str(form.logoUrl), faviconUrl: str(form.faviconUrl), bgTone: str(form.bgTone), cardStyle: str(form.cardStyle) });
+  }, [form.primaryColor, form.fontChoice, form.logoUrl, form.faviconUrl, form.bgTone, form.cardStyle]);
   const publishedRef = useRef(settings);
   publishedRef.current = settings;
   useEffect(() => () => applyTheme(publishedRef.current), []);
@@ -101,17 +117,36 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
     if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
     if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return 'E-mail inválido.';
     if (!str(form.storeName).trim()) return 'O nome da loja não pode ficar vazio.';
-    for (const k of ['primaryColor', 'bannerColor']) {
+    for (const k of ['primaryColor', 'bannerColor', 'badgeColor']) {
       if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
     }
     for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
       if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
     }
+    if (!isValidMinOrder(form.minOrder)) return 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.';
+    const slugs = new Set<string>();
+    for (const k of PAGE_KEYS) {
+      const raw = str(form[k]);
+      const stored = pageToStored(raw);
+      if (!stored) continue;
+      const d = parsePageDraft(raw);
+      const name = (d.t || '').trim() || 'Página sem título';
+      if (!isCompletePage(raw)) return `Página “${name}”: preencha o título e o texto (ou apague a página).`;
+      if (stored.length > DB_VALUE_MAX) return `Página “${name}”: o texto ficou grande demais. Encurte um pouco.`;
+      const slug = slugify(d.s || '') || slugify(d.t || '');
+      if (!isValidSlug(slug)) return `Página “${name}”: o endereço precisa ter letras ou números.`;
+      if (slugs.has(slug)) return `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`;
+      slugs.add(slug);
+    }
+    const menuError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo') || menuProblem(form.menuFoot, MAX_FOOT, false, 'Links do rodapé');
+    if (menuError) return menuError;
     try {
       const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
       if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
       if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return 'Toda resposta precisa de uma pergunta.';
     } catch { /* texto vazio */ }
+    const privacy = toStored('privacyText', form.privacyText) || '';
+    if (privacy.length > DB_VALUE_MAX) return 'O texto da política ficou grande demais.';
     if ((toStored('faqItems', form.faqItems) || '').length > DB_VALUE_MAX) return 'As perguntas frequentes ficaram grandes demais. Encurte algumas respostas.';
     return null;
   };
@@ -152,11 +187,20 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
     await onUndo();
   };
 
-  const sections = SETTINGS_SCHEMA.filter(s => s.group === group);
+  const q = normalizeText(query);
+  const searching = q.length > 0;
+  const groupLabel = (id: string) => GROUPS.find(g => g.id === id)?.label || '';
+  const sections: SettingsSection[] = searching
+    ? SETTINGS_SCHEMA.map(s => {
+        const sectionHit = normalizeText(`${s.title} ${groupLabel(s.group)}`).includes(q);
+        return { ...s, fields: sectionHit ? s.fields : s.fields.filter(f => fieldMatches(f, q)) };
+      }).filter(s => s.fields.length > 0)
+    : SETTINGS_SCHEMA.filter(s => s.group === group);
+  const resultCount = sections.reduce((n, s) => n + (s.group === 'menus' ? 1 : s.fields.length), 0);
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-      <p className="text-sm text-gray-600">Mude a aparência e os textos do site sem mexer em código. O que você edita aqui é um rascunho: os clientes só veem depois que você clicar em <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia neste painel enquanto você escolhe.</p>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <p className="text-sm text-gray-600">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
 
       {settings.backup && (
         <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm">
@@ -165,14 +209,50 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
         </div>
       )}
 
-      <div role="tablist" aria-label="Áreas do site" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+        <input
+          type="search" value={query} onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); setQuery(''); } }}
+          placeholder="Buscar configuração… ex: cor, WhatsApp, frete, selo" aria-label="Buscar configurações"
+          className="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {searching && (
+        <div className="flex items-center justify-between gap-3 text-sm text-gray-600" role="status">
+          <span>{resultCount === 0 ? `Nenhuma configuração encontrada para “${query.trim()}”.` : `${resultCount} ${resultCount === 1 ? 'configuração encontrada' : 'configurações encontradas'} em todas as abas.`}</span>
+          <button type="button" onClick={() => setQuery('')} className="text-blue-700 font-medium hover:underline whitespace-nowrap">Limpar busca</button>
+        </div>
+      )}
+
+      {!searching && <div role="tablist" aria-label="Áreas do site" className="flex flex-wrap gap-2">
         {GROUPS.map(g => (
           <button
             key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}
             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${group === g.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
           >{g.label}</button>
         ))}
-      </div>
+      </div>}
+
+      {!searching && group === 'aparencia' && (
+        <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+          <legend className="sr-only">Temas prontos</legend>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h3>
+          <p className="text-xs text-gray-500 mb-3">Preenche cor, fonte, fundo e cantos de uma vez. Dá para ajustar depois; nada vai ao ar até publicar.</p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map(t => (
+              <button
+                key={t.id} type="button" onClick={() => setForm(p => ({ ...p, ...t.values }))}
+                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <span className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ backgroundColor: t.values.primaryColor || DEFAULT_PRIMARY }} aria-hidden="true" />
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
@@ -183,11 +263,15 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
               <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
                 {section.title}
+                {searching && <span className="text-xs font-normal text-gray-500">· {groupLabel(section.group)}</span>}
               </h3>
-              <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>
+              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
             </div>
             <div className="p-5 space-y-5">
-              {section.fields.map(f => (
+              {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
+              {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} setFlag={set} />}
+              {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} setFlag={set} />}
+              {section.fields.filter(f => f.type !== 'page' && f.type !== 'menu').map(f => (
                 <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
@@ -243,6 +327,10 @@ function Field({ f, form, set, resetField }: FieldProps) {
       control = <textarea id={id} rows={f.rows || 3} maxLength={f.max} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={inputCls} />;
       break;
     case 'select':
+      if (f.display) {
+        control = <ChoiceGroup f={f} display={f.display} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
+        break;
+      }
       control = (
         <select id={id} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className={`${inputCls} bg-white`}>
           {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -275,6 +363,9 @@ function Field({ f, form, set, resetField }: FieldProps) {
     case 'image':
       control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
+    case 'page':
+    case 'menu':
+      return null; // editados em "Menus e páginas"
     case 'faq':
       control = <FaqField value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
@@ -341,6 +432,66 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
       </div>
     </div>
+  );
+}
+
+// Escolha com exemplo visual: cada opção mostra como ela fica (colunas, cantos, fonte, fundo ou ordem)
+function ChoicePreview({ display, value }: { display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string }) {
+  if (display === 'columns') return <ColumnsIcon n={Number(value)} />;
+  if (display === 'corners') {
+    const radius = CARD_STYLES.find(c => c.id === value)?.radius || '0.75rem';
+    return (
+      <div className="w-14 h-12 border border-gray-300 bg-white p-1.5 flex flex-col gap-1" style={{ borderRadius: radius }} aria-hidden="true">
+        <div className="flex-1 bg-gray-200" style={{ borderRadius: `calc(${radius} / 2)` }} />
+        <div className="h-1.5 w-8 bg-gray-300 rounded-sm" />
+      </div>
+    );
+  }
+  if (display === 'font') {
+    const stack = FONT_CHOICES.find(f => f.id === value)?.stack;
+    return <span style={{ fontFamily: stack }} className="text-3xl leading-none text-gray-800" aria-hidden="true">Aa</span>;
+  }
+  if (display === 'tone') {
+    const hex = BG_TONES.find(t => t.id === value)?.hex || '#ffffff';
+    return <div className="w-14 h-10 rounded-md border border-gray-300" style={{ backgroundColor: hex }} aria-hidden="true" />;
+  }
+  const SortIcon = value === 'price_asc' ? ArrowUp : value === 'price_desc' ? ArrowDown : Clock;
+  return <SortIcon className="w-7 h-7" aria-hidden="true" />;
+}
+
+function ChoiceGroup({ f, display, value, onChange }: { f: Extract<SettingField, { type: 'select' }>; display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string; onChange: (v: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label={f.label} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      {f.options.map(o => {
+        const on = value === o.value;
+        return (
+          <button
+            key={o.value} type="button" role="radio" aria-checked={on} aria-label={o.label} title={o.label}
+            onClick={() => onChange(o.value)}
+            className={`flex flex-col items-center justify-center gap-2 px-3 py-3 rounded-lg border text-xs font-medium text-center transition-colors min-h-[5.5rem] ${on ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            <ChoicePreview display={display} value={o.value} />
+            <span>{display === 'columns' ? o.value : o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Miniatura com n colunas de cards, para escolher quantos produtos por linha
+function ColumnsIcon({ n }: { n: number }) {
+  const gap = 2, w = 40, h = 24;
+  const cw = (w - gap * (n - 1)) / n;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" fill="currentColor">
+      {Array.from({ length: n }, (_, i) => (
+        <g key={i}>
+          <rect x={i * (cw + gap)} y={0} width={cw} height={11} rx={1.5} opacity={0.85} />
+          <rect x={i * (cw + gap)} y={13} width={cw} height={11} rx={1.5} opacity={0.45} />
+        </g>
+      ))}
+    </svg>
   );
 }
 
