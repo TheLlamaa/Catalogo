@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
-import { formatPhoneBR, validateContact, whatsappLink } from '../../lib/format';
+import { formatPhoneBR, validateContact, whatsappLink, fillName } from '../../lib/format';
 
 interface CustomFormData { clientName: string; clientPhone: string; description: string; imageUrl: string; website: string }
 
@@ -84,7 +84,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
   };
 
   if (sentSuccess) {
-    const whatsappText = `Olá! Meu nome é ${sentName}. Acabei de enviar uma solicitação de peça personalizada pelo site.`;
+    const whatsappText = fillName(settings.customMessage, sentName);
     return (
       <div className="max-w-xl mx-auto py-12 px-6 bg-white border border-gray-200 rounded-xl text-center shadow-sm">
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -99,7 +99,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
             target="_blank" rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-4"
           >
-            <MessageSquare className="w-4 h-4" /> Continuar no WhatsApp
+            <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
           </a>
         )}
 

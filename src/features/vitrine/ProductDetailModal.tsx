@@ -162,7 +162,7 @@ export default function ProductDetailModal({ product, products = [], categories,
             onClick={handleAdd}
             className={`flex-1 font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
           >
-            <ShoppingCart className="w-5 h-5" /> {isOutOfStock ? 'Indisponível' : 'Adicionar ao Orçamento'}
+            <ShoppingCart className="w-5 h-5" /> {isOutOfStock ? 'Indisponível' : settings.addToCartLabel}
           </button>
         </div>
       </div>

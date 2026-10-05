@@ -1,7 +1,8 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
-import { FONT_CHOICES, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
+import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
+import { PAGE_KEYS, PAGE_TITLE_MAX, PAGE_TEXT_MAX, buildPages, isCompletePage, type ExtraPage } from './pages';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -26,6 +27,7 @@ export interface TextareaField extends SettingFieldBase { type: 'textarea'; defa
 export interface ColorField extends SettingFieldBase { type: 'color'; default: string }
 export interface DateField extends SettingFieldBase { type: 'date'; default: string }
 export interface FaqField extends SettingFieldBase { type: 'faq'; default: string }
+export interface PageField extends SettingFieldBase { type: 'page'; default: string }
 export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
@@ -42,7 +44,7 @@ export interface RangeField extends SettingFieldBase {
 export interface ToggleField extends SettingFieldBase { type: 'toggle'; default: boolean }
 
 // União discriminada por "type": cada tipo traz só os campos que usa
-export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | SelectField | RangeField | ToggleField;
+export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | SelectField | RangeField | ToggleField;
 
 export interface SettingsGroup { id: string; label: string }
 
@@ -59,7 +61,8 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 // A assinatura de índice cobre chaves dinâmicas (ex.: acesso por field.key).
 export interface Settings {
   [key: string]: unknown;
-  primaryColor: string; fontChoice: string;
+  primaryColor: string; fontChoice: string; bgTone: string; cardStyle: string; gridCols: string; heroImage: string;
+  faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
   storeName: string; whatsapp: string; email: string;
@@ -67,8 +70,10 @@ export interface Settings {
   catalogTitle: string; catalogSubtitle: string;
   cardBadge: string; cardTitle: string; cardText: string; cardButton: string;
   customTitle: string; customIntro: string; customSuccess: string;
+  cartTitle: string; cartEmpty: string; cartIntro: string; addToCartLabel: string;
+  orderDoneTitle: string; orderDoneText: string; whatsappButton: string; orderMessageIntro: string; customMessage: string;
   aboutEnabled: boolean; menuAbout: string; aboutTitle: string; aboutText: string; aboutImage: string;
-  faqItems: string;
+  faqItems: string; privacyText: string;
   showFeatured: boolean; featuredTitle: string; showPopular: boolean; popularTitle: string; showNew: boolean; newTitle: string;
   stockControl: boolean; customEnabled: boolean; leadTimeEnabled: boolean; aurasEnabled: boolean; modelLinkEnabled: boolean;
   lowStockBadge: boolean; relatedEnabled: boolean; relatedTitle: string;
@@ -76,6 +81,7 @@ export interface Settings {
   footerText: string;
   auraLib: AuraLib;
   faq: FaqItem[];
+  pages: ExtraPage[];
   backup: SettingsBackup | null;
 }
 
@@ -88,7 +94,8 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'conteudo', label: 'Sobre e perguntas' },
   { id: 'vitrine', label: 'Vitrine' },
   { id: 'recursos', label: 'Recursos' },
-  { id: 'contato', label: 'Redes e rodapé' }
+  { id: 'contato', label: 'Redes e rodapé' },
+  { id: 'busca', label: 'Google e compartilhamento' }
 ];
 
 export const SETTINGS_SCHEMA: SettingsSection[] = [
@@ -97,12 +104,27 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Vazio = azul padrão. Prefira cores escuras ou médias: com cor clara o texto dos botões fica ruim de ler.' },
       { key: 'fontChoice', label: 'Fonte', type: 'select', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
+      { key: 'bgTone', label: 'Fundo da loja', type: 'select', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
+    ]
+  },
+  {
+    group: 'aparencia', title: 'Estilo dos cards',
+    fields: [
+      { key: 'cardStyle', label: 'Cantos', type: 'select', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
+      { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
+    ]
+  },
+  {
+    group: 'aparencia', title: 'Capa da vitrine',
+    fields: [
+      { key: 'heroImage', label: 'Imagem de capa (opcional)', type: 'image', default: '', max: 700, hint: 'Aparece no topo da página inicial, com o título e o texto por cima. Use uma imagem larga.' },
     ]
   },
   {
     group: 'aparencia', title: 'Logo',
     fields: [
       { key: 'logoUrl', label: 'Logo da loja', type: 'image', default: '', max: 700, hint: 'Aparece no topo e na aba do navegador. PNG com fundo transparente fica melhor.' },
+      { key: 'faviconUrl', label: 'Ícone da aba (opcional)', type: 'image', default: '', max: 700, hint: 'Vazio = usa a logo. Quadrado fica melhor.' },
       { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura no topo. No celular é limitada a 48 px.' },
       { key: 'logoShowName', label: 'Mostrar o nome da loja ao lado da logo', type: 'toggle', default: true },
     ]
@@ -157,6 +179,30 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
+    group: 'conteudo', title: 'Páginas extras',
+    fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página extra ${i + 1}`, type: 'page', default: '', hint: i === 0 ? `Ex: Trocas e devoluções, Cuidados com a peça. Título até ${PAGE_TITLE_MAX} e texto até ${PAGE_TEXT_MAX} caracteres. Deixe vazia para não usar.` : undefined }))
+  },
+  {
+    group: 'conteudo', title: 'Política de privacidade',
+    fields: [
+      { key: 'privacyText', label: 'Texto próprio da política', type: 'textarea', rows: 10, max: 4000, default: '', hint: 'Vazio = usa o texto padrão do site. Linha em branco = novo parágrafo.' },
+    ]
+  },
+  {
+    group: 'textos', title: 'Carrinho e pedido',
+    fields: [
+      { key: 'addToCartLabel', label: 'Botão de adicionar ao carrinho', type: 'text', max: 40, default: 'Adicionar ao Orçamento' },
+      { key: 'cartTitle', label: 'Título do carrinho', type: 'text', max: 40, default: 'Seu Orçamento' },
+      { key: 'cartEmpty', label: 'Mensagem do carrinho vazio', type: 'text', max: 80, default: 'Seu orçamento está vazio.' },
+      { key: 'cartIntro', label: 'Texto acima dos dados de contato', type: 'text', max: 160, default: 'Preencha seus dados para registrarmos seu pedido de orçamento.' },
+      { key: 'orderDoneTitle', label: 'Título depois de enviar o pedido', type: 'text', max: 60, default: 'Pedido Registrado!' },
+      { key: 'orderDoneText', label: 'Mensagem depois de enviar o pedido', type: 'textarea', max: 300, default: 'Recebemos sua solicitação de orçamento. Entraremos em contato com você via WhatsApp para confirmar os detalhes.' },
+      { key: 'whatsappButton', label: 'Botão do WhatsApp', type: 'text', max: 40, default: 'Continuar no WhatsApp' },
+      { key: 'orderMessageIntro', label: 'Abertura da mensagem do pedido no WhatsApp', type: 'text', max: 200, default: 'Olá! Acabei de enviar um pedido pelo site. Meu nome é {nome}.', hint: 'Use {nome} para o nome do cliente. Os itens, o total e a entrega vêm logo abaixo.' },
+      { key: 'customMessage', label: 'Mensagem do WhatsApp (peça personalizada)', type: 'text', max: 200, default: 'Olá! Meu nome é {nome}. Acabei de enviar uma solicitação de peça personalizada pelo site.', hint: 'Use {nome} para o nome do cliente.' },
+    ]
+  },
+  {
     group: 'conteudo', title: 'Página "Sobre / Como funciona"',
     fields: [
       { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
@@ -202,6 +248,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
+    group: 'busca', title: 'Google e compartilhamento',
+    fields: [
+      { key: 'seoTitle', label: 'Título do site', type: 'text', max: 70, default: '', hint: 'Aparece na aba do navegador e nos resultados do Google. Vazio = título padrão.' },
+      { key: 'seoDescription', label: 'Descrição', type: 'textarea', rows: 3, max: 160, default: '', hint: 'Resumo da loja para o Google (até 160 caracteres).' },
+      { key: 'seoImage', label: 'Imagem de compartilhamento', type: 'image', default: '', max: 700, hint: 'Imagem de ~1200×630 usada ao compartilhar o link.' },
+    ]
+  },
+  {
     group: 'contato', title: 'Redes sociais',
     fields: [
       { key: 'socialInstagram', label: 'Instagram', type: 'social', max: 200, default: '' },
@@ -238,6 +292,7 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'date': return /^\d{4}-\d{2}-\d{2}$/.test(value);
     case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
+    case 'page': return isCompletePage(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;
   }
@@ -255,7 +310,7 @@ export const parseBackup = (value: string): SettingsBackup | null => {
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
   // Os padrões cobrem todas as chaves conhecidas de Settings; o cast só informa isso ao compilador
-  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], backup: null } as unknown as Settings;
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], backup: null } as unknown as Settings;
   const byKey = new Map<string, SettingField>(SETTING_FIELDS.map(f => [f.key, f]));
   (rows || []).forEach(({ key, value }) => {
     if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
@@ -268,5 +323,6 @@ export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
     out[key] = value;
     if (key === 'faqItems') out.faq = parseFaq(value);
   });
+  out.pages = buildPages(PAGE_KEYS.map(k => (typeof out[k] === 'string' ? out[k] as string : '')));
   return out;
 };

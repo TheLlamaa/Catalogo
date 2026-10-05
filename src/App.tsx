@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navig
 
 import { signOut } from './services/auth';
 import { ENV_LABEL } from './lib/config';
+import { applySeo } from './lib/seo';
 import { applyTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { useCart } from './hooks/useCart';
 import { useCatalogData } from './hooks/useCatalogData';
@@ -22,6 +23,7 @@ const CustomRequestView = lazy(() => import('./features/vitrine/CustomRequestVie
 const LoginView = lazy(() => import('./features/auth/LoginView'));
 const PrivacyView = lazy(() => import('./features/vitrine/PrivacyView'));
 const AboutView = lazy(() => import('./features/vitrine/AboutView'));
+const PageView = lazy(() => import('./features/vitrine/PageView'));
 
 const AdminView = lazy(() => import('./features/admin/AdminView'));
 const CustomOrderDetailModal = lazy(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
@@ -111,6 +113,8 @@ function MainLayout() {
 
   // Cor, fonte, logo/ícone da aba: acompanham o que o admin publicou
   useEffect(() => { applyTheme(settings); }, [settings]);
+  const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';
+  useEffect(() => { applySeo(settings, !ownTitle); }, [settings, ownTitle]);
 
   if (loading) {
     return (
@@ -143,7 +147,7 @@ function MainLayout() {
 
   return (
     <SettingsContext.Provider value={settings}>
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-[var(--page-bg)] text-gray-900 font-sans flex flex-col">
 
       {ENV_LABEL && (
         <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">
@@ -172,6 +176,7 @@ function MainLayout() {
           <Route path="/produto/:id" element={catalogElement} />
           <Route path="/custom" element={settings.customEnabled ? <CustomRequestView onSaveOrder={saveCustomOrder} /> : <Navigate to="/" replace />} />
           <Route path="/sobre" element={settings.aboutEnabled ? <AboutView /> : <Navigate to="/" replace />} />
+          <Route path="/p/:slug" element={<PageView />} />
           <Route path="/privacidade" element={<PrivacyView />} />
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={

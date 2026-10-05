@@ -1,0 +1,143 @@
+import { BASE, launch } from './env.mjs';
+let fails = 0;
+const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+const jwt = `${b64({alg:'HS256',typ:'JWT'})}.${b64({sub:'u1',role:'authenticated',exp:4102444800})}.sig`;
+const session = { access_token: jwt, token_type:'bearer', expires_in:3600, expires_at:4102444800, refresh_token:'r', user:{id:'u1',aud:'authenticated',role:'authenticated',email:'a@b.c',app_metadata:{},user_metadata:{},created_at:'2026-01-01T00:00:00Z'} };
+
+const now = Date.now(), day = 86400000;
+const iso = (d) => new Date(now - d * day).toISOString();
+const cats = [['Chaveiros','c1',2],['Vasos','c2',1],['Geral','c3',0]].map(([name,id,so]) => ({ id, name, slug: id, description: 'desc', aura_color: 'none', sort_order: so }));
+const mkProducts = () => [
+  { id:'p1', title:'Chaveiro Gato', price:10, stock:2, section:'destaque', badge:'Promoção', sort_order:2, cat:['c1'], created:iso(100) },
+  { id:'p2', title:'Chaveiro Cão', price:12, stock:5, section:'popular', badge:null, sort_order:1, cat:['c1'], created:iso(100) },
+  { id:'p3', title:'Vaso Onda', price:30, stock:9, section:null, badge:null, sort_order:3, cat:['c2'], created:iso(2) },
+  { id:'p4', title:'Vaso Cubo', price:35, stock:4, section:null, badge:null, sort_order:0, cat:['c2','c1'], created:iso(1) },
+  { id:'p5', title:'Item Geral', price:5, stock:7, section:null, badge:null, sort_order:4, cat:['c3'], created:iso(100) },
+].map(p => ({ id:p.id, title:p.title, description:'desc '+p.title, price:p.price, stock:p.stock, active:true, category_ids:p.cat, image_urls:['https://img.test/'+p.id+'.png'], aura_color:'none', options:[], lead_time:null, badge:p.badge, section:p.section, sort_order:p.sort_order, created_at:p.created }));
+
+const br = await launch();
+
+async function newPage({ rows, w = 1100, admin = false, products = mkProducts(), categories = cats }) {
+  const ctx = await br.newContext({ viewport: { width: w, height: 900 } });
+  if (admin) await ctx.addInitScript((s) => localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)), session);
+  const p = await ctx.newPage();
+  const writes = [];
+  const state = { rows: [...rows], products };
+  await p.route('https://img.test/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+  await p.route('https://mock.supabase.co/**', async r => {
+    const req = r.request(); const hd = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: hd });
+    const u = new URL(req.url()); const path = u.pathname;
+    if (req.method() !== 'GET') {
+      let body = null; try { body = req.postDataJSON(); } catch { body = req.postData(); }
+      writes.push({ method: req.method(), path, query: u.search, body });
+      if (path.endsWith('site_settings')) {
+        if (req.method() === 'POST') for (const row of [].concat(body)) { state.rows = state.rows.filter(x => x.key !== row.key); state.rows.push({ key: row.key, value: row.value }); }
+        if (req.method() === 'DELETE') { const m = decodeURIComponent(u.search).match(/key=in\.\((.*)\)/); const keys = m ? m[1].split(',').map(k => k.replace(/"/g, '')) : []; state.rows = state.rows.filter(x => !keys.includes(x.key)); }
+      }
+      if (path.endsWith('products') && req.method() === 'PATCH') { const id = new URL(req.url()).searchParams.get('id').replace('eq.', ''); const pr = state.products.find(x => x.id === id); if (pr && body) Object.assign(pr, body); }
+      return r.fulfill({ status: 201, headers: { ...hd, 'content-type': 'application/json' }, body: '[]' });
+    }
+    let body = '[]';
+    if (path.endsWith('/products')) body = JSON.stringify(state.products);
+    if (path.endsWith('/categories')) body = JSON.stringify(categories);
+    if (path.endsWith('/site_settings')) body = JSON.stringify(state.rows);
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: hd, body });
+  });
+  return { p, ctx, writes, state };
+}
+
+
+const pageA = JSON.stringify({ t: 'Trocas e devoluções', x: 'Aceitamos trocas em até 7 dias.\n\nEscreva para nós.', m: true, f: true });
+const rowsExtra = [
+  { key: 'pageA', value: pageA },
+  { key: 'cartTitle', value: 'Minha Sacola' }, { key: 'addToCartLabel', value: 'Quero este' },
+  { key: 'whatsappButton', value: 'Falar no zap' },
+  { key: 'orderMessageIntro', value: 'Oi! Sou {nome} e fiz um pedido.' },
+  { key: 'bgTone', value: 'creme' }, { key: 'cardStyle', value: 'reto' }, { key: 'gridCols', value: '4' },
+  { key: 'heroImage', value: 'https://img.test/capa.png' },
+  { key: 'faviconUrl', value: 'https://img.test/icone.png' },
+  { key: 'seoTitle', value: 'Minha Loja 3D — peças únicas' }, { key: 'seoDescription', value: 'Peças impressas sob medida.' },
+  { key: 'seoImage', value: 'https://img.test/og.png' },
+];
+
+// ============ VITRINE ============
+{
+  const { p } = await newPage({ rows: rowsExtra });
+  await p.goto(BASE + '/'); await p.waitForSelector('h2');
+  const bg = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim());
+  check('fundo creme aplicado', bg === '#fdf8ee', bg);
+  const rad = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--radius-xl').trim());
+  check('cantos retos aplicados', rad === '0.25rem', rad);
+  check('título do site vem das configurações', (await p.title()) === 'Minha Loja 3D — peças únicas', await p.title());
+  check('meta description editável', (await p.locator('meta[name=description]').getAttribute('content')) === 'Peças impressas sob medida.');
+  check('imagem de compartilhamento criada', (await p.locator('meta[property="og:image"]').getAttribute('content')) === 'https://img.test/og.png');
+  check('ícone da aba separado da logo', (await p.locator('link[rel=icon]').getAttribute('href')) === 'https://img.test/icone.png');
+  check('capa da vitrine aparece', await p.locator('img[src="https://img.test/capa.png"]').count() === 1);
+  check('4 colunas no computador', await p.locator('.lg\\:grid-cols-4').count() === 1);
+  check('link da página extra no menu', await p.getByRole('button', { name: 'Trocas e devoluções' }).count() === 1);
+  check('link da página extra no rodapé', await p.locator('footer').getByRole('link', { name: 'Trocas e devoluções' }).count() === 1);
+  await p.locator('footer').getByRole('link', { name: 'Trocas e devoluções' }).click();
+  await p.waitForSelector('h1');
+  check('página extra abre em /p/slug', new URL(p.url()).pathname === '/p/trocas-e-devolucoes', p.url());
+  check('página extra mostra título e dois parágrafos', await p.locator('article h1').innerText() === 'Trocas e devoluções' && await p.locator('article p').count() === 2);
+  check('título da aba da página extra', (await p.title()).startsWith('Trocas e devoluções'), await p.title());
+  await p.goto(BASE + '/p/nao-existe');
+  await p.waitForURL(u => new URL(u).pathname === '/', { timeout: 5000 }).catch(() => {});
+  check('página inexistente volta para a vitrine', new URL(p.url()).pathname === '/', p.url());
+  // carrinho
+  await p.goto(BASE + '/'); await p.waitForSelector('h2');
+  await p.getByRole('button', { name: /Abrir orçamento/ }).click();
+  check('título do carrinho editável', await p.getByRole('heading', { name: 'Minha Sacola' }).count() === 1);
+  check('rótulo do botão do produto está nas configurações', rowsExtra.some(r => r.key === 'addToCartLabel'));
+  await p.close();
+}
+
+// ============ PRIVACIDADE PRÓPRIA ============
+{
+  const { p } = await newPage({ rows: [{ key: 'privacyText', value: 'Texto próprio da loja.\n\nSegundo bloco.' }] });
+  await p.goto(BASE + '/privacidade'); await p.waitForSelector('h1');
+  check('política própria substitui a padrão', await p.getByText('Texto próprio da loja.').count() === 1 && await p.getByText('Quais dados coletamos').count() === 0);
+  await p.close();
+}
+
+// ============ SEM CONFIGURAÇÃO: tudo como antes ============
+{
+  const { p } = await newPage({ rows: [] });
+  await p.goto(BASE + '/'); await p.waitForSelector('h1');
+  check('padrão: título do index.html', (await p.title()).includes('Catálogo 3D'), await p.title());
+  check('padrão: sem link de página extra', await p.getByRole('button', { name: 'Trocas e devoluções' }).count() === 0);
+  check('padrão: sem capa', await p.locator('img[src="https://img.test/capa.png"]').count() === 0);
+  await p.close();
+}
+
+// ============ ADMIN ============
+{
+  const { p, writes } = await newPage({ rows: [], admin: true });
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
+  await p.waitForSelector('[role=tablist]');
+  // tema pronto preenche tudo
+  await p.getByRole('button', { name: 'Floresta' }).click();
+  check('tema pronto troca a cor principal', (await p.getByLabel('Cor principal (código)').inputValue()) === '#15803d');
+  const bgNow = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim());
+  check('tema pronto mostra o fundo na hora', bgNow === '#fdf8ee', bgNow);
+  check('tema pronto não grava nada sozinho', writes.length === 0);
+  // página extra incompleta bloqueia
+  await p.getByRole('tab', { name: 'Sobre e perguntas' }).click();
+  await p.getByPlaceholder('Título da página').first().fill('Só título');
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
+  check('página extra sem texto bloqueia', writes.length === 0 && await p.getByText(/preencha o título e o texto/).count() >= 1);
+  await p.getByLabel('Texto da página').first().fill('Conteúdo da página');
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
+  const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
+  const keys = post ? post.body.map(r => r.key).sort() : [];
+  check('publica a página extra e o tema', ['bgTone', 'cardStyle', 'fontChoice', 'pageA', 'primaryColor'].every(k => keys.includes(k)), JSON.stringify(keys));
+  const pg = post?.body.find(r => r.key === 'pageA')?.value;
+  check('página guardada como JSON enxuto', pg && JSON.parse(pg).t === 'Só título' && JSON.parse(pg).x === 'Conteúdo da página', pg);
+  await p.close();
+}
+await br.close();
+console.log(fails ? `\n${fails} FALHA(S)` : '\nTUDO OK');
+process.exit(fails ? 1 : 0);

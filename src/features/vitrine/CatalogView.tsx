@@ -23,6 +23,9 @@ interface CatalogViewProps {
   onOpenCustomRequest: () => void;
 }
 
+// Classes completas (o Tailwind só gera o que aparece escrito no código)
+const GRID_CLASS: Record<string, string> = { '2': 'lg:grid-cols-2', '3': 'lg:grid-cols-3', '4': 'lg:grid-cols-4' };
+
 export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }: CatalogViewProps) {
   const settings = useSettings();
   // Filtros ficam no endereço: ?categoria=chaveiros&q=vaso&ordem=price_asc
@@ -133,8 +136,18 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
       </aside>
 
       <div className="flex-1 min-w-0">
+        {settings.heroImage && !activeCategory && (
+          <div className="relative rounded-xl overflow-hidden mb-4 md:mb-6 min-h-[9rem] sm:min-h-[13rem] flex items-end">
+            <img src={settings.heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            <div className="relative p-4 sm:p-6 text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{settings.catalogTitle}</h2>
+              <p className="mt-1 text-sm sm:text-base max-w-2xl text-white/90">{settings.catalogSubtitle}</p>
+            </div>
+          </div>
+        )}
         <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
+          <div className={settings.heroImage && !activeCategory ? 'sr-only' : ''}>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <span>{activeCategory ? activeCategory.name : settings.catalogTitle}</span>
               {settings.aurasEnabled && activeCategory?.auraColor && activeCategory.auraColor !== 'none' && (
@@ -181,7 +194,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         ))}
         {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">Todos os modelos</h2>}
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+        <div className={`grid grid-cols-2 ${GRID_CLASS[settings.gridCols] || GRID_CLASS['3']} gap-3 sm:gap-6`}>
           {settings.customEnabled && <button
             onClick={onOpenCustomRequest}
             className="col-span-2 sm:col-span-1 text-left bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl p-4 sm:p-6 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-all border border-blue-500 group relative overflow-hidden"

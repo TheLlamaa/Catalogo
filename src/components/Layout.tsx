@@ -46,6 +46,13 @@ export function StoreHeader({ settings, user, cartCount, onOpenCart }: StoreHead
             <span className="sr-only sm:hidden">{settings.menuAbout}</span>
           </button>}
 
+          {settings.pages.filter(p => p.menu).map(p => (
+            <button
+              key={p.slug} onClick={() => navigate(`/p/${p.slug}`)}
+              className={`hidden sm:block px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/p/${p.slug}`) ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
+            >{p.title}</button>
+          ))}
+
           {settings.customEnabled && <button
             onClick={() => navigate('/custom')}
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${isActive('/custom') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -134,6 +141,7 @@ export function StoreFooter({ settings }: { settings: SiteSettings }) {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600">{settings.menuAbout}</Link>}
+          {settings.pages.filter(p => p.footer).map(p => <Link key={p.slug} to={`/p/${p.slug}`} className="hover:text-blue-600">{p.title}</Link>)}
           {socialLinks(settings).map(l => (
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>
           ))}

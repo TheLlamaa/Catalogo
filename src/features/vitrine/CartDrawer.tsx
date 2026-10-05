@@ -96,9 +96,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
   };
 
   return (
-    <Dialog variant="drawer" onClose={handleClose} label="Seu orçamento" panelClassName="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
+    <Dialog variant="drawer" onClose={handleClose} label={settings.cartTitle} panelClassName="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-        <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-blue-600" /> Seu Orçamento</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-blue-600" /> {settings.cartTitle}</h2>
         <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
       </div>
 
@@ -108,7 +108,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4">
                 <Package className="w-12 h-12 text-gray-300" />
-                <p className="text-sm font-medium">Seu orçamento está vazio.</p>
+                <p className="text-sm font-medium">{settings.cartEmpty}</p>
               </div>
             ) : (
               <ul className="space-y-6">
@@ -162,7 +162,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           />
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para Contato</h3>
-            <p className="text-xs text-gray-500 mb-5">Preencha seus dados para registrarmos seu pedido de orçamento.</p>
+            <p className="text-xs text-gray-500 mb-5">{settings.cartIntro}</p>
 
             <div className="space-y-4">
               <div>
@@ -255,15 +255,15 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Pedido Registrado!</h3>
-          <p className="text-sm text-gray-600 mb-6">Recebemos sua solicitação de orçamento. Entraremos em contato com você via WhatsApp para confirmar os detalhes.</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">{settings.orderDoneTitle}</h3>
+          <p className="text-sm text-gray-600 mb-6">{settings.orderDoneText}</p>
           {settings.whatsapp && lastOrder && (
             <a
-              href={whatsappLink(settings.whatsapp, buildOrderMessage(lastOrder))}
+              href={whatsappLink(settings.whatsapp, buildOrderMessage({ ...lastOrder, intro: settings.orderMessageIntro }))}
               target="_blank" rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-3"
             >
-              <MessageSquare className="w-4 h-4" /> Continuar no WhatsApp
+              <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
             </a>
           )}
           <button onClick={handleClose} className="bg-blue-600 text-white font-medium px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors">

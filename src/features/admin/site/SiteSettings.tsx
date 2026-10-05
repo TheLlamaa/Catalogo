@@ -2,19 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  Palette, Search, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
-import { applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { PAGE_TITLE_MAX, PAGE_TEXT_MAX, parsePageDraft, pageToStored, isCompletePage, type PageDraft } from '../../../lib/pages';
+import { THEME_PRESETS, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas extras': FileText, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
@@ -51,6 +52,7 @@ const toStored = (key: string, value: unknown): string | null => {
   if (key === 'whatsapp') v = v ? normalizeWhatsapp(v) : '';
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
   else if (key === 'primaryColor' || key === 'bannerColor') v = v.toLowerCase();
+  else if (/^page[A-F]$/.test(key)) v = pageToStored(v);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
   return !v || v === def ? null : v;
 };
@@ -81,8 +83,8 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
 
   // Prévia ao vivo de cor, fonte e logo; ao sair, volta ao que está publicado
   useEffect(() => {
-    applyTheme({ primaryColor: str(form.primaryColor), fontChoice: str(form.fontChoice), logoUrl: str(form.logoUrl) });
-  }, [form.primaryColor, form.fontChoice, form.logoUrl]);
+    applyTheme({ primaryColor: str(form.primaryColor), fontChoice: str(form.fontChoice), logoUrl: str(form.logoUrl), faviconUrl: str(form.faviconUrl), bgTone: str(form.bgTone), cardStyle: str(form.cardStyle) });
+  }, [form.primaryColor, form.fontChoice, form.logoUrl, form.faviconUrl, form.bgTone, form.cardStyle]);
   const publishedRef = useRef(settings);
   publishedRef.current = settings;
   useEffect(() => () => applyTheme(publishedRef.current), []);
@@ -106,6 +108,10 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
     }
     for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
       if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
+    }
+    for (const f of SETTING_FIELDS.filter(x => x.type === 'page')) {
+      const raw = str(form[f.key]);
+      if (pageToStored(raw) && !isCompletePage(raw)) return `${f.label}: preencha o título e o texto (ou apague os dois).`;
     }
     try {
       const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
@@ -173,6 +179,25 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
           >{g.label}</button>
         ))}
       </div>
+
+      {group === 'aparencia' && (
+        <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+          <legend className="sr-only">Temas prontos</legend>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h3>
+          <p className="text-xs text-gray-500 mb-3">Preenche cor, fonte, fundo e cantos de uma vez. Dá para ajustar depois; nada vai ao ar até publicar.</p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map(t => (
+              <button
+                key={t.id} type="button" onClick={() => setForm(p => ({ ...p, ...t.values }))}
+                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <span className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ backgroundColor: t.values.primaryColor || DEFAULT_PRIMARY }} aria-hidden="true" />
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
@@ -275,6 +300,9 @@ function Field({ f, form, set, resetField }: FieldProps) {
     case 'image':
       control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
+    case 'page':
+      control = <PageEditor id={id} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
+      break;
     case 'faq':
       control = <FaqField value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
@@ -339,6 +367,21 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         </label>
         <input id={id} type="file" accept="image/*" onChange={pick} className="sr-only" aria-label={label} />
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
+      </div>
+    </div>
+  );
+}
+
+function PageEditor({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const d = parsePageDraft(value);
+  const patch = (p: PageDraft) => onChange(JSON.stringify({ ...d, ...p }));
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50/50">
+      <input id={id} type="text" maxLength={PAGE_TITLE_MAX} value={d.t || ''} onChange={e => patch({ t: e.target.value })} placeholder="Título da página" className={inputCls} />
+      <textarea rows={5} maxLength={PAGE_TEXT_MAX} value={d.x || ''} onChange={e => patch({ x: e.target.value })} placeholder="Texto" aria-label="Texto da página" className={inputCls} />
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-700">
+        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.m} onChange={e => patch({ m: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Link no menu</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.f} onChange={e => patch({ f: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Link no rodapé</label>
       </div>
     </div>
   );
