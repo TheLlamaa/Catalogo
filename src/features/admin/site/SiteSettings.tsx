@@ -20,7 +20,7 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
-  'Seções no topo da vitrine': LayoutGrid, 'Produtos': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+  'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
 const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';

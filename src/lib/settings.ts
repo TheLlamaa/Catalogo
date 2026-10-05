@@ -268,12 +268,12 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'vitrine', title: 'Produtos',
+    group: 'vitrine', title: 'Janela do produto',
     fields: [
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
       { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
       { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão.' },
-      { key: 'relatedEnabled', label: 'Mostrar produtos relacionados', type: 'toggle', default: true },
+      { key: 'relatedEnabled', label: 'Mostrar “Você também pode gostar” (produtos relacionados)', type: 'toggle', default: true, hint: 'Na janela do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },
     ]
   },

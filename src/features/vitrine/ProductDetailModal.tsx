@@ -47,7 +47,7 @@ export default function ProductDetailModal({ product, products = [], categories,
   };
 
   return (
-    <Dialog onClose={onClose} label={product.title} panelClassName="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]">
+    <Dialog onClose={onClose} label={product.title} panelClassName="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-y-auto md:overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]">
       <button
         onClick={onClose}
         aria-label="Fechar"
@@ -56,7 +56,7 @@ export default function ProductDetailModal({ product, products = [], categories,
         <X className="w-5 h-5" />
       </button>
 
-      <div className="w-full md:w-1/2 bg-gray-50 p-4 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-200">
+      <div className="w-full md:w-1/2 bg-gray-50 p-4 flex flex-col justify-start md:justify-center border-b md:border-b-0 md:border-r border-gray-200">
         <div className="aspect-square relative rounded-lg overflow-hidden border border-gray-200 bg-white">
           {images.length > 0 ? (
             <ProductImage src={images[activeImageIndex]} alt={product.title} className="w-full h-full object-cover" />
@@ -80,16 +80,16 @@ export default function ProductDetailModal({ product, products = [], categories,
         )}
       </div>
 
-      <div className="w-full md:w-1/2 p-6 flex flex-col justify-between overflow-y-auto">
-        <div>
-          {productCategories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3 pr-10">
+      <div className="w-full md:w-1/2 flex flex-col md:min-h-0">
+        <div className="flex-1 md:overflow-y-auto p-6">
+          {(productCategories.length > 0 || badge) && (
+            <div className="flex flex-wrap items-center gap-1.5 mb-3 pr-10">
+              {badge && <span style={badgeStyle(settings.badgeColor)} className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{badge}</span>}
               {productCategories.map(cat => (
                 <span key={cat.id} className="text-[11px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full">{cat.name}</span>
               ))}
             </div>
           )}
-          {badge && <span style={badgeStyle(settings.badgeColor)} className="inline-block mb-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{badge}</span>}
           <h2 className="text-2xl font-bold text-gray-900 leading-snug mb-2">{product.title}</h2>
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -124,15 +124,15 @@ export default function ProductDetailModal({ product, products = [], categories,
             </div>
           ))}
 
-          <div className="border-t border-gray-100 pt-4 mb-6">
+          <div className="border-t border-gray-100 pt-4 mb-4">
             <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-2">Descrição</h3>
             <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
           </div>
 
           {related.length > 0 && (
-            <div className="border-t border-gray-100 pt-4 mb-6">
+            <div className="border-t border-gray-100 pt-4">
               <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-3">{settings.relatedTitle}</h3>
-              <ul className="grid grid-cols-2 gap-3">
+              <ul className="grid grid-cols-3 gap-2">
                 {related.map(rp => (
                   <li key={rp.id}>
                     <button type="button" onClick={() => onOpenProduct?.(rp)} className="w-full text-left group" aria-label={`Ver ${rp.title}`}>
@@ -149,7 +149,7 @@ export default function ProductDetailModal({ product, products = [], categories,
           )}
         </div>
 
-        <div className="pt-4 border-t border-gray-100 flex gap-3">
+        <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-100 flex gap-3">
           <button
             onClick={copyLink}
             title="Copiar link deste produto"
