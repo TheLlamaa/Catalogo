@@ -181,7 +181,7 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
         </div>
       )}
 
-      <div role="tablist" aria-label="Áreas do site" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div role="tablist" aria-label="Áreas do site" className="flex flex-wrap gap-2">
         {GROUPS.map(g => (
           <button
             key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}
