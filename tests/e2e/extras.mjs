@@ -164,6 +164,7 @@ const rowsExtra = [
   check('tema pronto não grava nada sozinho', writes.length === 0);
   // criar página pelo painel: incompleta bloqueia
   await p.getByRole('tab', { name: 'Menus e páginas' }).click();
+  check('nomes dos botões do menu aparecem na aba', await p.getByLabel('Nome do botão da vitrine').count() === 1 && await p.getByLabel('Nome do botão “Sobre”').count() === 1);
   await p.getByRole('button', { name: 'Nova página' }).click();
   await p.getByLabel('Título da página').fill('Só título');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);

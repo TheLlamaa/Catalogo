@@ -271,7 +271,7 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
               {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
               {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} />}
               {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} />}
-              {section.group !== 'menus' && section.fields.map(f => (
+              {section.fields.filter(f => f.type !== 'page' && f.type !== 'menu').map(f => (
                 <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
