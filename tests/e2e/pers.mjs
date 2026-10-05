@@ -157,7 +157,7 @@ const baseRows = [
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
   await p.waitForSelector('[role=tablist]');
   const tabs = await p.locator('[role=tab]').allInnerTexts();
-  check('abas do painel Site', tabs.join('|') === 'Aparência|Textos e menus|Sobre e perguntas|Vitrine|Recursos|Redes e rodapé|Google e compartilhamento', tabs.join('|'));
+  check('abas do painel Site', tabs.join('|') === 'Aparência|Textos e menus|Sobre e perguntas|Menus e páginas|Vitrine|Recursos|Redes e rodapé|Google e compartilhamento', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo
   await p.getByLabel('Cor principal (código)').fill('#dc2626');

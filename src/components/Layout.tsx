@@ -2,15 +2,23 @@ import type { CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
+import { resolveMenu, type MenuContext } from '../lib/menus';
+import type { Category } from '../types';
 import type { Settings as SiteSettings } from '../lib/settings';
 import type { AuthUser } from '../services/auth';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-// Cabeçalho da vitrine: logo, menus, acesso ao painel e carrinho
-interface StoreHeaderProps { settings: SiteSettings; user: AuthUser | null; cartCount: number; onOpenCart: () => void }
+const menuContext = (settings: SiteSettings, categories: Category[]): MenuContext => ({
+  pages: settings.pages, categories,
+  labels: { home: settings.menuHome, about: settings.menuAbout, custom: settings.menuCustom },
+  aboutEnabled: settings.aboutEnabled, customEnabled: settings.customEnabled
+});
 
-export function StoreHeader({ settings, user, cartCount, onOpenCart }: StoreHeaderProps) {
+// Cabeçalho da vitrine: logo, menus, acesso ao painel e carrinho
+interface StoreHeaderProps { settings: SiteSettings; categories: Category[]; user: AuthUser | null; cartCount: number; onOpenCart: () => void }
+
+export function StoreHeader({ settings, categories, user, cartCount, onOpenCart }: StoreHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
@@ -30,40 +38,29 @@ export function StoreHeader({ settings, user, cartCount, onOpenCart }: StoreHead
           {(!settings.logoUrl || settings.logoShowName) && <span className="text-lg font-bold tracking-tight">{settings.storeName}</span>}
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
-          <button
-            onClick={() => navigate('/')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            {settings.menuHome}
-          </button>
-
-          {settings.aboutEnabled && <button
-            onClick={() => navigate('/sobre')}
-            className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${isActive('/sobre') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            <Info className="w-4 h-4 sm:hidden" />
-            <span className="hidden sm:inline">{settings.menuAbout}</span>
-            <span className="sr-only sm:hidden">{settings.menuAbout}</span>
-          </button>}
-
-          {settings.pages.filter(p => p.menu).map(p => (
-            <button
-              key={p.slug} onClick={() => navigate(`/p/${p.slug}`)}
-              className={`hidden sm:block px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/p/${p.slug}`) ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-            >{p.title}</button>
-          ))}
-
-          {settings.links.filter(l => l.menu).map(l => (
-            <a key={l.url} href={l.url} target="_blank" rel="noreferrer noopener" className="hidden sm:block px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50">{l.label}</a>
-          ))}
-
-          {settings.customEnabled && <button
-            onClick={() => navigate('/custom')}
-            className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${isActive('/custom') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <span className="hidden sm:inline">{settings.menuCustom}</span>
-          </button>}
+          {resolveMenu(settings.menus.top, menuContext(settings, categories)).map(item => {
+            const builtin = item.kind === 'home' || item.kind === 'about' || item.kind === 'custom';
+            const active = item.to ? (item.to.includes('?') ? false : isActive(item.to)) : false;
+            const base = 'px-3 py-2 rounded-md text-sm font-medium transition-colors';
+            const tone = active ? (item.kind === 'custom' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-900') : 'text-gray-600 hover:bg-gray-50';
+            const visibility = builtin ? '' : ' hidden sm:block';
+            if (item.href) return <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className={`${base} ${tone}${visibility}`}>{item.label}</a>;
+            if (item.kind === 'about') return (
+              <button key={item.id} onClick={() => navigate(item.to!)} className={`${base} ${tone} flex items-center gap-1.5`}>
+                <Info className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">{item.label}</span>
+                <span className="sr-only sm:hidden">{item.label}</span>
+              </button>
+            );
+            if (item.kind === 'custom') return (
+              <button key={item.id} onClick={() => navigate(item.to!)} className={`${base} ${tone} flex items-center gap-1.5`}>
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span className="hidden sm:inline">{item.label}</span>
+                <span className="sr-only sm:hidden">{item.label}</span>
+              </button>
+            );
+            return <button key={item.id} onClick={() => navigate(item.to!)} className={`${base} ${tone}${visibility}`}>{item.label}</button>;
+          })}
 
           {user ? (
             <button
@@ -135,7 +132,7 @@ export function AdminHeader({ onLogout }: { onLogout: () => void }) {
 }
 
 // Rodapé da vitrine
-export function StoreFooter({ settings }: { settings: SiteSettings }) {
+export function StoreFooter({ settings, categories }: { settings: SiteSettings; categories: Category[] }) {
   return (
     <footer className="border-t border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
@@ -145,8 +142,11 @@ export function StoreFooter({ settings }: { settings: SiteSettings }) {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600">{settings.menuAbout}</Link>}
-          {settings.pages.filter(p => p.footer).map(p => <Link key={p.slug} to={`/p/${p.slug}`} className="hover:text-blue-600">{p.title}</Link>)}
-          {settings.links.filter(l => l.footer).map(l => <a key={l.url} href={l.url} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>)}
+          {resolveMenu(settings.menus.foot, menuContext(settings, categories)).map(item => (
+            item.href
+              ? <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{item.label}</a>
+              : <Link key={item.id} to={item.to!} className="hover:text-blue-600">{item.label}</Link>
+          ))}
           {socialLinks(settings).map(l => (
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>
           ))}

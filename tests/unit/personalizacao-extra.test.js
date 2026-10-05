@@ -1,35 +1,103 @@
 import { describe, it, expect } from 'vitest';
-import { buildPages, pageToStored, slugify, PAGE_KEYS } from '../../src/lib/pages';
+import { buildPages, pageToStored, slugify, nextPageKey, PAGE_KEYS } from '../../src/lib/pages';
+import { parseBlocks } from '../../src/lib/richtext';
+import { parseMenu, menuToStored, menuProblem, resolveMenu, MAX_TOP, MAX_FOOT } from '../../src/lib/menus';
 import { mergeSettings, DEFAULT_SETTINGS } from '../../src/lib/settings';
 import { fillName, buildOrderMessage } from '../../src/lib/format';
 import { THEME_PRESETS, BG_TONES, CARD_STYLES, FONT_CHOICES } from '../../src/lib/theme';
 
-describe('páginas extras', () => {
+describe('páginas', () => {
   it('slugify tira acentos e símbolos', () => {
     expect(slugify('Trocas e Devoluções!')).toBe('trocas-e-devolucoes');
   });
   it('página vazia não vai para o banco; incompleta é ignorada na loja', () => {
     expect(pageToStored(JSON.stringify({ t: '', x: '' }))).toBe('');
-    expect(buildPages([JSON.stringify({ t: 'Só título', x: '' })])).toEqual([]);
+    expect(buildPages({ pageA: JSON.stringify({ t: 'Só título', x: '' }) })).toEqual([]);
   });
-  it('monta lista com endereço único e flags de menu/rodapé', () => {
-    const a = JSON.stringify({ t: 'Trocas', x: 'Texto', m: true, f: false });
-    const b = JSON.stringify({ t: 'Trocas', x: 'Outro', m: false, f: true });
-    const pages = buildPages([a, undefined, b]);
-    expect(pages.map(p => p.slug)).toEqual(['trocas', 'trocas-3']);
-    expect(pages[0].menu).toBe(true);
-    expect(pages[1].footer).toBe(true);
+  it('monta lista com endereço único e estado de publicação', () => {
+    const a = JSON.stringify({ t: 'Trocas', x: 'Texto', p: true });
+    const b = JSON.stringify({ t: 'Trocas', x: 'Outro', p: false });
+    const pages = buildPages({ pageA: a, pageC: b });
+    expect(pages.map(p => p.slug)).toEqual(['trocas', 'trocas-c']);
+    expect(pages[0].published).toBe(true);
+    expect(pages[1].published).toBe(false);
   });
-  it('mergeSettings lê as chaves pageA..pageF e ignora lixo', () => {
+  it('nextPageKey acha a primeira chave livre e para em 20', () => {
+    expect(nextPageKey([])).toBe('pageA');
+    expect(nextPageKey(['pageA', 'pageB'])).toBe('pageC');
+    expect(nextPageKey(PAGE_KEYS)).toBeNull();
+    expect(PAGE_KEYS).toHaveLength(20);
+  });
+  it('mergeSettings lê pageA..pageT e ignora lixo', () => {
     const s = mergeSettings([
-      { key: PAGE_KEYS[0], value: JSON.stringify({ t: 'Cuidados', x: 'Lave com água', m: true, f: true }) },
-      { key: PAGE_KEYS[1], value: 'isto não é json' },
+      { key: 'pageA', value: JSON.stringify({ t: 'Cuidados', x: 'Lave com água', s: 'cuidados', p: true }) },
+      { key: 'pageB', value: 'isto não é json' },
     ]);
     expect(s.pages).toHaveLength(1);
-    expect(s.pages[0].title).toBe('Cuidados');
+    expect(s.pages[0]).toMatchObject({ key: 'pageA', title: 'Cuidados', slug: 'cuidados', published: true });
   });
   it('sem nada salvo não há páginas', () => {
     expect(mergeSettings([]).pages).toEqual([]);
+  });
+});
+
+describe('texto formatado', () => {
+  it('títulos, listas, negrito e links; HTML vira texto', () => {
+    const b = parseBlocks('# Título\n\nUm **forte** e [site](https://a.com)\n\n- um\n- dois\n\n<script>x</script>');
+    expect(b.map(x => x.t)).toEqual(['h2', 'p', 'ul', 'p']);
+    expect(b[1].inline.map(i => i.t)).toEqual(['text', 'bold', 'text', 'link']);
+    expect(b[2].items).toHaveLength(2);
+    expect(b[3].inline).toEqual([{ t: 'text', v: '<script>x</script>' }]);
+  });
+  it('link com javascript: não é link', () => {
+    const [p] = parseBlocks('[x](javascript:alert(1))');
+    expect(p.inline.every(i => i.t === 'text')).toBe(true);
+  });
+});
+
+describe('menus', () => {
+  const ctx = {
+    pages: [{ key: 'pageA', slug: 'trocas', title: 'Trocas', text: 'x', published: true }, { key: 'pageB', slug: 'rascunho', title: 'Rascunho', text: 'x', published: false }],
+    categories: [{ id: '7', name: 'Vasos', slug: 'vasos' }],
+    labels: { home: 'Vitrine', about: 'Sobre', custom: 'Personalizado' }, aboutEnabled: true, customEnabled: false
+  };
+  it('menu padrão (nada salvo) tem os três botões da loja e não grava nada', () => {
+    expect(parseMenu('', MAX_TOP, true).map(i => i.kind)).toEqual(['home', 'about', 'custom']);
+    expect(menuToStored('', MAX_TOP, true)).toBe('');
+  });
+  it('botões fixos nunca somem e voltam ao fim se faltarem', () => {
+    const m = parseMenu(JSON.stringify([{ k: 'about' }]), MAX_TOP, true);
+    expect(m.map(i => i.kind)).toEqual(['about', 'home', 'custom']);
+  });
+  it('rodapé não aceita botões fixos; link precisa de nome e https', () => {
+    const raw = JSON.stringify([{ k: 'home' }, { k: 'link', r: 'javascript:alert(1)', l: 'Ruim' }, { k: 'link', r: 'https://ml.com', l: 'ML' }, { k: 'link', r: 'https://a.com', l: '' }]);
+    expect(parseMenu(raw, MAX_FOOT, false)).toEqual([{ kind: 'link', ref: 'https://ml.com/', label: 'ML' }]);
+  });
+  it('respeita o limite de itens', () => {
+    const raw = JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ k: 'link', r: `https://a.com/${i}`, l: `L${i}` })));
+    expect(parseMenu(raw, MAX_FOOT, false)).toHaveLength(MAX_FOOT);
+  });
+  it('resolveMenu esconde página apagada/rascunho, categoria removida e botões desligados', () => {
+    const items = parseMenu(JSON.stringify([
+      { k: 'page', r: 'pageA' }, { k: 'page', r: 'pageB' }, { k: 'page', r: 'pageZ' },
+      { k: 'cat', r: '7', l: 'Todos os vasos' }, { k: 'cat', r: '99' }, { k: 'link', r: 'https://ml.com', l: 'ML' }
+    ]), MAX_TOP, true);
+    const out = resolveMenu(items, ctx);
+    expect(out.map(i => i.label)).toEqual(['Trocas', 'Todos os vasos', 'ML', 'Vitrine', 'Sobre']);
+    expect(out[0].to).toBe('/p/trocas');
+    expect(out[1].to).toBe('/?categoria=vasos');
+    expect(out[2].href).toBe('https://ml.com/');
+  });
+  it('menuProblem avisa de item incompleto', () => {
+    expect(menuProblem(JSON.stringify([{ k: 'link', r: '', l: 'X' }]), MAX_FOOT, false, 'Rodapé')).toContain('https://');
+    expect(menuProblem(JSON.stringify([{ k: 'page', r: '' }]), MAX_FOOT, false, 'Rodapé')).toContain('página');
+    expect(menuProblem('', MAX_TOP, true, 'Topo')).toBe('');
+  });
+  it('mergeSettings monta menus; sem nada salvo usa o padrão', () => {
+    expect(mergeSettings([]).menus.top.map(i => i.kind)).toEqual(['home', 'about', 'custom']);
+    expect(mergeSettings([]).menus.foot).toEqual([]);
+    const s = mergeSettings([{ key: 'menuFoot', value: JSON.stringify([{ k: 'link', r: 'https://ml.com', l: 'ML' }]) }]);
+    expect(s.menus.foot).toHaveLength(1);
   });
 });
 
@@ -65,26 +133,9 @@ describe('temas prontos', () => {
   });
 });
 
-import { LINK_KEYS, buildLinks, linkToStored } from '../../src/lib/links';
 import { minOrderValue, isValidMinOrder } from '../../src/lib/settings';
 import { badgeFor } from '../../src/lib/catalog';
 import { badgeStyle } from '../../src/lib/theme';
-
-describe('links extras', () => {
-  it('só aceita endereços http(s) completos', () => {
-    const ok = JSON.stringify({ l: 'Loja', u: 'https://exemplo.com/x', m: true, f: false });
-    const js = JSON.stringify({ l: 'Ruim', u: 'javascript:alert(1)', m: true, f: true });
-    const semNome = JSON.stringify({ l: '', u: 'https://a.com', m: true, f: true });
-    const links = buildLinks([ok, js, semNome, undefined]);
-    expect(links).toHaveLength(1);
-    expect(links[0]).toMatchObject({ label: 'Loja', menu: true, footer: false });
-  });
-  it('mergeSettings lê linkA..linkD', () => {
-    const s = mergeSettings([{ key: LINK_KEYS[0], value: JSON.stringify({ l: 'ML', u: 'https://ml.com', m: false, f: true }) }]);
-    expect(s.links).toEqual([{ label: 'ML', url: 'https://ml.com/', menu: false, footer: true }]);
-    expect(linkToStored('{"l":"","u":""}')).toBe('');
-  });
-});
 
 describe('pedido mínimo e selos', () => {
   it('minOrderValue entende vírgula e ignora lixo', () => {
@@ -113,6 +164,6 @@ describe('pedido mínimo e selos', () => {
     expect(s.deliveryEnabled).toBe(true);
     expect(s.notesEnabled).toBe(true);
     expect(s.deliveryNote).toBe('O frete é combinado com você pelo WhatsApp.');
-    expect(s.links).toEqual([]);
+    expect(s.menus.foot).toEqual([]);
   });
 });

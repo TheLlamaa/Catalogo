@@ -2,8 +2,8 @@ import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
 import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
-import { LINK_KEYS, LINK_LABEL_MAX, buildLinks, isCompleteLink, type ExtraLink } from './links';
-import { PAGE_KEYS, PAGE_TITLE_MAX, PAGE_TEXT_MAX, buildPages, isCompletePage, type ExtraPage } from './pages';
+import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
+import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ export interface TextareaField extends SettingFieldBase { type: 'textarea'; defa
 export interface ColorField extends SettingFieldBase { type: 'color'; default: string }
 export interface DateField extends SettingFieldBase { type: 'date'; default: string }
 export interface FaqField extends SettingFieldBase { type: 'faq'; default: string }
-export interface LinkField extends SettingFieldBase { type: 'link'; default: string }
+export interface MenuField extends SettingFieldBase { type: 'menu'; default: string }
 export interface PageField extends SettingFieldBase { type: 'page'; default: string }
 export interface SelectField extends SettingFieldBase {
   type: 'select';
@@ -47,7 +47,7 @@ export interface RangeField extends SettingFieldBase {
 export interface ToggleField extends SettingFieldBase { type: 'toggle'; default: boolean }
 
 // União discriminada por "type": cada tipo traz só os campos que usa
-export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | LinkField | SelectField | RangeField | ToggleField;
+export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | MenuField | SelectField | RangeField | ToggleField;
 
 export interface SettingsGroup { id: string; label: string }
 
@@ -87,7 +87,7 @@ export interface Settings {
   auraLib: AuraLib;
   faq: FaqItem[];
   pages: ExtraPage[];
-  links: ExtraLink[];
+  menus: { top: MenuItem[]; foot: MenuItem[] };
   backup: SettingsBackup | null;
 }
 
@@ -98,6 +98,7 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'aparencia', label: 'Aparência' },
   { id: 'textos', label: 'Textos e menus' },
   { id: 'conteudo', label: 'Sobre e perguntas' },
+  { id: 'menus', label: 'Menus e páginas' },
   { id: 'vitrine', label: 'Vitrine' },
   { id: 'recursos', label: 'Recursos' },
   { id: 'contato', label: 'Redes e rodapé' },
@@ -185,8 +186,16 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'conteudo', title: 'Páginas extras',
-    fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página extra ${i + 1}`, type: 'page', default: '', hint: i === 0 ? `Ex: Trocas e devoluções, Cuidados com a peça. Título até ${PAGE_TITLE_MAX} e texto até ${PAGE_TEXT_MAX} caracteres. Deixe vazia para não usar.` : undefined }))
+    group: 'menus', title: 'Páginas',
+    fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página ${i + 1}`, type: 'page', default: '' }))
+  },
+  {
+    group: 'menus', title: 'Menu do topo',
+    fields: [{ key: 'menuTop', label: 'Menu do topo', type: 'menu', default: '', hint: 'Ordem e itens do menu no alto da loja. Vitrine, Sobre e Personalizado podem mudar de lugar, mas não saem.' }]
+  },
+  {
+    group: 'menus', title: 'Links do rodapé',
+    fields: [{ key: 'menuFoot', label: 'Links extras do rodapé', type: 'menu', default: '', hint: 'Páginas, categorias e links externos que aparecem no rodapé, além de Sobre, redes sociais, WhatsApp e privacidade.' }]
   },
   {
     group: 'conteudo', title: 'Política de privacidade',
@@ -204,10 +213,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
       { key: 'deliveryNote', label: 'Aviso sobre frete e prazo', type: 'text', max: 160, default: 'O frete é combinado com você pelo WhatsApp.', hint: 'Aparece abaixo do endereço de entrega.' },
       { key: 'notesEnabled', label: 'Pedir observações', type: 'toggle', default: true },
     ]
-  },
-  {
-    group: 'contato', title: 'Links extras',
-    fields: LINK_KEYS.map((key, i): SettingField => ({ key, label: `Link extra ${i + 1}`, type: 'link', default: '', hint: i === 0 ? `Ex: sua loja no Mercado Livre. Nome até ${LINK_LABEL_MAX} caracteres; só endereços https://. Deixe vazio para não usar.` : undefined }))
   },
   {
     group: 'textos', title: 'Carrinho e pedido',
@@ -331,7 +336,6 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
     case 'page': return isCompletePage(value);
-    case 'link': return isCompleteLink(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;
   }
@@ -349,7 +353,7 @@ export const parseBackup = (value: string): SettingsBackup | null => {
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
   // Os padrões cobrem todas as chaves conhecidas de Settings; o cast só informa isso ao compilador
-  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], links: [], backup: null } as unknown as Settings;
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], menus: { top: [], foot: [] }, backup: null } as unknown as Settings;
   const byKey = new Map<string, SettingField>(SETTING_FIELDS.map(f => [f.key, f]));
   (rows || []).forEach(({ key, value }) => {
     if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
@@ -362,7 +366,7 @@ export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
     out[key] = value;
     if (key === 'faqItems') out.faq = parseFaq(value);
   });
-  out.links = buildLinks(LINK_KEYS.map(k => (typeof out[k] === 'string' ? out[k] as string : '')));
-  out.pages = buildPages(PAGE_KEYS.map(k => (typeof out[k] === 'string' ? out[k] as string : '')));
+  out.pages = buildPages(Object.fromEntries(PAGE_KEYS.map(k => [k, typeof out[k] === 'string' ? out[k] as string : ''])));
+  out.menus = { top: parseMenu(out.menuTop, MAX_TOP, true), foot: parseMenu(out.menuFoot, MAX_FOOT, false) };
   return out;
 };

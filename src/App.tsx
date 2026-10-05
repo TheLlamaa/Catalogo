@@ -161,7 +161,7 @@ function MainLayout() {
 
       {/* HEADER 1: VITRINE */}
       {isStoreRoute && (
-        <StoreHeader settings={settings} user={user} cartCount={cartCount} onOpenCart={openCart} />
+        <StoreHeader settings={settings} categories={categories} user={user} cartCount={cartCount} onOpenCart={openCart} />
       )}
 
       {/* HEADER 2: ADMIN */}
@@ -201,7 +201,7 @@ function MainLayout() {
       </main>
 
       {isStoreRoute && (
-        <StoreFooter settings={settings} />
+        <StoreFooter settings={settings} categories={categories} />
       )}
 
       {selectedProduct && isStoreRoute && (

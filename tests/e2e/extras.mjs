@@ -50,9 +50,12 @@ async function newPage({ rows, w = 1100, admin = false, products = mkProducts(),
 }
 
 
-const pageA = JSON.stringify({ t: 'Trocas e devoluções', x: 'Aceitamos trocas em até 7 dias.\n\nEscreva para nós.', m: true, f: true });
+const pageA = JSON.stringify({ t: 'Trocas e devoluções', x: '# Prazo\n\nAceitamos **trocas** em até 7 dias.\n\n- Peça sem uso\n- Com a caixa', s: '', p: true });
+const pageB = JSON.stringify({ t: 'Rascunho secreto', x: 'Ainda não.', s: '', p: false });
 const rowsExtra = [
-  { key: 'pageA', value: pageA },
+  { key: 'pageA', value: pageA }, { key: 'pageB', value: pageB },
+  { key: 'menuTop', value: JSON.stringify([{ k: 'page', r: 'pageA', l: '' }, { k: 'home' }, { k: 'page', r: 'pageB', l: '' }, { k: 'about' }, { k: 'custom' }]) },
+  { key: 'menuFoot', value: JSON.stringify([{ k: 'page', r: 'pageA', l: '' }, { k: 'link', r: 'https://ml.test/rodape', l: 'Loja ML' }]) },
   { key: 'cartTitle', value: 'Minha Sacola' }, { key: 'addToCartLabel', value: 'Quero este' },
   { key: 'whatsappButton', value: 'Falar no zap' },
   { key: 'orderMessageIntro', value: 'Oi! Sou {nome} e fiz um pedido.' },
@@ -77,13 +80,17 @@ const rowsExtra = [
   check('ícone da aba separado da logo', (await p.locator('link[rel=icon]').getAttribute('href')) === 'https://img.test/icone.png');
   check('capa da vitrine aparece', await p.locator('img[src="https://img.test/capa.png"]').count() === 1);
   check('4 colunas no computador', await p.locator('.lg\\:grid-cols-4').count() === 1);
-  check('link da página extra no menu', await p.getByRole('button', { name: 'Trocas e devoluções' }).count() === 1);
+  check('página no menu do topo, antes da Vitrine', await p.locator('header nav button').first().innerText() === 'Trocas e devoluções');
+  check('rascunho não aparece no menu', await p.getByRole('button', { name: 'Rascunho secreto' }).count() === 0);
   check('link da página extra no rodapé', await p.locator('footer').getByRole('link', { name: 'Trocas e devoluções' }).count() === 1);
   await p.locator('footer').getByRole('link', { name: 'Trocas e devoluções' }).click();
   await p.waitForSelector('h1');
   check('página extra abre em /p/slug', new URL(p.url()).pathname === '/p/trocas-e-devolucoes', p.url());
-  check('página extra mostra título e dois parágrafos', await p.locator('article h1').innerText() === 'Trocas e devoluções' && await p.locator('article p').count() === 2);
+  check('página mostra título, subtítulo, negrito e lista', await p.locator('article h1').innerText() === 'Trocas e devoluções' && await p.locator('article h2').innerText() === 'Prazo' && await p.locator('article strong').innerText() === 'trocas' && await p.locator('article li').count() === 2);
   check('título da aba da página extra', (await p.title()).startsWith('Trocas e devoluções'), await p.title());
+  await p.goto(BASE + '/p/rascunho-secreto');
+  await p.waitForURL(u => new URL(u).pathname === '/', { timeout: 5000 }).catch(() => {});
+  check('página em rascunho volta para a vitrine', new URL(p.url()).pathname === '/', p.url());
   await p.goto(BASE + '/p/nao-existe');
   await p.waitForURL(u => new URL(u).pathname === '/', { timeout: 5000 }).catch(() => {});
   check('página inexistente volta para a vitrine', new URL(p.url()).pathname === '/', p.url());
@@ -116,10 +123,11 @@ const rowsExtra = [
 
 // ============ VITRINE: exibição e pedidos ============
 {
-  const linkA = JSON.stringify({ l: 'Mercado Livre', u: 'https://ml.test/loja', m: true, f: true });
+  const menuTop = JSON.stringify([{ k: 'home' }, { k: 'link', r: 'https://ml.test/loja', l: 'Mercado Livre' }, { k: 'about' }, { k: 'custom' }]);
+  const menuFoot = JSON.stringify([{ k: 'link', r: 'https://ml.test/loja', l: 'Mercado Livre' }]);
   const { p } = await newPage({ rows: [
     { key: 'hidePrices', value: 'true' }, { key: 'showSearch', value: 'false' }, { key: 'defaultSort', value: 'price_desc' },
-    { key: 'linkA', value: linkA }, { key: 'ordersPaused', value: 'true' }, { key: 'pausedMessage', value: 'Voltamos em março!' },
+    { key: 'menuTop', value: menuTop }, { key: 'menuFoot', value: menuFoot }, { key: 'ordersPaused', value: 'true' }, { key: 'pausedMessage', value: 'Voltamos em março!' },
   ] });
   await p.goto(BASE + '/'); await p.waitForSelector('h1');
   check('preços escondidos na vitrine', !(await p.locator('body').innerText()).includes('R$'));
@@ -154,35 +162,49 @@ const rowsExtra = [
   const bgNow = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim());
   check('tema pronto mostra o fundo na hora', bgNow === '#fdf8ee', bgNow);
   check('tema pronto não grava nada sozinho', writes.length === 0);
-  // página extra incompleta bloqueia
-  await p.getByRole('tab', { name: 'Sobre e perguntas' }).click();
-  await p.getByPlaceholder('Título da página').first().fill('Só título');
+  // criar página pelo painel: incompleta bloqueia
+  await p.getByRole('tab', { name: 'Menus e páginas' }).click();
+  await p.getByRole('button', { name: 'Nova página' }).click();
+  await p.getByLabel('Título da página').fill('Só título');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
-  check('página extra sem texto bloqueia', writes.length === 0 && await p.getByText(/preencha o título e o texto/).count() >= 1);
-  await p.getByLabel('Texto da página').first().fill('Conteúdo da página');
+  check('página sem texto bloqueia', writes.length === 0 && await p.getByText(/preencha o título e o texto/).count() >= 1);
+  await p.getByLabel('Texto da página').fill('Conteúdo da página');
+  check('endereço sugerido a partir do título', (await p.getByLabel('Endereço da página').getAttribute('placeholder')) === 'so-titulo');
+  await p.getByRole('button', { name: 'Negrito' }).click();
+  check('botão de negrito insere marcação', (await p.getByLabel('Texto da página').inputValue()).includes('**negrito**'));
+  await p.getByLabel('Texto da página').fill('Conteúdo da página');
+  await p.getByRole('button', { name: 'Prévia' }).click();
+  check('prévia mostra o texto', await p.getByText('Conteúdo da página').count() >= 1);
+  // coloca a página no menu do topo e no rodapé
+  await p.getByRole('button', { name: 'Página', exact: true }).first().click();
+  check('item de página no menu do topo', await p.getByLabel('Página do item').count() === 1);
+  await p.getByRole('button', { name: 'Página', exact: true }).nth(1).click();
+  await p.getByRole('button', { name: 'Link externo' }).nth(1).click();
+  await p.getByLabel('Nome do link').fill('Loja');
+  await p.getByLabel('Endereço do link').fill('javascript:alert(1)');
+  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
+  check('link com endereço inválido bloqueia', writes.length === 0 && await p.getByText(/começar com https/).count() >= 1);
+  await p.getByLabel('Endereço do link').fill('https://ml.test/loja');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
   const keys = post ? post.body.map(r => r.key).sort() : [];
-  check('publica a página extra e o tema', ['bgTone', 'cardStyle', 'fontChoice', 'pageA', 'primaryColor'].every(k => keys.includes(k)), JSON.stringify(keys));
+  check('publica página, menus e tema', ['bgTone', 'cardStyle', 'fontChoice', 'pageA', 'menuTop', 'menuFoot', 'primaryColor'].every(k => keys.includes(k)), JSON.stringify(keys));
   const pg = post?.body.find(r => r.key === 'pageA')?.value;
-  check('página guardada como JSON enxuto', pg && JSON.parse(pg).t === 'Só título' && JSON.parse(pg).x === 'Conteúdo da página', pg);
-  // pedido mínimo inválido e link incompleto bloqueiam
+  check('página guardada como JSON enxuto', pg && JSON.parse(pg).t === 'Só título' && JSON.parse(pg).s === 'so-titulo', pg);
+  const mt = post?.body.find(r => r.key === 'menuTop')?.value;
+  check('menu do topo guarda a página e mantém os botões da loja', mt && JSON.parse(mt).some(i => i.k === 'page' && i.r === 'pageA') && ['home', 'about', 'custom'].every(k => JSON.parse(mt).some(i => i.k === k)), mt);
+  check('rodapé não guarda botões da loja', !JSON.parse(post?.body.find(r => r.key === 'menuFoot')?.value || '[]').some(i => ['home', 'about', 'custom'].includes(i.k)));
+  // pedido mínimo inválido bloqueia
   await p.getByRole('tab', { name: 'Recursos' }).click();
   await p.getByLabel('Pedido mínimo (R$)').fill('abc');
   const n0 = writes.length;
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
   check('pedido mínimo inválido bloqueia', writes.length === n0 && await p.getByText(/Pedido mínimo: use um número/).count() >= 1);
   await p.getByLabel('Pedido mínimo (R$)').fill('30,50');
-  await p.getByRole('tab', { name: 'Redes e rodapé' }).click();
-  await p.getByPlaceholder('Nome do link').first().fill('Loja');
-  await p.getByLabel('Endereço do link').first().fill('javascript:alert(1)');
-  await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
-  check('link com endereço inválido bloqueia', writes.length === n0 && await p.getByText(/começando com https/).count() >= 1);
-  await p.getByLabel('Endereço do link').first().fill('https://ml.test/loja');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post2 = writes.slice(n0).find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
   const keys2 = post2 ? post2.body.map(r => r.key) : [];
-  check('publica link e pedido mínimo', keys2.includes('linkA') && keys2.includes('minOrder'), JSON.stringify(keys2));
+  check('publica pedido mínimo', keys2.includes('minOrder'), JSON.stringify(keys2));
   check('mínimo guardado como digitado', post2?.body.find(r => r.key === 'minOrder')?.value === '30,50');
   await p.close();
 }

@@ -2,21 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Search, Megaphone, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  Palette, Search, Megaphone, Link2, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
-import { LINK_LABEL_MAX, parseLinkDraft, linkToStored, isCompleteLink, type LinkDraft } from '../../../lib/links';
-import { PAGE_TITLE_MAX, PAGE_TEXT_MAX, parsePageDraft, pageToStored, isCompletePage, type PageDraft } from '../../../lib/pages';
+import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
+import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
+import { PagesEditor, MenuEditor } from './MenusAndPages';
+import type { Category } from '../../../types';
 import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas extras': FileText, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Links extras': Share2, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Menu': Menu, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
@@ -60,8 +62,9 @@ const toStored = (key: string, value: unknown): string | null => {
   if (key === 'whatsapp') v = v ? normalizeWhatsapp(v) : '';
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
   else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
-  else if (/^page[A-F]$/.test(key)) v = pageToStored(v);
-  else if (/^link[A-D]$/.test(key)) v = linkToStored(v);
+  else if (/^page[A-T]$/.test(key)) v = pageToStored(v);
+  else if (key === 'menuTop') v = menuToStored(v, MAX_TOP, true);
+  else if (key === 'menuFoot') v = menuToStored(v, MAX_FOOT, false);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
   return !v || v === def ? null : v;
 };
@@ -70,9 +73,10 @@ interface SiteSettingsProps {
   settings: Settings;
   onSave: (changes: SettingChanges, successMessage?: string) => Promise<boolean>;
   onUndo: () => unknown;
+  categories: Category[];
 }
 
-export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsProps) {
+export default function SiteSettings({ settings, categories, onSave, onUndo }: SiteSettingsProps) {
   const { toast, confirm } = useUI();
   const [form, setForm] = useState<FormValues>(() => formFrom(settings));
   const [base, setBase] = useState(form);
@@ -120,15 +124,22 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
       if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
     }
     if (!isValidMinOrder(form.minOrder)) return 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.';
-    for (const f of SETTING_FIELDS.filter(x => x.type === 'link')) {
-      const raw = str(form[f.key]);
-      if (linkToStored(raw) && !isCompleteLink(raw)) return `${f.label}: informe o nome e um endereço começando com https://`;
+    const slugs = new Set<string>();
+    for (const k of PAGE_KEYS) {
+      const raw = str(form[k]);
+      const stored = pageToStored(raw);
+      if (!stored) continue;
+      const d = parsePageDraft(raw);
+      const name = (d.t || '').trim() || 'Página sem título';
+      if (!isCompletePage(raw)) return `Página “${name}”: preencha o título e o texto (ou apague a página).`;
+      if (stored.length > DB_VALUE_MAX) return `Página “${name}”: o texto ficou grande demais. Encurte um pouco.`;
+      const slug = slugify(d.s || '') || slugify(d.t || '');
+      if (!isValidSlug(slug)) return `Página “${name}”: o endereço precisa ter letras ou números.`;
+      if (slugs.has(slug)) return `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`;
+      slugs.add(slug);
     }
-    for (const f of SETTING_FIELDS.filter(x => x.type === 'page')) {
-      const raw = str(form[f.key]);
-      if (pageToStored(raw) && !isCompletePage(raw)) return `${f.label}: preencha o título e o texto (ou apague os dois).`;
-      if (pageToStored(raw).length > DB_VALUE_MAX) return `${f.label}: o texto ficou grande demais. Encurte um pouco.`;
-    }
+    const menuError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo') || menuProblem(form.menuFoot, MAX_FOOT, false, 'Links do rodapé');
+    if (menuError) return menuError;
     try {
       const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
       if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
@@ -185,7 +196,7 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
         return { ...s, fields: sectionHit ? s.fields : s.fields.filter(f => fieldMatches(f, q)) };
       }).filter(s => s.fields.length > 0)
     : SETTINGS_SCHEMA.filter(s => s.group === group);
-  const resultCount = sections.reduce((n, s) => n + s.fields.length, 0);
+  const resultCount = sections.reduce((n, s) => n + (s.group === 'menus' ? 1 : s.fields.length), 0);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -257,7 +268,10 @@ export default function SiteSettings({ settings, onSave, onUndo }: SiteSettingsP
               {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
             </div>
             <div className="p-5 space-y-5">
-              {section.fields.map(f => (
+              {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
+              {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} />}
+              {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} />}
+              {section.group !== 'menus' && section.fields.map(f => (
                 <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
@@ -349,12 +363,9 @@ function Field({ f, form, set, resetField }: FieldProps) {
     case 'image':
       control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
-    case 'link':
-      control = <LinkEditor id={id} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
-      break;
     case 'page':
-      control = <PageEditor id={id} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
-      break;
+    case 'menu':
+      return null; // editados em "Menus e páginas"
     case 'faq':
       control = <FaqField value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
@@ -481,38 +492,6 @@ function ColumnsIcon({ n }: { n: number }) {
         </g>
       ))}
     </svg>
-  );
-}
-
-function LinkEditor({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
-  const d = parseLinkDraft(value);
-  const patch = (p: LinkDraft) => onChange(JSON.stringify({ ...d, ...p }));
-  return (
-    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50/50">
-      <div className="grid sm:grid-cols-2 gap-2">
-        <input id={id} type="text" maxLength={LINK_LABEL_MAX} value={d.l || ''} onChange={e => patch({ l: e.target.value })} placeholder="Nome do link" className={inputCls} />
-        <input type="url" maxLength={500} value={d.u || ''} onChange={e => patch({ u: e.target.value })} placeholder="https://..." aria-label="Endereço do link" className={inputCls} />
-      </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-700">
-        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.m} onChange={e => patch({ m: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Mostrar no menu</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.f} onChange={e => patch({ f: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Mostrar no rodapé</label>
-      </div>
-    </div>
-  );
-}
-
-function PageEditor({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
-  const d = parsePageDraft(value);
-  const patch = (p: PageDraft) => onChange(JSON.stringify({ ...d, ...p }));
-  return (
-    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50/50">
-      <input id={id} type="text" maxLength={PAGE_TITLE_MAX} value={d.t || ''} onChange={e => patch({ t: e.target.value })} placeholder="Título da página" className={inputCls} />
-      <textarea rows={5} maxLength={PAGE_TEXT_MAX} value={d.x || ''} onChange={e => patch({ x: e.target.value })} placeholder="Texto" aria-label="Texto da página" className={inputCls} />
-      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-700">
-        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.m} onChange={e => patch({ m: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Link no menu</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={!!d.f} onChange={e => patch({ f: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Link no rodapé</label>
-      </div>
-    </div>
   );
 }
 

@@ -121,7 +121,7 @@ export default function AdminView({
             }, 'Auras atualizadas.')}
           />
         )}
-        {activeTab === 'site' && <SiteSettings settings={settings} onSave={onSaveSettings} onUndo={onUndoSettings} />}
+        {activeTab === 'site' && <SiteSettings settings={settings} categories={categories} onSave={onSaveSettings} onUndo={onUndoSettings} />}
         {activeTab === 'team' && <TeamManager currentEmail={user?.email} />}
         {activeTab === 'errors' && <ErrorsManager />}
       </div>
