@@ -48,7 +48,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
   const grupos = await page.locator('nav[aria-label="Seções do painel"] [data-nav-section]').evaluateAll(els => els.map(e => e.getAttribute('data-nav-section')));
   check('menu agrupado em Vendas, Catálogo, Site e Sistema', grupos.join('|') === 'Vendas|Catálogo|Site|Sistema', grupos.join('|'));
-  check('item ativo marcado (aria-current)', await page.locator('nav[aria-label="Seções do painel"] [aria-current="page"]').getAttribute('aria-label') === 'Pedidos (0)');
+  check('item ativo marcado (aria-current)', (await page.locator('nav[aria-label="Seções do painel"] [aria-current="page"] .sr-only').textContent()) === 'Pedidos (0)');
 
   // produtos: busca, filtros e ações rápidas
   await page.getByRole('button', { name: /^Produtos \(3\)/ }).click();
@@ -74,7 +74,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
 
   // categorias: contagem e atalho para a lista filtrada
   await nav(page, 'Categorias (2)').click();
-  await page.getByRole('button', { name: 'Ver os 2 produtos de Chaveiros' }).click();
+  await page.getByRole('button', { name: '2 produto(s) de Chaveiros' }).click();
   await page.getByRole('heading', { name: 'Produtos', exact: true }).waitFor();
   check('atalho da categoria abre Produtos já filtrado', (await page.getByLabel('Filtrar por categoria').inputValue()) === 'c2' && (await page.locator('tbody tr').count()) === 2);
 
@@ -103,7 +103,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   check('celular: botão do menu mostra a área atual', (await abrirMenu.innerText()).includes('Pedidos'));
   await abrirMenu.click();
   const menu = page.getByRole('dialog', { name: 'Menu do painel' });
-  const itens = await menu.getByRole('button').evaluateAll(els => els.map(e => e.getAttribute('aria-label')).filter(Boolean));
+  const itens = await menu.getByRole('button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
   check('celular: menu lista todas as áreas', ['Produtos (3)', 'Página inicial', 'Dados da loja', 'Recursos', 'Equipe'].every(n => itens.includes(n)), itens.join(' | '));
   await menu.getByRole('button', { name: 'Produtos (3)', exact: true }).click();
   check('celular: escolher no menu abre a área e fecha o menu', await page.getByRole('heading', { name: 'Produtos', exact: true }).isVisible() && await menu.count() === 0);

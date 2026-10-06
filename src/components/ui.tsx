@@ -60,7 +60,7 @@ export function Switch({ id, checked, onChange, label, hint, onText = 'Ligado', 
         </span>
         <span className="min-w-0">
           <span className="text-sm font-medium text-gray-800">{label}</span>
-          <span className={`ml-2 text-[11px] font-semibold uppercase tracking-wide ${checked ? 'text-blue-700' : 'text-gray-400'}`} aria-hidden="true">{checked ? onText : offText}</span>
+          <span className={`ml-2 text-[11px] font-semibold uppercase tracking-wide ${checked ? 'text-blue-700' : 'text-gray-500'}`} aria-hidden="true">{checked ? onText : offText}</span>
           {hint && <span className="block text-xs text-gray-500 mt-0.5 font-normal">{hint}</span>}
         </span>
       </label>
@@ -73,7 +73,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
       <div className="min-w-0">
-        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
         {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">{actions}</div>}
@@ -86,7 +86,7 @@ export function EmptyState({ icon: Icon, title, text, action }: { icon: LucideIc
   return (
     <div className="py-12 px-6 text-center border border-dashed border-gray-300 rounded-lg bg-white">
       <Icon className="mx-auto h-10 w-10 text-gray-300" aria-hidden="true" />
-      <h3 className="mt-3 text-base font-semibold text-gray-900">{title}</h3>
+      <h2 className="mt-3 text-base font-semibold text-gray-900">{title}</h2>
       {text && <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">{text}</p>}
       {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>

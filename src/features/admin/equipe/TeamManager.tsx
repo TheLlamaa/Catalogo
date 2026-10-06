@@ -81,7 +81,7 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
       {error && <p role="alert" className="text-sm text-red-600 mb-4">{error}</p>}
 
       <ul className="mt-4 border border-gray-200 rounded-lg divide-y divide-gray-100 bg-white" aria-label="Administradores">
-        {admins === null && <li className="p-4 text-sm text-gray-400">Carregando…</li>}
+        {admins === null && <li className="p-4 text-sm text-gray-500">Carregando…</li>}
         {admins && admins.length === 0 && !loadError && <li className="p-4 text-sm text-gray-500">Nenhum administrador cadastrado.</li>}
         {(admins || []).map(a => {
           const isMe = normalizeEmail(a.email) === me;
@@ -93,14 +93,14 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
                   <span className="text-sm font-medium text-gray-900 truncate">{a.email}</span>
                   {isMe && <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5">você</span>}
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 ml-6">
+                <p className="text-xs text-gray-500 mt-0.5 ml-6">
                   Desde {new Date(a.created_at).toLocaleDateString('pt-BR')}{a.added_by ? ` · adicionado por ${a.added_by}` : ''}
                 </p>
               </div>
               <button
                 onClick={() => remove(a)} disabled={isMe}
                 title={isMe ? 'Você não pode remover o seu próprio acesso' : 'Remover acesso'} aria-label={`Remover acesso de ${a.email}`}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

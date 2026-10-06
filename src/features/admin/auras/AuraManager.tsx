@@ -64,7 +64,7 @@ function AuraForm({ initial, title, onSave, onCancel }: AuraFormProps) {
     <form onSubmit={submit} className="border border-gray-200 rounded-lg p-6 bg-gray-50/50 mb-6">
       <div className="flex justify-between items-center mb-5">
         <h3 className="text-base font-medium text-gray-900">{title}</h3>
-        <button type="button" onClick={onCancel} aria-label="Fechar" className="text-gray-400 hover:text-gray-600 p-1 rounded-md"><X className="w-5 h-5" /></button>
+        <button type="button" onClick={onCancel} aria-label="Fechar" className="text-gray-500 hover:text-gray-600 p-1 rounded-md"><X className="w-5 h-5" /></button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[1fr_220px]">
@@ -87,7 +87,7 @@ function AuraForm({ initial, title, onSave, onCancel }: AuraFormProps) {
                 </div>
               ))}
               {colors.length < MAX_AURA_COLORS && (
-                <button type="button" onClick={() => setColors(cs => [...cs, '#3b82f6'])} aria-label="Adicionar cor" className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md text-gray-400 hover:bg-white flex items-center justify-center"><Plus className="w-5 h-5" /></button>
+                <button type="button" onClick={() => setColors(cs => [...cs, '#3b82f6'])} aria-label="Adicionar cor" className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md text-gray-500 hover:bg-white flex items-center justify-center"><Plus className="w-5 h-5" /></button>
               )}
             </div>
           </div>

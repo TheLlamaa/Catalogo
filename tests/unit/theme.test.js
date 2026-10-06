@@ -95,3 +95,23 @@ describe('perguntas frequentes', () => {
     expect(parseFaq(many)).toHaveLength(MAX_FAQ);
   });
 });
+
+import { contrastRatio, readableTextOn, badgeStyle as selo } from '../../src/lib/theme';
+describe('contraste dos selos (WCAG 4,5:1 para texto pequeno)', () => {
+  it('calcula o contraste como a WCAG', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);
+    expect(contrastRatio('#ffffff', '#ffffff')).toBeCloseTo(1, 5);
+  });
+  it('selo padrão (laranja) usa texto escuro legível', () => {
+    const s = selo('');
+    expect(contrastRatio(s.backgroundColor, s.color)).toBeGreaterThanOrEqual(4.5);
+  });
+  it('cor escolhida no painel ganha o texto mais legível', () => {
+    expect(readableTextOn('#1e293b')).toBe('#ffffff');
+    expect(readableTextOn('#fde047')).toBe('#111827');
+    for (const c of ['#be185d', '#0e7490', '#15803d', '#2563eb', '#f59e0b', '#fde047']) {
+      const s = selo(c);
+      expect(contrastRatio(s.backgroundColor, s.color)).toBeGreaterThan(4);
+    }
+  });
+});

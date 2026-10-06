@@ -224,7 +224,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       )}
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" aria-hidden="true" />
         <input
           type="search" value={query} onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); setQuery(''); } }}
@@ -244,7 +244,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       {!searching && group === 'aparencia' && (
         <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
           <legend className="sr-only">Temas prontos</legend>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h3>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h2>
           <p className="text-xs text-gray-500 mb-3">Preenche cor, fonte, fundo e cantos de uma vez. Dá para ajustar depois; nada vai ao ar até publicar.</p>
           <div className="flex flex-wrap gap-2">
             {THEME_PRESETS.map(t => (
@@ -266,16 +266,16 @@ export default function SiteSettings({ settings, categories, products, group, on
           <fieldset key={section.title} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
             <legend className="sr-only">{section.title}</legend>
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
-              <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
+              <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
                 {section.title}
                 {searching && (
-                  <button type="button" onClick={() => { onGroupChange(section.group); setQuery(''); }} className="text-xs font-normal text-blue-700 hover:underline">
+                  <button type="button" onClick={() => { onGroupChange(section.group); setQuery(''); }} className="text-xs font-normal text-blue-700 underline py-1">
                     em {groupLabel(section.group)}
                   </button>
                 )}
-              </h3>
-              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
+              </h2>
+              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap py-2 -my-2"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
             </div>
             <div className="p-5 space-y-5">
               {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
@@ -301,8 +301,8 @@ export default function SiteSettings({ settings, categories, products, group, on
 
       <div className="sticky bottom-0 -mx-1 px-1 py-4 bg-white/95 backdrop-blur border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:text-red-600">Voltar tudo ao padrão</button>
-          {dirty && <button type="button" onClick={discard} className="text-sm text-gray-500 hover:text-gray-800">Descartar alterações</button>}
+          <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:text-red-600 py-2">Voltar tudo ao padrão</button>
+          {dirty && <button type="button" onClick={discard} className="text-sm text-gray-500 hover:text-gray-800 py-2">Descartar alterações</button>}
         </div>
         <div className="flex items-center gap-3">
           {dirty && <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">Alterações não publicadas</span>}
@@ -325,7 +325,7 @@ function Field({ f, form, set, resetField }: FieldProps) {
   const id = `s-${f.key}`;
   const isDefault = toStored(f.key, form[f.key]) === null;
   const resetBtn = !isDefault && (
-    <button type="button" onClick={() => resetField(f.key)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Padrão</button>
+    <button type="button" onClick={() => resetField(f.key)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 py-1.5 -my-1.5"><RotateCcw className="w-3 h-3" /> Padrão</button>
   );
 
   if (f.type === 'toggle') {
@@ -433,7 +433,7 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
   return (
     <div className="flex items-center gap-4">
       <div className="h-16 w-24 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-        {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-400" />}
+        {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
       </div>
       <div className="flex flex-wrap gap-2">
         <label htmlFor={id} className={`px-3 py-2 border border-gray-300 rounded-md text-sm font-medium cursor-pointer hover:bg-gray-50 flex items-center gap-1.5 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>

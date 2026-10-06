@@ -100,7 +100,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           <label htmlFor="busca" className="sr-only">Buscar produtos</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-500" />
             </div>
             <input
               id="busca"
@@ -306,11 +306,11 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-400"><ImageIcon className="h-10 w-10 opacity-60" aria-hidden="true" /><span className="text-xs">Foto em breve</span></div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-500"><ImageIcon className="h-10 w-10 opacity-60" aria-hidden="true" /><span className="text-xs text-gray-600">Foto em breve</span></div>
         )}
 
         {badge && (
-          <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
+          <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
         )}
         {isOutOfStock && (
           <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">Esgotado</span>

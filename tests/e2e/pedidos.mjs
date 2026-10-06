@@ -44,7 +44,7 @@ await page.route('https://mock.supabase.co/**', async (route) => {
 await page.goto(BASE + '/admin');
 await page.getByTestId('resumo-pedidos').waitFor();
 const resumo = () => page.getByTestId('resumo-pedidos').innerText();
-const cards = () => page.locator('div.cursor-pointer').count();
+const cards = () => page.getByRole('button', { name: / — ver pedido$/ }).count();
 
 let r = await resumo();
 check('mostra os 4 pedidos', await cards() === 4);
@@ -82,7 +82,7 @@ await page.getByRole('button', { name: /^Todos/ }).click();
 
 // ordenação
 await page.getByLabel('Ordenar por').selectOption('total_desc');
-check('maior valor primeiro (o cancelado de 500)', (await page.locator('div.cursor-pointer h3').first().innerText()) === 'Pedro Cancelou');
+check('maior valor primeiro (o cancelado de 500)', (await page.getByRole('button', { name: / — ver pedido$/ }).first().textContent()).replace(' — ver pedido', '').trim() === 'Pedro Cancelou');
 await page.getByLabel('Ordenar por').selectOption('recent');
 
 // relatório (aba nova)

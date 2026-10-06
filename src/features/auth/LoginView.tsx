@@ -29,7 +29,7 @@ export default function LoginView({ onLoginSuccess }: { onLoginSuccess: () => vo
         </button>
 
         <div className="flex justify-center mb-6"><div className="p-4 bg-blue-50 text-blue-600 rounded-full"><Settings className="w-8 h-8" /></div></div>
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Acesso Restrito</h2>
+        <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">Acesso Restrito</h1>
         <p className="text-sm text-center text-gray-500 mb-8">Digite suas credenciais de acesso para entrar no painel.</p>
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-100 flex items-start gap-2"><AlertCircle className="w-5 h-5 flex-shrink-0" /><span>{error}</span></div>}

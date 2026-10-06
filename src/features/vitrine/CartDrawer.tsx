@@ -103,7 +103,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
     <Dialog variant="drawer" onClose={handleClose} label={settings.cartTitle} panelClassName="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
         <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-blue-600" /> {settings.cartTitle}</h2>
-        <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
+        <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
       </div>
 
       {step === 'cart' && (
@@ -122,7 +122,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                   return (
                     <li key={line.key} className="flex gap-4">
                       <div className="w-20 h-20 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-gray-400" />}
+                        {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-gray-500" />}
                       </div>
                       <div className="flex-1 flex flex-col">
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{line.product.title}</h3>
@@ -134,7 +134,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                             <span className="px-3 text-sm font-medium">{line.quantity}</span>
                             <button onClick={() => updateQuantity(line.key, 1)} aria-label="Aumentar quantidade" className="p-1.5 text-gray-500 hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
                           </div>
-                          <button onClick={() => removeItem(line.key)} className="text-xs text-red-500 font-medium">Remover</button>
+                          <button onClick={() => removeItem(line.key)} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">Remover</button>
                         </div>
                       </div>
                     </li>
@@ -212,21 +212,21 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                   value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
-                {settings.deliveryNote && <p className="text-xs text-gray-400 mt-1">{settings.deliveryNote}</p>}
+                {settings.deliveryNote && <p className="text-xs text-gray-500 mt-1">{settings.deliveryNote}</p>}
               </div>
             )}
           </fieldset>}
 
           {settings.notesEnabled && <div>
             <label htmlFor="k-obs" className="block text-sm font-medium text-gray-700 mb-1">
-              Observações <span className="text-gray-400 font-normal">(opcional)</span>
+              Observações <span className="text-gray-500 font-normal">(opcional)</span>
             </label>
             <textarea
               id="k-obs" rows={3} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Ex: cor preferida, prazo desejado..."
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{notes.length}/500</p>
+            <p className="text-xs text-gray-500 mt-1 text-right">{notes.length}/500</p>
           </div>}
 
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2">

@@ -127,7 +127,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
         <>
           <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" aria-hidden="true" />
               <input
                 type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar produto pelo nome ou selo" aria-label="Buscar produtos"
                 className="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
@@ -143,7 +143,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               <button
                 key={c.id || 'todos'} type="button" onClick={() => setStatus(c.id)} aria-pressed={status === c.id}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${status === c.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-              >{c.label} <span className={status === c.id ? 'text-gray-300' : 'text-gray-400'}>({counts[c.id]})</span></button>
+              >{c.label} <span className={status === c.id ? 'text-gray-300' : 'text-gray-500'}>({counts[c.id]})</span></button>
             ))}
           </div>
 
@@ -164,7 +164,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
           ) : (
             <>
               <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="produtos" position="top" />
-              {filtering && <p className="text-xs text-gray-500 mb-2">Com filtros ligados não dá para reordenar. <button type="button" onClick={clearFilters} className="text-blue-700 hover:underline">Limpar filtros</button></p>}
+              {filtering && <p className="text-xs text-gray-500 mb-2">Com filtros ligados não dá para reordenar. <button type="button" onClick={clearFilters} className="text-blue-700 underline py-1">Limpar filtros</button></p>}
 
               {/* Computador: tabela */}
               {wide ? (
@@ -188,8 +188,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                           {!filtering && (
                             <td className="pl-3 pr-0 py-2">
                               <div className="flex flex-col">
-                                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} title="Subir na vitrine" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowUp className="w-4 h-4" /></button>
-                                <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} title="Descer na vitrine" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowDown className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} title="Subir na vitrine" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowUp className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} title="Descer na vitrine" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowDown className="w-4 h-4" /></button>
                               </div>
                             </td>
                           )}
@@ -218,8 +218,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                         <div className="flex-1 min-w-0"><ProductSummary product={product} onEdit={handleEdit} /></div>
                         {!filtering && (
                           <div className="flex flex-col -mr-1">
-                            <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} className="p-2 text-gray-400 disabled:opacity-25"><ArrowUp className="w-4 h-4" /></button>
-                            <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} className="p-2 text-gray-400 disabled:opacity-25"><ArrowDown className="w-4 h-4" /></button>
+                            <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} className="p-2 text-gray-500 disabled:opacity-25"><ArrowUp className="w-4 h-4" /></button>
+                            <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} className="p-2 text-gray-500 disabled:opacity-25"><ArrowDown className="w-4 h-4" /></button>
                           </div>
                         )}
                       </div>
@@ -249,10 +249,10 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
   return (
     <div className="flex items-center gap-3 min-w-0">
       <div className="h-12 w-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
-        {cover ? <ProductImage thumb src={cover} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="w-4 h-4 text-gray-400" aria-label="Sem foto" />}
+        {cover ? <ProductImage thumb src={cover} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="w-4 h-4 text-gray-500" aria-label="Sem foto" />}
       </div>
       <div className="min-w-0">
-        <button type="button" onClick={() => onEdit(product)} className="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline text-left block truncate max-w-full">{product.title}</button>
+        <button type="button" onClick={() => onEdit(product)} className="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline text-left block truncate max-w-full py-0.5">{product.title}</button>
         <span className="text-xs text-gray-500 font-medium">{brl(product.price)}</span>
         {(product.badge || product.section) && (
           <span className="mt-1 flex flex-wrap gap-1">
@@ -288,7 +288,7 @@ function VisibilityToggle({ product, onToggle }: { product: Product; onToggle: (
     <button
       type="button" role="switch" aria-checked={on} onClick={() => onToggle(product)}
       aria-label={`Mostrar ${product.title} na vitrine`} title={on ? 'Clique para ocultar da vitrine' : 'Clique para mostrar na vitrine'}
-      className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-2 rounded-full py-2 -my-2 pr-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
     >
       <span aria-hidden="true" className={`relative h-5 w-9 rounded-full transition-colors ${on ? 'bg-green-600' : 'bg-gray-300'}`}>
         <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`} />
@@ -308,7 +308,7 @@ interface RowActionsProps {
 
 function RowActions({ product, onFeatured, onDuplicate, onEdit, onDelete }: RowActionsProps) {
   const featured = product.section === 'destaque';
-  const icon = 'p-2 rounded-md text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+  const icon = 'p-2.5 md:p-2 rounded-md text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
   return (
     <div className="flex justify-end items-center gap-1">
       <button

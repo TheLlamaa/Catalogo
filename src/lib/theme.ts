@@ -104,7 +104,19 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTo
 };
 
 // Cor dos selos dos produtos (vazio = laranja padrão da classe)
-export const badgeStyle = (color: unknown): Record<string, string> => (isHex(color) ? { backgroundColor: color } : {});
+// Contraste entre duas cores (WCAG): 1 a 21. Texto pequeno precisa de pelo menos 4,5.
+export const contrastRatio = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+// Texto branco ou quase preto, o que ficar mais legível sobre o fundo
+export const readableTextOn = (bg: string): string => (contrastRatio(bg, '#ffffff') >= contrastRatio(bg, '#111827') ? '#ffffff' : '#111827');
+
+// Selo do card: cor escolhida no painel (ou o laranja padrão) com texto que dá para ler
+export const DEFAULT_BADGE_BG = '#f59e0b';
+export const badgeStyle = (color: unknown): Record<string, string> => (
+  isHex(color) ? { backgroundColor: color, color: readableTextOn(color) } : { backgroundColor: DEFAULT_BADGE_BG, color: readableTextOn(DEFAULT_BADGE_BG) }
+);
 
 // Faixa de aviso: aparece se está ligada, tem texto e a data final (se houver) não passou.
 // "bannerUntil" é um dia (AAAA-MM-DD) e vale até o fim desse dia, no horário do visitante.

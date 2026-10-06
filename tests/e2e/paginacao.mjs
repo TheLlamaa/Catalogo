@@ -36,7 +36,7 @@ await page.route('https://mock.supabase.co/**', async (route) => {
 
 await page.goto(BASE + '/admin');
 await page.getByTestId('resumo-pedidos').waitFor();
-const cards = () => page.locator('div.cursor-pointer').count();
+const cards = () => page.getByRole('button', { name: / — ver pedido$/ }).count();
 const nav = page.getByRole('navigation', { name: 'Paginação' });
 
 check('32 pedidos: mostra 10 por página (padrão)', await cards() === 10);

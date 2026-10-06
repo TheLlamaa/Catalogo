@@ -177,9 +177,9 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <Upload className="w-8 h-8 text-gray-500 mb-2" />
                   <span className="text-sm font-medium text-gray-700">Clique para enviar uma foto ou desenho</span>
-                  <span className="text-xs text-gray-400 mt-1">PNG, JPG ou JPEG</span>
+                  <span className="text-xs text-gray-500 mt-1">PNG, JPG ou JPEG</span>
                 </>
               )}
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isCompressing} className="sr-only" />
@@ -199,7 +199,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
         <p className="text-xs text-gray-500">
           Usamos seu nome, WhatsApp e a foto apenas para responder a este pedido.{' '}
-          <Link to="/privacidade" className="text-blue-600 hover:underline">Política de privacidade</Link>
+          <Link to="/privacidade" className="text-blue-700 underline">Política de privacidade</Link>
         </p>
 
         <button

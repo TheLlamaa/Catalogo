@@ -42,7 +42,7 @@ function ModalShell({ title, icon: Icon, onClose, children, footer }: ModalShell
           <Icon className="w-5 h-5 text-blue-600" />
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
         </div>
-        <button onClick={onClose} aria-label="Fechar" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
+        <button onClick={onClose} aria-label="Fechar" className="p-1.5 text-gray-500 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -100,7 +100,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
           <img src={order.image_url} alt="Referência enviada" className="object-contain max-h-80 w-auto" />
         </div>
       ) : (
-        <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 text-gray-400">
+        <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 text-gray-500">
           <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
           <p className="text-sm font-medium">Nenhuma imagem enviada para este pedido</p>
         </div>
@@ -169,7 +169,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
               <div key={idx} className="p-3 bg-white flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-gray-400" />}
+                    {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>

@@ -29,7 +29,7 @@ function Group({ title, hint, children }: { title: string; hint?: ReactNode; chi
   return (
     <fieldset className="border-t border-gray-100 pt-6 first:border-t-0 first:pt-0">
       <legend className="sr-only">{title}</legend>
-      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
       {hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
       <div className="mt-4 space-y-5">{children}</div>
     </fieldset>
@@ -181,10 +181,10 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-1">
+          <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 py-2 -my-1 mb-0">
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Voltar para a lista
           </button>
-          <h2 className="text-xl font-semibold text-gray-900">{isNew ? 'Novo produto' : 'Editar produto'}</h2>
+          <h1 className="text-xl font-semibold text-gray-900">{isNew ? 'Novo produto' : 'Editar produto'}</h1>
         </div>
         <Switch
           id="active" checked={formData.active} onChange={v => setFormData(p => ({ ...p, active: v }))}
@@ -223,7 +223,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
               </div>
             ))}
             <label className={`flex flex-col items-center justify-center aspect-square border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              {isUploading ? <><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div><span className="text-xs mt-2 text-gray-500">Enviando…</span></> : <><Plus className="w-6 h-6 text-gray-400 mb-2" /><span className="text-xs font-medium">Adicionar foto</span></>}
+              {isUploading ? <><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div><span className="text-xs mt-2 text-gray-500">Enviando…</span></> : <><Plus className="w-6 h-6 text-gray-500 mb-2" /><span className="text-xs font-medium">Adicionar foto</span></>}
               <input type="file" multiple accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="sr-only" />
             </label>
           </div>
@@ -231,7 +231,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
 
         <Group title="Onde aparece na vitrine" hint="Categoria, destaque e o selo que aparece por cima da foto.">
           <div>
-            <span className="block text-sm font-medium text-gray-700 mb-2">Categorias * <span className="text-gray-400 font-normal">(uma ou mais)</span></span>
+            <span className="block text-sm font-medium text-gray-700 mb-2">Categorias * <span className="text-gray-500 font-normal">(uma ou mais)</span></span>
             <div className="flex flex-wrap gap-2">
               {categories.map(c => {
                 const on = formData.categoryIds.includes(c.id);
@@ -254,7 +254,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
                 return (
                   <label key={opt.value || 'nenhuma'} aria-label={opt.label} className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${on ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}>
                     <input type="radio" name="p-secao" value={opt.value} checked={on} onChange={() => setFormData(p => ({ ...p, section: opt.value }))} className="mt-0.5 text-blue-600 focus:ring-blue-500" />
-                    <span><span className="block text-sm font-medium text-gray-900">{opt.label}</span><span className="block text-xs text-gray-500">{opt.hint}</span></span>
+                    <span><span className="block text-sm font-medium text-gray-900">{opt.label}</span><span className={`block text-xs ${on ? 'text-gray-700' : 'text-gray-500'}`}>{opt.hint}</span></span>
                   </label>
                 );
               })}
@@ -268,7 +268,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
           </div>
 
           <div className="sm:w-1/2">
-            <label htmlFor="p-selo" className="block text-sm font-medium text-gray-700 mb-1">Selo no card <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <label htmlFor="p-selo" className="block text-sm font-medium text-gray-700 mb-1">Selo no card <span className="text-gray-500 font-normal">(opcional)</span></label>
             <input
               id="p-selo" type="text" list="selos" maxLength={20} placeholder="Ex: Novo, Promoção"
               value={formData.badge} onChange={e => setFormData(p => ({ ...p, badge: e.target.value }))} className={inputCls}
@@ -293,13 +293,13 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
                     value={opt.values} onChange={e => updateOption(idx, { values: e.target.value })}
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                   />
-                  <button type="button" onClick={() => setFormData(p => ({ ...p, options: p.options.filter((_, i) => i !== idx) }))} aria-label="Remover opção" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md self-start sm:self-auto"><Trash2 className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => setFormData(p => ({ ...p, options: p.options.filter((_, i) => i !== idx) }))} aria-label="Remover opção" className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md self-start sm:self-auto"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
           )}
           {formData.options.length < MAX_OPTION_GROUPS && (
-            <button type="button" onClick={() => setFormData(p => ({ ...p, options: [...p.options, { name: '', values: '' }] }))} className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            <button type="button" onClick={() => setFormData(p => ({ ...p, options: [...p.options, { name: '', values: '' }] }))} className="text-sm font-medium text-blue-700 hover:text-blue-800 flex items-center gap-1 py-2 -my-2">
               <Plus className="w-4 h-4" /> Adicionar opção
             </button>
           )}
@@ -317,7 +317,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
               )}
               {leadTimeEnabled && (
                 <div className={stockControl ? '' : 'sm:col-span-2'}>
-                  <label htmlFor="p-prazo" className="block text-sm font-medium text-gray-700 mb-1">Prazo de produção <span className="text-gray-400 font-normal">(opcional)</span></label>
+                  <label htmlFor="p-prazo" className="block text-sm font-medium text-gray-700 mb-1">Prazo de produção <span className="text-gray-500 font-normal">(opcional)</span></label>
                   <input
                     id="p-prazo" type="text" list="prazos" maxLength={80} placeholder="Ex: Pronta entrega, ou Sob encomenda: 3 a 5 dias"
                     value={formData.leadTime} onChange={e => setFormData(p => ({ ...p, leadTime: e.target.value }))} className={inputCls}
@@ -333,7 +333,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
           <Group title="Extras" hint={modelLinkEnabled ? 'O link do modelo é só seu: não aparece no site.' : undefined}>
             {modelLinkEnabled && (
               <div>
-                <label htmlFor="p-modelo" className="block text-sm font-medium text-gray-700 mb-1">Link do modelo 3D <span className="text-gray-400 font-normal">(opcional · só você vê, não aparece no site)</span></label>
+                <label htmlFor="p-modelo" className="block text-sm font-medium text-gray-700 mb-1">Link do modelo 3D <span className="text-gray-500 font-normal">(opcional · só você vê, não aparece no site)</span></label>
                 <input
                   id="p-modelo" type="url" maxLength={500} placeholder="https://makerworld.com/… ou link do Drive/Thingiverse"
                   value={formData.modelUrl} onChange={e => setFormData(p => ({ ...p, modelUrl: e.target.value }))} className={inputCls}
@@ -342,7 +342,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
             )}
             {aurasEnabled && (
               <div>
-                <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito Aura Próprio <span className="text-gray-400 font-normal">(sobrescreve a aura da categoria)</span></label>
+                <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito Aura Próprio <span className="text-gray-500 font-normal">(sobrescreve a aura da categoria)</span></label>
                 <select id="p-aura" value={formData.auraColor} onChange={e => setFormData(p => ({ ...p, auraColor: e.target.value }))} className={`${inputCls} bg-white`}>
                   {optionsFor(auraLib, formData.auraColor).map(aura => <option key={aura.id} value={aura.id}>{aura.name}</option>)}
                 </select>

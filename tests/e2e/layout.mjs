@@ -42,7 +42,7 @@ const xs = {};
 const btns = page.locator('nav[aria-label="Seções do painel"] button');
 const n = await btns.count();
 for (let i = 0; i < n; i++) {
-  const name = (await btns.nth(i).getAttribute('aria-label')) || String(i);
+  const name = (await btns.nth(i).locator('.sr-only').textContent()) || String(i);
   await btns.nth(i).click();
   await page.waitForTimeout(400);
   xs[name] = await page.evaluate(() => ({ x: Math.round(document.querySelector('main > div').getBoundingClientRect().x), sb: window.innerWidth - document.documentElement.clientWidth, h: document.documentElement.scrollHeight }));

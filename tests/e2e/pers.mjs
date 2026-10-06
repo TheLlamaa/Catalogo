@@ -156,7 +156,7 @@ const baseRows = [
   const { p, writes, state } = await newPage({ rows: baseRows, admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
-  const tabs = (await p.locator('[data-nav-section="Site"] button').allInnerTexts()).map(t => t.trim());
+  const tabs = await p.locator('[data-nav-section="Site"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
   check('áreas do Site no menu do painel', tabs.join('|') === 'Página inicial|Aparência|Dados da loja|Pedidos e carrinho|Peça personalizada|Páginas e menus|Recursos', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo

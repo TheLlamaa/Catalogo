@@ -83,15 +83,15 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                     <tr key={category.id} className="hover:bg-gray-50">
                       <td className="pl-4 pr-0 py-2">
                         <div className="flex flex-col">
-                          <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${category.name}`} title="Subir" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowUp className="w-4 h-4" /></button>
-                          <button type="button" onClick={() => move(index, 1)} disabled={index === categories.length - 1} aria-label={`Descer ${category.name}`} title="Descer" className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-400"><ArrowDown className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${category.name}`} title="Subir" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowUp className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => move(index, 1)} disabled={index === categories.length - 1} aria-label={`Descer ${category.name}`} title="Descer" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowDown className="w-4 h-4" /></button>
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
                       <td className="px-3 sm:px-4 py-4 text-sm whitespace-nowrap">
                         {productCount(category.id) > 0 && onShowProducts
-                          ? <button type="button" onClick={() => onShowProducts(category.id)} className="text-blue-700 hover:underline font-medium" aria-label={`Ver os ${productCount(category.id)} produtos de ${category.name}`}>{productCount(category.id)} produto(s)</button>
-                          : <span className="text-gray-400">Nenhum</span>}
+                          ? <button type="button" onClick={() => onShowProducts(category.id)} className="text-blue-700 underline font-medium py-2 -my-2">{productCount(category.id)} produto(s)<span className="sr-only"> de {category.name}</span></button>
+                          : <span className="text-gray-500">Nenhum</span>}
                       </td>
                       {aurasEnabled && <td className="px-6 py-4 hidden sm:table-cell">
                         {category.auraColor && category.auraColor !== 'none' ? (
@@ -100,7 +100,7 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                             {...auraDot(category.auraColor, auraLib, 20)}
                           />
                         ) : (
-                          <span className="text-gray-400 text-xs">Nenhuma</span>
+                          <span className="text-gray-500 text-xs">Nenhuma</span>
                         )}
                       </td>}
                       <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-[300px] hidden md:table-cell">{category.description || <span className="text-gray-300">—</span>}</td>
@@ -134,10 +134,10 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
   return (
     <div>
       <div className="mb-6">
-        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-1">
+        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 py-2 -my-1 mb-0">
           <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Voltar para a lista
         </button>
-        <h2 className="text-xl font-semibold text-gray-900">{initialData ? 'Editar categoria' : 'Nova categoria'}</h2>
+        <h1 className="text-xl font-semibold text-gray-900">{initialData ? 'Editar categoria' : 'Nova categoria'}</h1>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
         <div>
@@ -161,7 +161,7 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
         </div>}
 
         <div>
-          <label htmlFor="cat-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição <span className="text-gray-400 font-normal">(opcional)</span></label>
+          <label htmlFor="cat-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição <span className="text-gray-500 font-normal">(opcional)</span></label>
           <p className="text-xs text-gray-500 mb-2">Aparece embaixo do título quando o cliente abre esta categoria na vitrine.</p>
           <textarea id="cat-desc" rows={3} value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
         </div>

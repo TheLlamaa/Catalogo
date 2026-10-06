@@ -75,7 +75,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
       {customOrders.length === 0 ? (
         <div className="py-12 text-center border border-gray-200 rounded-lg border-dashed">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-4 text-base font-medium text-gray-900">Nenhuma solicitação recebida</h3>
+          <h2 className="mt-4 text-base font-medium text-gray-900">Nenhuma solicitação recebida</h2>
           <p className="mt-1 text-sm text-gray-500">Os pedidos personalizados enviados pelo site aparecem aqui.</p>
         </div>
       ) : visible.length === 0 ? (
@@ -88,41 +88,41 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
           {pager.items.map(order => (
             <div
               key={order.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelectOrder(order.id)}
-              onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelectOrder(order.id); } }}
-              className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex gap-4 items-start relative group"
+              className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow flex gap-4 items-start relative group"
             >
               {order.image_url ? (
                 <div className="w-20 h-20 bg-gray-100 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                   <ProductImage src={order.image_url} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">
+                <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-500 flex-shrink-0">
                   <ImageIcon className="w-8 h-8 opacity-50" />
                 </div>
               )}
 
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 text-base truncate">{order.client_name}</h3>
+                <h2 className="font-bold text-gray-900 text-base truncate">
+                  <button type="button" onClick={() => onSelectOrder(order.id)} className="text-left focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-blue-500">
+                    {order.client_name}<span className="sr-only"> — ver pedido</span>
+                  </button>
+                </h2>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mb-2 text-xs">
                   <span className="text-blue-600 font-medium">{order.client_phone}</span>
-                  <span className="text-gray-400" title={dateTime(order.created_at)}>{orderCode(order)} · {ageInfo(order).label}</span>
+                  <span className="text-gray-500" title={dateTime(order.created_at)}>{orderCode(order)} · {ageInfo(order).label}</span>
                 </div>
                 <p className="text-xs text-gray-600 line-clamp-2 bg-gray-50 p-2 rounded border border-gray-100 mb-3">{order.description}</p>
-                <StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} />
+                <div className="relative z-10 inline-block"><StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} /></div>
               </div>
 
-              <div className="flex flex-col gap-1 items-end self-stretch">
+              <div className="relative z-10 flex flex-col gap-1 items-end self-stretch pointer-events-none">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDelete(order); }}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  className="pointer-events-auto p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                   title="Excluir" aria-label="Excluir solicitação"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-semibold text-blue-600 hover:underline mt-auto flex items-center gap-1">
+                <span className="text-xs font-semibold text-blue-700 mt-auto flex items-center gap-1 pointer-events-none" aria-hidden="true">
                   Ver <ExternalLink className="w-3 h-3" />
                 </span>
               </div>
@@ -152,7 +152,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
                   <td className="px-3 py-2.5 align-top min-w-[11rem]">
                     <span className="block font-semibold text-gray-900 truncate max-w-[14rem]">{order.client_name}</span>
                     <span className="block text-xs text-blue-600 font-medium">{order.client_phone}</span>
-                    <span className="block text-xs text-gray-400" title={dateTime(order.created_at)}>{orderCode(order)} · {ageInfo(order).label}</span>
+                    <span className="block text-xs text-gray-500" title={dateTime(order.created_at)}>{orderCode(order)} · {ageInfo(order).label}</span>
                   </td>
                   <td className="px-3 py-2.5 align-top text-xs text-gray-600 max-w-[22rem]"><span className="line-clamp-2" title={order.description}>{order.description}</span></td>
                   <td className="px-3 py-2.5 align-top text-xs text-gray-500">{order.image_url ? 'Sim' : '—'}</td>
@@ -161,7 +161,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
                     <div className="flex justify-end">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(order); }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir" aria-label="Excluir solicitação"
+                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir" aria-label="Excluir solicitação"
                       ><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>

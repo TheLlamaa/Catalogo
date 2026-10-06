@@ -41,7 +41,7 @@ export default function Pagination({ page, pages, total, from, to, perPage, onPa
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Página anterior" className={`${btn} border-gray-300 bg-white hover:bg-gray-50 text-gray-700`}><ChevronLeft className="w-4 h-4" /></button>
             {pageButtons(page, pages).map((n, i) => n === null
-              ? <span key={`gap-${i}`} className="px-1 text-gray-400" aria-hidden="true">…</span>
+              ? <span key={`gap-${i}`} className="px-1 text-gray-500" aria-hidden="true">…</span>
               : <button
                   key={n} type="button" onClick={() => onPage(n)}
                   aria-label={`Página ${n}`} aria-current={n === page ? 'page' : undefined}

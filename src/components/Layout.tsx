@@ -73,7 +73,7 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
           ) : (
             <button
               onClick={() => window.open('/login', '_blank')}
-              className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-400 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors"
               title="Acesso Administrativo" aria-label="Acesso administrativo"
             >
               <LogIn className="w-4 h-4" />
@@ -82,14 +82,15 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
 
           <div className="w-px h-6 bg-gray-300 mx-2"></div>
 
+          {/* O nome lido em voz alta inclui o número que aparece no selo: "Abrir orçamento (2 item(ns))" */}
           <button
             onClick={onOpenCart}
-            aria-label={`Abrir orçamento (${cartCount} item(ns))`}
-            className="relative p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
+            className="relative p-2.5 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-5 h-5" aria-hidden="true" />
+            <span className="sr-only">{`Abrir orçamento (${cartCount} item(ns))`}</span>
             {cartCount > 0 && (
-              <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-sm">
+              <span aria-hidden="true" className="absolute top-0 right-0 -mt-0.5 -mr-0.5 flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-sm">
                 {cartCount}
               </span>
             )}
@@ -146,19 +147,19 @@ export function StoreFooter({ settings, categories }: { settings: SiteSettings; 
           {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600">{settings.menuAbout}</Link>}
+          {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600 py-2">{settings.menuAbout}</Link>}
           {resolveMenu(settings.menus.foot, menuContext(settings, categories)).map(item => (
             item.href
-              ? <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{item.label}</a>
-              : <Link key={item.id} to={item.to!} className="hover:text-blue-600">{item.label}</Link>
+              ? <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{item.label}</a>
+              : <Link key={item.id} to={item.to!} className="hover:text-blue-600 py-2">{item.label}</Link>
           ))}
           {socialLinks(settings).map(l => (
-            <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>
+            <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{l.label}</a>
           ))}
           {settings.whatsapp && (
-            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600">WhatsApp</a>
+            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">WhatsApp</a>
           )}
-          <Link to="/privacidade" className="hover:text-blue-600">Política de privacidade</Link>
+          <Link to="/privacidade" className="hover:text-blue-600 py-2">Política de privacidade</Link>
         </div>
       </div>
     </footer>
