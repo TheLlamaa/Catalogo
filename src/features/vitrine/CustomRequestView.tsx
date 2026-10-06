@@ -1,3 +1,4 @@
+import ImageGuideText from '../../components/ImageGuideText';
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -179,6 +180,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isCompressing} className="sr-only" />
             </label>
           )}
+          <ImageGuideText guide="reference" className="mt-2" />
         </div>
 
         <div>

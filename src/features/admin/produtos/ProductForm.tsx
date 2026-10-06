@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { ArrowLeft, Plus, Trash2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Switch, Button, inputClass } from '../../../components/ui';
+import ImageGuideText from '../../../components/ImageGuideText';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { uploadProductImage } from '../../../services/storage';
@@ -238,6 +239,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
         </Group>
 
         <Group title={`Fotos (${formData.imageUrls.length})`} hint="A primeira foto é a capa do card. Passe o mouse (ou toque) na foto para mudar a ordem ou remover.">
+          <ImageGuideText guide="product" className="mb-3" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {formData.imageUrls.map((url, idx) => (
               <div key={url} className="relative aspect-square border border-gray-200 rounded-lg overflow-hidden group">

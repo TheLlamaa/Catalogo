@@ -40,14 +40,15 @@ export const uploadProductImage = async (file: Blob) => {
 };
 
 // Imagem do site (logo, faixa, página Sobre): um único arquivo, sem miniatura.
-// PNG/WebP/GIF viram PNG (mantém transparência) e as demais JPEG; SVG vai como está.
+// PNG/GIF viram PNG e WebP continua WebP (ambos mantêm transparência); as demais viram JPEG; SVG vai como está.
 export const uploadSiteImage = async (file: File, max = 1200) => {
   const id = crypto.randomUUID();
   let blob: Blob = file; let ext = 'svg'; let type = 'image/svg+xml';
   if (file.type !== 'image/svg+xml') {
     const img = await loadImage(file);
-    const png = /^image\/(png|webp|gif)$/.test(file.type);
-    type = png ? 'image/png' : 'image/jpeg'; ext = png ? 'png' : 'jpg';
+    const png = /^image\/(png|gif)$/.test(file.type);
+    const webp = file.type === 'image/webp';
+    type = png ? 'image/png' : webp ? 'image/webp' : 'image/jpeg'; ext = png ? 'png' : webp ? 'webp' : 'jpg';
     let { width, height } = img;
     if (width > height && width > max) { height = Math.round(height * max / width); width = max; }
     else if (height > max) { width = Math.round(width * max / height); height = max; }

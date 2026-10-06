@@ -167,3 +167,23 @@ describe('pedido mínimo e selos', () => {
     expect(s.menus.foot).toEqual([]);
   });
 });
+
+import { IMAGE_GUIDES } from '../../src/lib/imageGuides';
+import { SETTING_FIELDS } from '../../src/lib/settings';
+
+describe('orientação de tamanho das imagens', () => {
+  it('todo campo de imagem do painel tem orientação', () => {
+    const imgs = SETTING_FIELDS.filter(f => f.type === 'image');
+    expect(imgs.length).toBeGreaterThanOrEqual(6);
+    for (const f of imgs) expect(IMAGE_GUIDES[f.guide], f.key).toBeTruthy();
+  });
+  it('textos seguem o padrão e dizem o formato e o peso', () => {
+    for (const [k, g] of Object.entries(IMAGE_GUIDES)) {
+      expect(g.text.startsWith('Tamanho ideal: '), k).toBe(true);
+      expect(g.text, k).toMatch(/JPG|PNG/);
+      expect(g.text, k).toMatch(/até \d+ (KB|MB)/);
+    }
+    expect(IMAGE_GUIDES.logo.text).toContain('transparente');
+    expect(IMAGE_GUIDES.favicon.text).toContain('SVG');
+  });
+});

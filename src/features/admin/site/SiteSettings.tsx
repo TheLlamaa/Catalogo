@@ -11,6 +11,8 @@ import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhats
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
+import ImageGuideText from '../../../components/ImageGuideText';
+import { IMAGE_GUIDES, type ImageGuideKey } from '../../../lib/imageGuides';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import type { Category, Product } from '../../../types';
 import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
@@ -381,7 +383,7 @@ function Field({ f, form, set, resetField }: FieldProps) {
       control = <ColorField id={id} f={f} value={str(form[f.key])} onChange={v => set(f.key, v)} primary={str(form.primaryColor)} />;
       break;
     case 'image':
-      control = <ImageField id={id} label={f.label} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
+      control = <ImageField id={id} label={f.label} guide={f.type === 'image' ? f.guide : undefined} value={str(form[f.key])} onChange={v => set(f.key, v)} />;
       break;
     case 'page':
     case 'menu':
@@ -426,7 +428,7 @@ function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorF
   );
 }
 
-function ImageField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+function ImageField({ id, label, guide, value, onChange }: { id: string; label: string; guide?: ImageGuideKey; value: string; onChange: (v: string) => void }) {
   const { toast } = useUI();
   const [busy, setBusy] = useState(false);
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -435,11 +437,12 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error('Escolha um arquivo de imagem.');
     setBusy(true);
-    try { onChange(await uploadSiteImage(file)); }
+    try { onChange(await uploadSiteImage(file, guide ? IMAGE_GUIDES[guide].maxPx : undefined)); }
     catch (err) { console.error(err); toast.error(`A imagem não foi enviada. ${friendlyError(err)}`); }
     setBusy(false);
   };
   return (
+    <div>
     <div className="flex items-center gap-4">
       <div className="h-16 w-24 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
         {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
@@ -451,6 +454,8 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
         <input id={id} type="file" accept="image/*" onChange={pick} className="sr-only" aria-label={label} />
         {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
       </div>
+    </div>
+    {guide && <ImageGuideText guide={guide} className="mt-2" />}
     </div>
   );
 }
