@@ -175,7 +175,7 @@ const rowsExtra = [
   await p.getByRole('button', { name: 'Negrito' }).click();
   check('botão de negrito insere marcação', (await p.getByLabel('Texto da página').inputValue()).includes('**negrito**'));
   await p.getByLabel('Texto da página').fill('Conteúdo da página');
-  await p.getByRole('button', { name: 'Prévia' }).click();
+  await p.getByRole('button', { name: 'Prévia', exact: true }).click();
   check('prévia mostra o texto', await p.getByText('Conteúdo da página').count() >= 1);
   // coloca a página no menu do topo e no rodapé
   await p.getByRole('button', { name: 'Página', exact: true }).first().click();

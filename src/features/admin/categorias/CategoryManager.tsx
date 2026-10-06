@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Plus, Edit2, Trash2, ArrowLeft, ArrowUp, ArrowDown, Tags } from 'lucide-react';
-import { Button, EmptyState, PageHeader, inputClass } from '../../../components/ui';
+import { Plus, Edit2, Trash2, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Tags } from 'lucide-react';
+import { Button, EmptyState, InlineSwitch, PageHeader, Switch, inputClass } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import type { Category, Product } from '../../../types';
+import { useDragReorder } from '../../../hooks/useDragReorder';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 // Dados enviados ao salvar uma categoria (nome é obrigatório)
 type CategoryDraft = Partial<Category> & { name: string };
@@ -14,7 +16,7 @@ interface CategoryManagerProps {
   categories: Category[];
   products: Product[];
   onShowProducts?: (categoryId: string) => void;
-  onSave: (category: CategoryDraft) => Promise<boolean>;
+  onSave: (category: CategoryDraft, successMessage?: string) => Promise<boolean>;
   onDelete: (id: string) => unknown;
   onReorder: (orderedIds: string[]) => unknown;
 }
@@ -47,6 +49,9 @@ export default function CategoryManager({ categories, products, onShowProducts, 
     [ids[index], ids[target]] = [ids[target], ids[index]];
     onReorder(ids);
   };
+  // Arrastar a linha (só no computador; no celular e pelo teclado ficam as setas)
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const drag = useDragReorder(categories.map(c => c.id), onReorder, wide);
 
   return (
     <div>
@@ -73,6 +78,7 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                   <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-3 sm:px-6 py-4">Nome</th>
                   <th className="px-3 sm:px-4 py-4">Produtos</th>
+                  <th className="px-3 sm:px-4 py-4">Menu</th>
                   {aurasEnabled && <th className="px-6 py-4 hidden sm:table-cell">Aura padrão</th>}
                   <th className="px-6 py-4 hidden lg:table-cell">Descrição</th>
                   <th className="px-3 sm:px-6 py-4 text-right"><span className="sr-only sm:not-sr-only">Ações</span></th>
@@ -80,11 +86,15 @@ export default function CategoryManager({ categories, products, onShowProducts, 
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {categories.map((category, index) => (
-                    <tr key={category.id} className="hover:bg-gray-50">
-                      <td className="pl-4 pr-0 py-2">
+                    <tr key={category.id} {...drag.rowProps(category.id)} className={`hover:bg-gray-50 ${category.visible === false ? 'bg-gray-50/60' : ''} ${drag.rowClass(category.id)}`}>
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a célula só agrupa a alça (decorativa) e as setas, que têm nome próprio */}
+                      <td className="pl-2 pr-0 py-2">
+                        <div className="flex items-center">
+                        {wide && <span title="Arraste para mudar a posição" className="cursor-grab active:cursor-grabbing text-gray-500 px-0.5"><GripVertical className="w-4 h-4" aria-hidden="true" /></span>}
                         <div className="flex flex-col">
                           <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${category.name}`} title="Subir" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowUp className="w-4 h-4" /></button>
                           <button type="button" onClick={() => move(index, 1)} disabled={index === categories.length - 1} aria-label={`Descer ${category.name}`} title="Descer" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowDown className="w-4 h-4" /></button>
+                        </div>
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
@@ -92,6 +102,13 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                         {productCount(category.id) > 0 && onShowProducts
                           ? <button type="button" onClick={() => onShowProducts(category.id)} className="text-blue-700 underline font-medium py-2 -my-2">{productCount(category.id)} produto(s)<span className="sr-only"> de {category.name}</span></button>
                           : <span className="text-gray-500">Nenhum</span>}
+                      </td>
+                      <td className="px-3 sm:px-4 py-4">
+                        <InlineSwitch
+                          on={category.visible !== false} label={`Mostrar ${category.name} no menu da vitrine`} onText="No menu" offText="Oculta"
+                          title={category.visible !== false ? 'Clique para esconder do menu da vitrine' : 'Clique para mostrar no menu da vitrine'}
+                          onToggle={() => onSave({ ...category, visible: category.visible === false }, category.visible === false ? `“${category.name}” voltou para o menu da vitrine.` : `“${category.name}” saiu do menu da vitrine (os produtos continuam no site).`)}
+                        />
                       </td>
                       {aurasEnabled && <td className="px-6 py-4 hidden sm:table-cell">
                         {category.auraColor && category.auraColor !== 'none' ? (
@@ -126,7 +143,8 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
     id: initialData?.id || undefined, 
     name: initialData?.name || '', 
     description: initialData?.description || '',
-    auraColor: initialData?.auraColor || 'none'
+    auraColor: initialData?.auraColor || 'none',
+    visible: initialData?.visible // undefined em bancos antes do SQL 12: não é enviado
   });
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); onSave(formData); };
@@ -140,6 +158,11 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
         <h1 className="text-xl font-semibold text-gray-900">{initialData ? 'Editar categoria' : 'Nova categoria'}</h1>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+        <Switch
+          id="cat-visivel" checked={formData.visible !== false} onChange={v => setFormData(p => ({ ...p, visible: v }))}
+          label="Mostrar no menu da vitrine" onText="Visível" offText="Oculta"
+          hint="Oculta: some do menu e dos links, mas os produtos continuam em “Todos os modelos” e nas outras categorias."
+        />
         <div>
           <label htmlFor="cat-nome" className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
           <input id="cat-nome" required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className={inputClass} />

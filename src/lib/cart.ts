@@ -1,5 +1,6 @@
 // Carrinho guardado no navegador: só id, quantidade e opções (preço e estoque vêm sempre do banco).
 import type { CartLine } from '../types';
+import { IS_PREVIEW } from './preview';
 
 const KEY = 'catalogo-cart-v1';
 
@@ -7,6 +8,7 @@ export const lineKey = (id: unknown, options: Record<string, unknown> = {}): str
   `${id}|${Object.keys(options).sort().map(k => `${k}=${options[k]}`).join('&')}`;
 
 export const loadCart = (): CartLine[] => {
+  if (IS_PREVIEW) return []; // a prévia do painel não mexe no carrinho de verdade
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) || '[]');
     if (!Array.isArray(parsed)) return [];
@@ -23,6 +25,7 @@ export const loadCart = (): CartLine[] => {
 };
 
 export const saveCart = (lines: Pick<CartLine, 'id' | 'quantity' | 'options'>[]): void => {
+  if (IS_PREVIEW) return;
   try {
     localStorage.setItem(KEY, JSON.stringify(lines.map(({ id, quantity, options }) => ({ id, quantity, options }))));
   } catch {

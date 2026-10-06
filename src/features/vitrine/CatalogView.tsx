@@ -11,6 +11,7 @@ import { auraProps, auraDot } from '../../lib/auras';
 import { brl } from '../../lib/format';
 import { badgeStyle } from '../../lib/theme';
 import { badgeFor, newProducts, LOW_STOCK_MAX } from '../../lib/catalog';
+import { Button } from '../../components/ui';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -86,9 +87,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-900 mb-2">Não conseguimos carregar o catálogo</h1>
         <p className="text-sm text-gray-600 mb-6">Pode ser uma falha de conexão ou uma manutenção rápida. Tente de novo em instantes.</p>
-        <button onClick={onRetry} className="px-5 py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
-          Tentar novamente
-        </button>
+        <Button variant="primary" onClick={onRetry}>Tentar novamente</Button>
       </div>
     );
   }

@@ -8,7 +8,7 @@ const session = { access_token: jwt, token_type: 'bearer', expires_in: 3600, exp
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
 
-async function abrir(browser, { version = '11', metaError = false, adminsError = false } = {}) {
+async function abrir(browser, { version = '12', metaError = false, adminsError = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
   await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
   const page = await ctx.newPage();
@@ -78,7 +78,7 @@ const browser = await launch();
 { // banco desatualizado
   const { page, ctx } = await abrir(browser, { version: '7' });
   await page.getByRole('alert').filter({ hasText: 'versão 7' }).waitFor();
-  check('banco na versão 7: avisa qual versão e o que rodar', (await page.getByRole('alert').first().innerText()).includes('espera a 11'));
+  check('banco na versão 7: avisa qual versão e o que rodar', (await page.getByRole('alert').first().innerText()).includes('espera a 12'));
   await ctx.close();
 }
 

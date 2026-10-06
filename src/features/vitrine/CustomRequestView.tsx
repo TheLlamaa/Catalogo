@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'lucide-react';
-import { inputClass, whatsappButtonClass } from '../../components/ui';
+import { Button, inputClass, whatsappButtonClass } from '../../components/ui';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import { formatPhoneBR, validateContact, whatsappLink, fillName } from '../../lib/format';
@@ -106,15 +106,8 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         )}
 
         <div className="flex items-center justify-center gap-3 mt-4">
-          <button
-            onClick={() => { setSentSuccess(false); setFormData(EMPTY_FORM); }}
-            className="px-6 py-2.5 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Enviar Outra Solicitação
-          </button>
-          <button onClick={() => navigate('/')} className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-            Voltar para a loja
-          </button>
+          <Button variant="soft" size="lg" onClick={() => { setSentSuccess(false); setFormData(EMPTY_FORM); }}>Enviar outra solicitação</Button>
+          <Button variant="primary" size="lg" onClick={() => navigate('/')}>Voltar para a loja</Button>
         </div>
       </div>
     );
@@ -203,17 +196,13 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
           <Link to="/privacidade" className="text-blue-700 underline">Política de privacidade</Link>
         </p>
 
-        <button
-          type="submit"
-          disabled={isSubmitting || settings.ordersPaused}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" size="lg" className="w-full font-semibold" disabled={isSubmitting || settings.ordersPaused} aria-busy={isSubmitting}>
           {isSubmitting ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">Enviando solicitação…</span></>
           ) : (
-            <><Send className="w-5 h-5" /> Enviar solicitação de Orçamento</>
+            <><Send className="w-5 h-5" aria-hidden="true" /> Enviar solicitação de orçamento</>
           )}
-        </button>
+        </Button>
       </form>
     </div>
   );

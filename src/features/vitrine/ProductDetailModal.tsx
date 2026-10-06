@@ -8,6 +8,7 @@ import type { Category, Product } from '../../types';
 import { brl } from '../../lib/format';
 import { badgeStyle } from '../../lib/theme';
 import { badgeFor, relatedProducts } from '../../lib/catalog';
+import { Button } from '../../components/ui';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -70,7 +71,8 @@ export default function ProductDetailModal({ product, products = [], categories,
               <button
                 key={idx}
                 onClick={() => setActiveImageIndex(idx)}
-                aria-label={`Ver foto ${idx + 1}`}
+                aria-label={`Ver foto ${idx + 1} de ${images.length}`}
+                aria-pressed={idx === activeImageIndex}
                 className={`w-16 h-16 rounded-md overflow-hidden border-2 flex-shrink-0 transition-all ${idx === activeImageIndex ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}
               >
                 <ProductImage thumb src={img} alt="" className="w-full h-full object-cover" />
@@ -105,10 +107,10 @@ export default function ProductDetailModal({ product, products = [], categories,
             <p className="text-sm text-gray-600 mb-4 flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-500" /> {product.leadTime}</p>
           )}
 
-          {options.map(opt => (
+          {options.map((opt, i) => (
             <div key={opt.name} className="mb-4">
-              <span className="block text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{opt.name}</span>
-              <div className="flex flex-wrap gap-2">
+              <span id={`opcao-${i}`} className="block text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{opt.name}</span>
+              <div role="group" aria-labelledby={`opcao-${i}`} className="flex flex-wrap gap-2">
                 {opt.values.map(v => (
                   <button
                     key={v}
@@ -158,13 +160,9 @@ export default function ProductDetailModal({ product, products = [], categories,
           >
             <Link2 className="w-5 h-5" />
           </button>
-          <button
-            disabled={isOutOfStock}
-            onClick={handleAdd}
-            className={`flex-1 font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-          >
-            <ShoppingCart className="w-5 h-5" /> {isOutOfStock ? 'Indisponível' : settings.addToCartLabel}
-          </button>
+          <Button variant="primary" size="lg" icon={ShoppingCart} className="flex-1" disabled={isOutOfStock} onClick={handleAdd}>
+            {isOutOfStock ? 'Indisponível' : settings.addToCartLabel}
+          </Button>
         </div>
       </div>
     </Dialog>

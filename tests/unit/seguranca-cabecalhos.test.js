@@ -16,7 +16,10 @@ describe('Content-Security-Policy', () => {
   it('só roda scripts do próprio site (nada inline, nada de fora)', () => {
     expect(diretiva('script-src')).toEqual(["'self'"]);
     expect(diretiva('object-src')).toEqual(["'none'"]);
-    expect(diretiva('frame-ancestors')).toEqual(["'none'"]);
+  });
+  it('só o próprio site pode abrir a vitrine dentro de um quadro (prévia do painel); outros sites não', () => {
+    expect(diretiva('frame-ancestors')).toEqual(["'self'"]);
+    expect(headers).toMatch(/X-Frame-Options: SAMEORIGIN/);
   });
   it('imagens só do site, embutidas ou do Supabase (bloqueia imagem de servidor de terceiros)', () => {
     expect(diretiva('img-src')).toEqual(["'self'", 'data:', 'blob:', 'https://*.supabase.co']);

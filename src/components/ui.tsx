@@ -1,4 +1,4 @@
-// Peças de interface reaproveitadas pelo painel: botão, interruptor, cabeçalho de tela e estado vazio.
+// Peças de interface reaproveitadas pelo painel e pela vitrine: botão, interruptor, cabeçalho de tela e estado vazio.
 // Um único lugar para o visual dessas peças, para as telas não terem três versões do mesmo botão.
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -11,10 +11,11 @@ export const whatsappButtonClass = 'inline-flex items-center justify-center gap-
 // Ícone do WhatsApp sobre fundo branco (3:1 para ícones)
 export const whatsappIconClass = 'text-[#128C7E]';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'ghost' | 'danger';
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
   secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+  soft: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
   ghost: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   danger: 'bg-white text-red-700 border border-red-200 hover:bg-red-50',
 };
@@ -22,18 +23,18 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   icon?: LucideIcon;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg'; // lg: ações principais da vitrine (carrinho, pedido)
 }
 
 export function Button({ variant = 'secondary', icon: Icon, size = 'md', className = '', children, type = 'button', ...rest }: ButtonProps) {
-  const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm';
+  const pad = size === 'sm' ? 'px-3 py-1.5 text-xs rounded-md' : size === 'lg' ? 'px-6 py-3 text-sm rounded-lg' : 'px-4 py-2.5 text-sm rounded-md';
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${pad} ${BUTTON_VARIANTS[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${pad} ${BUTTON_VARIANTS[variant]} ${className}`}
       {...rest}
     >
-      {Icon && <Icon className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} aria-hidden="true" />}
+      {Icon && <Icon className={size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4'} aria-hidden="true" />}
       {children}
     </button>
   );
@@ -73,6 +74,23 @@ export function Switch({ id, checked, onChange, label, hint, onText = 'Ligado', 
         </span>
       </label>
     </div>
+  );
+}
+
+// Interruptor de uma linha de lista (ex.: "Na vitrine" / "Oculto"): ação imediata, estado escrito ao lado.
+// "label" é o que o leitor de tela anuncia e precisa conter o texto visível (ex.: "Mostrar Vaso na vitrine").
+interface InlineSwitchProps { on: boolean; onToggle: () => unknown; label: string; onText: string; offText: string; title?: string }
+export function InlineSwitch({ on, onToggle, label, onText, offText, title }: InlineSwitchProps) {
+  return (
+    <button
+      type="button" role="switch" aria-checked={on} onClick={onToggle} aria-label={label} title={title}
+      className="inline-flex items-center gap-2 rounded-full py-2 -my-2 pr-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+    >
+      <span aria-hidden="true" className={`relative h-5 w-9 rounded-full transition-colors ${on ? 'bg-green-600' : 'bg-gray-300'}`}>
+        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`} />
+      </span>
+      <span className={`text-xs font-semibold whitespace-nowrap ${on ? 'text-green-800' : 'text-gray-500'}`}>{on ? onText : offText}</span>
+    </button>
   );
 }
 

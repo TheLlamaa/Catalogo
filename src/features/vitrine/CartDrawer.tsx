@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2, MessageSquare } from 'lucide-react';
-import { inputClass, whatsappButtonClass } from '../../components/ui';
+import { Button, inputClass, whatsappButtonClass } from '../../components/ui';
 import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
@@ -42,6 +42,14 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [trap, setTrap] = useState(''); // campo-isca anti-robô
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
+  // Leitor de tela: ao trocar de etapa (carrinho → dados → pronto), o foco vai para o título da etapa nova
+  const stepHeading = useRef<HTMLHeadingElement>(null);
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    stepHeading.current?.focus();
+  }, [step]);
 
   if (!isOpen) return null;
   const minOrder = minOrderValue(settings.minOrder);
@@ -103,7 +111,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
   return (
     <Dialog variant="drawer" onClose={handleClose} label={settings.cartTitle} panelClassName="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-        <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-blue-600" /> {settings.cartTitle}</h2>
+        <h2 ref={step === 'cart' ? stepHeading : undefined} tabIndex={-1} className="text-lg font-bold flex items-center gap-2 outline-none"><ShoppingCart className="w-5 h-5 text-blue-600" /> {settings.cartTitle}</h2>
         <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
       </div>
 
@@ -130,12 +138,12 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                         {opt && <span className="text-xs text-gray-500">{opt}</span>}
                         {!settings.hidePrices && <span className="text-sm font-bold mt-1">{brl(line.product.price)}</span>}
                         <div className="flex items-center justify-between mt-auto">
-                          <div className="flex items-center border border-gray-200 rounded-md">
-                            <button onClick={() => updateQuantity(line.key, -1)} aria-label="Diminuir quantidade" className="p-1.5 text-gray-500 hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
-                            <span className="px-3 text-sm font-medium">{line.quantity}</span>
-                            <button onClick={() => updateQuantity(line.key, 1)} aria-label="Aumentar quantidade" className="p-1.5 text-gray-500 hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
+                          <div role="group" aria-label={`Quantidade de ${line.product.title}`} className="flex items-center border border-gray-200 rounded-md">
+                            <button type="button" onClick={() => updateQuantity(line.key, -1)} aria-label={`Diminuir quantidade de ${line.product.title}`} className="p-1.5 text-gray-500 hover:bg-gray-50"><Minus className="w-3.5 h-3.5" aria-hidden="true" /></button>
+                            <span aria-live="polite" className="px-3 text-sm font-medium"><span className="sr-only">Quantidade: </span>{line.quantity}</span>
+                            <button type="button" onClick={() => updateQuantity(line.key, 1)} aria-label={`Aumentar quantidade de ${line.product.title}`} className="p-1.5 text-gray-500 hover:bg-gray-50"><Plus className="w-3.5 h-3.5" aria-hidden="true" /></button>
                           </div>
-                          <button onClick={() => removeItem(line.key)} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">Remover</button>
+                          <button type="button" onClick={() => removeItem(line.key)} aria-label={`Remover ${line.product.title} do orçamento`} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">Remover</button>
                         </div>
                       </div>
                     </li>
@@ -149,13 +157,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
               {!settings.hidePrices && <div className="flex justify-between mb-5"><span className="text-sm font-medium">Total</span><span className="text-xl font-bold">{brl(total)}</span></div>}
               {settings.ordersPaused && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">{settings.pausedMessage}</p>}
               {!settings.ordersPaused && belowMin && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">Pedido mínimo: {brl(minOrder)}. Faltam {brl(minOrder - total)}.</p>}
-              <button
-                onClick={() => setStep('checkout')}
-                disabled={settings.ordersPaused || belowMin}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-md flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button variant="primary" size="lg" className="w-full" onClick={() => setStep('checkout')} disabled={settings.ordersPaused || belowMin}>
                 Avançar para Identificação
-              </button>
+              </Button>
             </div>
           )}
         </>
@@ -169,22 +173,22 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             className="absolute -left-[9999px] w-px h-px opacity-0"
           />
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para contato</h3>
+            <h3 ref={stepHeading} tabIndex={-1} className="text-lg font-bold text-gray-900 mb-1 outline-none">Informações para contato</h3>
             <p className="text-xs text-gray-500 mb-5">{settings.cartIntro}</p>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome *</label>
+                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome <span aria-hidden="true">*</span></label>
                 <input
-                  id="k-nome" required type="text" placeholder="Ex: João Souza" maxLength={100}
+                  id="k-nome" required type="text" autoComplete="name" placeholder="Ex: João Souza" maxLength={100}
                   value={clientName} onChange={e => setClientName(e.target.value)}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label htmlFor="k-whats" className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp *</label>
+                <label htmlFor="k-whats" className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp <span aria-hidden="true">*</span></label>
                 <input
-                  id="k-whats" required type="text" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
+                  id="k-whats" required type="tel" autoComplete="tel-national" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
                   value={clientPhone} onChange={e => setClientPhone(formatPhoneBR(e.target.value))}
                   className={inputClass}
                 />
@@ -198,7 +202,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
               {([{ id: 'retirada', label: 'Retirada' }, { id: 'entrega', label: 'Entrega' }] as { id: DeliveryMethod; label: string }[]).map(opt => (
                 <label
                   key={opt.id}
-                  className={`flex items-center justify-center gap-2 border rounded-md py-2 text-sm cursor-pointer transition-colors ${deliveryMethod === opt.id ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                  className={`flex items-center justify-center gap-2 border rounded-md py-2 text-sm cursor-pointer transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${deliveryMethod === opt.id ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                 >
                   <input type="radio" name="entrega" value={opt.id} checked={deliveryMethod === opt.id} onChange={() => setDeliveryMethod(opt.id)} className="sr-only" />
                   {opt.label}
@@ -207,9 +211,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             </div>
             {deliveryMethod === 'entrega' && (
               <div className="mt-3">
-                <label htmlFor="k-end" className="block text-sm font-medium text-gray-700 mb-1">Endereço (ou bairro e cidade) *</label>
+                <label htmlFor="k-end" className="block text-sm font-medium text-gray-700 mb-1">Endereço (ou bairro e cidade) <span aria-hidden="true">*</span></label>
                 <input
-                  id="k-end" type="text" maxLength={300} placeholder="Rua, número, bairro e cidade"
+                  id="k-end" type="text" aria-required="true" maxLength={300} autoComplete="street-address" placeholder="Rua, número, bairro e cidade"
                   value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
                   className={inputClass}
                 />
@@ -244,16 +248,10 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           </p>
 
           <div className="mt-auto pt-2 flex gap-3">
-            <button type="button" onClick={() => setStep('cart')} className="px-4 py-3 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
-              Voltar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Finalizar pedido'}
-            </button>
+            <Button size="lg" className="px-4" onClick={() => setStep('cart')}>Voltar</Button>
+            <Button type="submit" variant="primary" size="lg" className="flex-1" disabled={isSubmitting} aria-busy={isSubmitting}>
+              {isSubmitting ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">Enviando pedido…</span></> : 'Finalizar pedido'}
+            </Button>
           </div>
         </form>
       )}
@@ -263,7 +261,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">{settings.orderDoneTitle}</h3>
+          <h3 ref={stepHeading} tabIndex={-1} className="text-xl font-bold text-gray-900 mb-2 outline-none">{settings.orderDoneTitle}</h3>
           <p className="text-sm text-gray-600 mb-6">{settings.orderDoneText}</p>
           {settings.whatsapp && lastOrder && (
             <a
@@ -274,9 +272,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
               <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
             </a>
           )}
-          <button onClick={handleClose} className="bg-blue-600 text-white font-medium px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors">
-            Concluir
-          </button>
+          <Button variant="primary" size="lg" onClick={handleClose}>Concluir</Button>
         </div>
       )}
     </Dialog>
