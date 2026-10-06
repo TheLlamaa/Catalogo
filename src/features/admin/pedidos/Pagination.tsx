@@ -13,17 +13,20 @@ interface PaginationProps {
   onPerPage: (n: number) => void;
   noun?: string; // "pedidos", "solicitações"
   position?: 'top' | 'bottom';
-  extra?: ReactNode; // controle à direita da paginação (ex.: alternar cards/lista)
+  extra?: ReactNode; // controle à esquerda da paginação (ex.: alternar cards/lista)
 }
 
 const btn = 'min-w-[2.25rem] h-9 px-2 inline-flex items-center justify-center rounded-md border text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
 
 // Rodapé da lista: "Mostrando 1–10 de 32", botões de página e itens por página
 export default function Pagination({ page, pages, total, from, to, perPage, onPage, onPerPage, noun = 'pedidos', position = 'bottom', extra }: PaginationProps) {
-  if (total === 0) return extra ? <div className="mb-4 flex justify-end">{extra}</div> : null;
+  if (total === 0) return extra ? <div className="mb-4 flex justify-start">{extra}</div> : null;
   return (
     <nav aria-label={position === 'top' ? 'Páginas, topo da lista' : 'Paginação'} className={`${position === 'top' ? 'mb-4' : 'mt-6'} flex flex-wrap items-center justify-between gap-3`}>
-      <p className="text-sm text-gray-500" aria-live={position === 'top' ? 'off' : 'polite'}>Mostrando {from}–{to} de {total} {noun}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        {extra}
+        <p className="text-sm text-gray-500" aria-live={position === 'top' ? 'off' : 'polite'}>Mostrando {from}–{to} de {total} {noun}</p>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-2 text-sm text-gray-500">
           Por página
@@ -47,7 +50,6 @@ export default function Pagination({ page, pages, total, from, to, perPage, onPa
             <button type="button" onClick={() => onPage(page + 1)} disabled={page >= pages} aria-label="Próxima página" className={`${btn} border-gray-300 bg-white hover:bg-gray-50 text-gray-700`}><ChevronRight className="w-4 h-4" /></button>
           </div>
         )}
-        {extra}
       </div>
     </nav>
   );
