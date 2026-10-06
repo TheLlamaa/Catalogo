@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Search, Megaphone, Link2, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
@@ -13,10 +13,12 @@ import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isVal
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import type { Category, Product } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isBannerActive, isHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import VitrinePreview from './VitrinePreview';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
@@ -85,6 +87,8 @@ export default function SiteSettings({ settings, categories, products, group, on
   const [base, setBase] = useState(form);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const docked = useMediaQuery('(min-width: 1280px)');
 
   const dirty = Object.keys(DEFAULT_SETTINGS).some(k => toStored(k, form[k]) !== toStored(k, base[k]));
   const dirtyRef = useRef(dirty);
@@ -116,6 +120,11 @@ export default function SiteSettings({ settings, categories, products, group, on
   }, [dirty]);
 
   const set = (key: string, value: string | boolean) => setForm(p => ({ ...p, [key]: value }));
+
+  // Rascunho no formato da tabela site_settings, para a prévia ao vivo da vitrine
+  const draftRows = useMemo(() => Object.keys(DEFAULT_SETTINGS)
+    .map(key => ({ key, value: toStored(key, form[key]) }))
+    .filter((r): r is { key: string; value: string } => r.value !== null), [form]);
 
   const validate = () => {
     if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
@@ -204,13 +213,16 @@ export default function SiteSettings({ settings, categories, products, group, on
   const count = (section: string) => products.filter(p => p.section === section).length;
   const resultCount = sections.reduce((n, s) => n + (s.group === 'menus' ? 1 : s.fields.length), 0);
 
+  const showDocked = previewOpen && docked;
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className={showDocked ? 'grid grid-cols-[minmax(0,1fr)_400px] gap-6 items-start' : ''}>
+    <form onSubmit={handleSubmit} className="space-y-6 min-w-0">
       <PageHeader
         title={searching ? 'Buscar configuração' : current.label}
         description={searching ? 'Resultados de todas as áreas do site.' : current.description}
+        actions={<Button icon={Eye} onClick={() => setPreviewOpen(o => !o)} aria-pressed={previewOpen}>{previewOpen ? 'Fechar prévia' : 'Prévia ao vivo'}</Button>}
       />
-      <p className="text-xs text-gray-500 -mt-3">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
+      <p className="text-xs text-gray-500 -mt-3">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Use a <strong>Prévia ao vivo</strong> para ver a vitrine com o que você está mudando.</p>
 
       {settings.backup && (
         <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm">
@@ -307,6 +319,8 @@ export default function SiteSettings({ settings, categories, products, group, on
         </div>
       </div>
     </form>
+    {previewOpen && <VitrinePreview rows={draftRows} docked={docked} onClose={() => setPreviewOpen(false)} />}
+    </div>
   );
 }
 
@@ -529,15 +543,21 @@ function FaqField({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 function BannerPreview({ form }: { form: FormValues }) {
-  if (!str(form.bannerText).trim()) return null;
+  if (!str(form.bannerText).trim()) {
+    // Ligada mas sem texto: a faixa não aparece, e isso confundia ("liguei e não apareceu")
+    return form.bannerEnabled
+      ? <p role="status" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">A faixa está ligada, mas sem texto ela não aparece no site. Escreva o aviso acima.</p>
+      : null;
+  }
+  const expired = !isBannerActive({ bannerEnabled: true, bannerText: str(form.bannerText), bannerUntil: str(form.bannerUntil) });
   const bannerColor = str(form.bannerColor).trim();
   const primaryColor = str(form.primaryColor).trim();
   const bg = isHex(bannerColor) ? bannerColor : (isHex(primaryColor) ? primaryColor : DEFAULT_PRIMARY);
   return (
     <div>
-      <span className="block text-xs font-medium text-gray-500 mb-1">Prévia{form.bannerEnabled ? '' : ' (faixa desligada: não aparece no site)'}</span>
+      <span className="block text-xs font-medium text-gray-500 mb-1">Prévia{!form.bannerEnabled ? ' (faixa desligada: não aparece no site)' : expired ? ' (a data “Mostrar até” já passou: não aparece no site)' : ''}</span>
       <div
-        className={`text-white text-sm text-center px-4 py-2 rounded-md ${form.bannerEnabled ? '' : 'opacity-40'}`}
+        className={`text-white text-sm text-center px-4 py-2 rounded-md ${form.bannerEnabled && !expired ? '' : 'opacity-40'}`}
         style={str(form.bannerImage) ? { backgroundColor: bg, backgroundImage: `linear-gradient(${bg}b3, ${bg}b3), url(${str(form.bannerImage)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: bg }}
       >{form.bannerText}</div>
     </div>

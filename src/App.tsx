@@ -1,10 +1,12 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
 import { ENV_LABEL } from './lib/config';
 import { applySeo } from './lib/seo';
 import { applyTheme, isBannerActive, bannerStyle } from './lib/theme';
+import { mergeSettings } from './lib/settings';
+import { IS_PREVIEW, usePreviewRows } from './lib/preview';
 import { useCart } from './hooks/useCart';
 import { useCatalogData } from './hooks/useCatalogData';
 import { useAdminActions } from './hooks/useAdminActions';
@@ -60,8 +62,11 @@ function MainLayout() {
   const {
     products, setProducts, categories, setCategories,
     customOrders, setCustomOrders, catalogOrders, setCatalogOrders,
-    user, userRef, rawSettings, settings, loading, loadError, schemaRef, fetchData, retryLoad,
+    user, userRef, rawSettings, settings: publishedSettings, loading, loadError, schemaRef, fetchData, retryLoad,
   } = useCatalogData();
+  // Na prévia do painel, a vitrine mostra o rascunho das configurações (ainda não publicado)
+  const previewRows = usePreviewRows();
+  const settings = useMemo(() => (previewRows ? mergeSettings(previewRows) : publishedSettings), [previewRows, publishedSettings]);
   const {
     cart, cartTotal, cartCount, addToCart, updateCartQuantity, removeFromCart, clearCart,
     isCartOpen, openCart, closeCart,
@@ -81,6 +86,10 @@ function MainLayout() {
     toast, fetchData, schemaRef, userRef, products, setProducts, categories, setCategories,
     rawSettings, settings, setCustomOrders, setCatalogOrders, clearCart,
   });
+  // Na prévia nada é enviado de verdade
+  const previewBlock = async () => { toast.info('Isto é só a prévia: pedidos não são enviados daqui.'); return false; };
+  const onCatalogCheckout = IS_PREVIEW ? previewBlock : saveCatalogOrder;
+  const onCustomOrder = IS_PREVIEW ? previewBlock : saveCustomOrder;
 
   // -------------------------------------------------------------------------
   // Produto aberto por endereço (/produto/:id)
@@ -128,15 +137,19 @@ function MainLayout() {
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isLoginRoute = location.pathname.startsWith('/login');
+  if (IS_PREVIEW && (isAdminRoute || isLoginRoute)) return <Navigate to="/?preview=1" replace />; // a prévia fica só na vitrine
   const isStoreRoute = !isAdminRoute && !isLoginRoute;
 
   const selectedCustomOrder = customOrders.find(o => o.id === selectedCustomOrderId) || null;
   const selectedCatalogOrder = catalogOrders.find(o => o.id === selectedCatalogOrderId) || null;
 
+  // Vitrine: categorias ocultas não aparecem no menu, nos links nem na janela do produto (o painel vê todas)
+  const publicCategories = categories.filter(c => c.visible !== false);
+
   const catalogElement = (
     <CatalogView
       products={products}
-      categories={categories}
+      categories={publicCategories}
       loadError={loadError}
       onRetry={retryLoad}
       onAddToCart={addToCart}
@@ -152,7 +165,7 @@ function MainLayout() {
       {/* Atalho de teclado: aparece no primeiro Tab e pula cabeçalho e menus */}
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">Pular para o conteúdo</a>
 
-      {ENV_LABEL && (
+      {ENV_LABEL && !IS_PREVIEW && (
         <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">
           {ENV_LABEL} — os dados aqui não são os da loja real
         </div>
@@ -164,7 +177,7 @@ function MainLayout() {
 
       {/* HEADER 1: VITRINE */}
       {isStoreRoute && (
-        <StoreHeader settings={settings} categories={categories} user={user} cartCount={cartCount} onOpenCart={openCart} />
+        <StoreHeader settings={settings} categories={publicCategories} user={user} cartCount={cartCount} onOpenCart={openCart} />
       )}
 
       {/* HEADER 2: ADMIN */}
@@ -177,7 +190,7 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={catalogElement} />
           <Route path="/produto/:id" element={catalogElement} />
-          <Route path="/custom" element={settings.customEnabled ? <CustomRequestView onSaveOrder={saveCustomOrder} /> : <Navigate to="/" replace />} />
+          <Route path="/custom" element={settings.customEnabled ? <CustomRequestView onSaveOrder={onCustomOrder} /> : <Navigate to="/" replace />} />
           <Route path="/sobre" element={settings.aboutEnabled ? <AboutView /> : <Navigate to="/" replace />} />
           <Route path="/p/:slug" element={<PageView />} />
           <Route path="/privacidade" element={<PrivacyView />} />
@@ -204,7 +217,7 @@ function MainLayout() {
       </main>
 
       {isStoreRoute && (
-        <StoreFooter settings={settings} categories={categories} />
+        <StoreFooter settings={settings} categories={publicCategories} />
       )}
 
       {selectedProduct && isStoreRoute && (
@@ -212,7 +225,7 @@ function MainLayout() {
           key={selectedProduct.id}
           product={selectedProduct}
           products={products}
-          categories={categories}
+          categories={publicCategories}
           onClose={closeProduct}
           onAddToCart={addToCart}
           onOpenProduct={openProduct}
@@ -244,7 +257,7 @@ function MainLayout() {
         <CartDrawer
           isOpen={isCartOpen} onClose={closeCart}
           cart={cart} updateQuantity={updateCartQuantity} removeItem={removeFromCart} total={cartTotal}
-          onCheckout={saveCatalogOrder}
+          onCheckout={onCatalogCheckout}
         />
       )}
     </div>

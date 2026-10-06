@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
-const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'a[href],iframe,button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 // Pilha de diálogos abertos: só o de cima reage ao Esc e ao Tab
 const stack: symbol[] = [];

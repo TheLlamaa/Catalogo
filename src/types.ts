@@ -68,6 +68,7 @@ export interface Category {
   description?: string;
   auraColor?: string;
   sortOrder: number;
+  visible?: boolean; // false = escondida do menu da vitrine (undefined em bancos antes do SQL 12)
   created_at?: string;
 }
 

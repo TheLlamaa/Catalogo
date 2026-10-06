@@ -144,9 +144,10 @@ export function useAdminActions({
     await fetchData();
   };
 
-  const saveCategory = async (category: Partial<Category> & { name: string }) => {
+  const saveCategory = async (category: Partial<Category> & { name: string }, successMessage = 'Categoria salva.') => {
     const slug = category.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
     const payload: Record<string, unknown> = { name: category.name, slug, description: category.description, aura_color: category.auraColor || 'none' };
+    if (typeof category.visible === 'boolean') payload.visible = category.visible; // coluna existe a partir do SQL 12
     if (category.id) payload.id = category.id;
     else if (schemaRef.current) payload.sort_order = categories.reduce((m, c) => Math.max(m, c.sortOrder), 0) + 1; // nova categoria vai para o fim
 
@@ -155,7 +156,7 @@ export function useAdminActions({
       toast.error(`Não foi possível salvar a categoria. ${friendlyError(error)}`);
       return false;
     }
-    toast.success('Categoria salva.');
+    toast.success(successMessage);
     await fetchData();
     return true;
   };

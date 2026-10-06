@@ -35,3 +35,12 @@ describe('paginação', () => {
     expect(pageButtons(12, 12)).toEqual([1, null, 9, 10, 11, 12]);
   });
 });
+
+import { moveId } from '../../src/hooks/useDragReorder';
+describe('arrastar para reordenar (moveId)', () => {
+  const ids = ['a', 'b', 'c', 'd'];
+  it('arrastar para baixo ocupa o lugar do alvo', () => expect(moveId(ids, 'a', 'c')).toEqual(['b', 'c', 'a', 'd']));
+  it('arrastar para cima ocupa o lugar do alvo', () => expect(moveId(ids, 'd', 'b')).toEqual(['a', 'd', 'b', 'c']));
+  it('soltar em si mesmo não muda nada', () => expect(moveId(ids, 'b', 'b')).toBe(ids));
+  it('id desconhecido não muda nada', () => expect(moveId(ids, 'x', 'b')).toBe(ids));
+});

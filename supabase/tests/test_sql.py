@@ -36,7 +36,7 @@ check('política aberta antiga foi removida', 'Permitir tudo em categorias' not 
 cur.execute("select count(*) from pg_policies where schemaname in ('public','storage')"); n=cur.fetchone()[0]
 check('quantidade de políticas = 21 (18 public + 3 storage)', n==21, str(n))
 cur.execute("select tgname from pg_trigger where not tgisinternal and tgrelid::regclass::text in ('orders','custom_orders','public.orders','public.custom_orders') order by 1"); tg=[r[0] for r in cur.fetchall()]
-check('5 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
+check('6 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','opcoes_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
 cur.execute("select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1"); check('tempo real nas 4 tabelas', [r[0] for r in cur.fetchall()]==['categories','custom_orders','orders','products'])
 cur.execute("select has_function_privilege('anon','public.limitar_pedidos()','execute')"); check('limitar_pedidos não é chamável pela API', cur.fetchone()[0] is False)
 # comportamento
@@ -65,7 +65,7 @@ ok,m=att("update public.products set sort_order=99 where id=%s",(pid,)); cur.exe
 
 # --- preço do pedido calculado pelo banco ---
 cur.execute("select tgname from pg_trigger where not tgisinternal and tgrelid::regclass::text in ('orders','custom_orders','public.orders','public.custom_orders') order by 1"); tg=[r[0] for r in cur.fetchall()]
-check('5 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
+check('6 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','opcoes_orders','precificar_orders','validar_custom_orders','validar_orders'], str(tg))
 cur.execute("select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1"); check('tempo real nas 4 tabelas', [r[0] for r in cur.fetchall()]==['categories','custom_orders','orders','products'])
 cur.execute("select has_function_privilege('anon','public.limitar_pedidos()','execute')"); check('limitar_pedidos não é chamável pela API', cur.fetchone()[0] is False)
 
@@ -89,6 +89,17 @@ ok,m=pedido([{"id":pid,"quantity":-1}],tel='(48) 99999-1212'); check('quantidade
 ok,m=pedido("texto",tel='(48) 99999-1313'); check('items que não é lista recusado',not ok,m)
 ok,m=pedido([{"id":pid,"quantity":1},{"id":pid,"quantity":2}],tel='(48) 99999-1414'); t,_=ultimo(); check('linhas repetidas somam: 180', ok and float(t)==180.0, f"{t}")
 role('anon'); ok,m=att("select public.precificar_pedido()"); check('função não chamável pela API', not ok, m)
+# --- opções do item com tamanho limitado (12) ---
+ok,m=pedido([{"id":pid,"quantity":1,"options":{"Cor":"Azul","Tamanho":"G"}}],tel='(48) 99999-1515'); check('opções normais são aceitas', ok, m)
+ok,m=pedido([{"id":pid,"quantity":1,"options":{f"o{i}":"x" for i in range(11)}}],tel='(48) 99999-1616'); check('mais de 10 opções num item é recusado', not ok, m)
+ok,m=pedido([{"id":pid,"quantity":1,"options":{"Cor":"x"*81}}],tel='(48) 99999-1717'); check('valor de opção gigante é recusado', not ok, m)
+ok,m=pedido([{"id":pid,"quantity":1,"options":{"Cor":{"a":1}}}],tel='(48) 99999-1818'); check('opção que não é texto é recusada', not ok, m)
+role('anon'); ok,m=att("select public.limitar_opcoes_pedido()"); check('gatilho de opções não chamável pela API', not ok, m)
+# --- categoria oculta (12) ---
+cur.execute("reset role"); cur.execute("insert into public.categories (name) values ('Oculta Teste') returning visible"); check('categoria nova nasce visível', cur.fetchone()[0] is True)
+role('authenticated','admin@teste.com'); ok,m=att("update public.categories set visible=false where name='Oculta Teste'"); check('admin esconde categoria', ok, m)
+role('anon'); cur.execute("select visible from public.categories where name='Oculta Teste'"); check('vitrine lê a categoria com visible=false (para filtrar no site)', cur.fetchone()[0] is False)
+ok,m=att("update public.categories set visible=true where name='Oculta Teste'"); cur.execute("reset role"); cur.execute("select visible from public.categories where name='Oculta Teste'"); check('visitante não muda a visibilidade', cur.fetchone()[0] is False)
 # --- controle de estoque opcional ---
 role('authenticated','admin@teste.com'); ok,m=att("insert into public.site_settings(key,value) values ('stockControl','false') on conflict (key) do update set value=excluded.value"); check('admin desliga o controle de estoque',ok,m)
 ok,m=pedido([{"id":pid,"quantity":6}],tel='(48) 99999-2020'); check('controle desligado: aceita quantidade acima do estoque',ok,m)
@@ -114,8 +125,8 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (11)', cur.fetchone()[0]=='11')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='11')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (12)', cur.fetchone()[0]=='12')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='12')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
 cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)

@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { useDragReorder } from '../../../hooks/useDragReorder';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import {
-  Plus, Edit2, Trash2, Copy, Star, Flame, Layers, Box, Image as ImageIcon, ArrowUp, ArrowDown, Search, PackageOpen, SearchX, Info,
+  Plus, Edit2, Trash2, Copy, Star, Flame, Box, Image as ImageIcon, ArrowUp, ArrowDown, GripVertical, Search, PackageOpen, SearchX, Info,
 } from 'lucide-react';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
-import { Button, EmptyState, PageHeader } from '../../../components/ui';
+import { Button, EmptyState, InlineSwitch, PageHeader } from '../../../components/ui';
 import ProductForm from './ProductForm';
 import Pagination from '../pedidos/Pagination';
 import { usePagination } from '../../../hooks/usePagination';
@@ -66,6 +67,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
   const pager = usePagination(visible, 'produtos');
   const counts: Record<string, number> = Object.fromEntries(chips.map(c => [c.id, c.id ? bySearch.filter(tests[c.id as Exclude<StatusFilter, ''>]).length : bySearch.length]));
   const wide = useMediaQuery('(min-width: 1024px)');
+  const drag = useDragReorder(products.map(p => p.id), onReorder, !filtering && wide);
 
   const clearFilters = () => { setQuery(''); setStatus(''); setCategoryId(''); };
   const handleAddNew = () => { setEditingProduct(null); setIsFormOpen(true); };
@@ -184,17 +186,21 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                     {pager.items.map(product => {
                       const index = products.findIndex(p => p.id === product.id); // posição na lista inteira (a ordem vale para toda a vitrine)
                       return (
-                        <tr key={product.id} className={`hover:bg-gray-50 ${isVisible(product) ? '' : 'bg-gray-50/60'}`}>
+                        <tr key={product.id} {...drag.rowProps(product.id)} className={`hover:bg-gray-50 ${isVisible(product) ? '' : 'bg-gray-50/60'} ${drag.rowClass(product.id)}`}>
                           {!filtering && (
-                            <td className="pl-3 pr-0 py-2">
+                            // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a célula só agrupa a alça (decorativa) e as setas, que têm nome próprio
+                            <td className="pl-2 pr-0 py-2">
+                              <div className="flex items-center">
+                              <span title="Arraste para mudar a posição" className="cursor-grab active:cursor-grabbing text-gray-500 px-0.5"><GripVertical className="w-4 h-4" aria-hidden="true" /></span>
                               <div className="flex flex-col">
                                 <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Subir ${product.title}`} title="Subir na vitrine" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowUp className="w-4 h-4" /></button>
                                 <button type="button" onClick={() => move(index, 1)} disabled={index === products.length - 1} aria-label={`Descer ${product.title}`} title="Descer na vitrine" className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-25 disabled:hover:text-gray-500"><ArrowDown className="w-4 h-4" /></button>
                               </div>
+                              </div>
                             </td>
                           )}
                           <td className="px-3 py-3"><ProductSummary product={product} onEdit={handleEdit} /></td>
-                          {stockControl && <td className="px-3 py-3"><StockTag stock={product.stock} /></td>}
+                          {stockControl && <td className="px-3 py-3"><StockEditor product={product} onSave={onSave} /></td>}
                           {aurasEnabled && <td className="px-3 py-3"><AuraQuickEdit product={product} categories={categories} onSave={onSave} /></td>}
                           <td className="px-3 py-3"><VisibilityToggle product={product} onToggle={toggleVisible} /></td>
                           <td className="px-3 py-3">
@@ -226,7 +232,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                       <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-3">
                           <VisibilityToggle product={product} onToggle={toggleVisible} />
-                          {stockControl && <StockTag stock={product.stock} />}
+                          {stockControl && <StockEditor product={product} onSave={onSave} />}
                         </div>
                         <RowActions product={product} onFeatured={toggleFeatured} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete} />
                       </div>
@@ -271,13 +277,28 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
   );
 }
 
-function StockTag({ stock }: { stock: number }) {
-  const n = Number(stock) || 0;
-  const tone = n <= 0 ? 'bg-red-50 text-red-700' : n <= 3 ? 'bg-amber-50 text-amber-800' : 'bg-gray-100 text-gray-700';
+// Estoque editável direto na lista: digita e sai do campo (ou Enter) para salvar; Esc desfaz
+function StockEditor({ product, onSave }: { product: Product; onSave: ProductManagerProps['onSave'] }) {
+  const n = Number(product.stock) || 0;
+  const [value, setValue] = useState(String(n));
+  const [shown, setShown] = useState(n); // estoque mudou por fora (outra aba, edição): atualiza o campo
+  if (shown !== n) { setShown(n); setValue(String(n)); }
+  const commit = () => {
+    const next = Number.parseInt(value, 10);
+    if (!Number.isFinite(next) || next < 0) { setValue(String(n)); return; }
+    if (next !== n) onSave({ ...product, stock: next }, next === 0 ? `“${product.title}” agora está esgotado.` : `Estoque de “${product.title}”: ${next} un.`);
+  };
+  const tone = n <= 0 ? 'border-red-300 bg-red-50 text-red-800' : n <= 3 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-300 bg-white text-gray-800';
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${tone}`}>
-      <Layers className="w-3 h-3" aria-hidden="true" /> {n <= 0 ? 'Esgotado' : `${n} un.`}
-    </span>
+    <div className="flex items-center gap-1.5">
+      <input
+        type="number" inputMode="numeric" min={0} step={1} value={value} aria-label={`Estoque de ${product.title}`}
+        onChange={e => setValue(e.target.value)} onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setValue(String(n)); setTimeout(() => (e.target as HTMLInputElement).blur()); } }}
+        className={`w-16 rounded-md border px-2 py-1.5 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 ${tone}`}
+      />
+      <span className={`text-xs font-semibold ${n <= 0 ? 'text-red-700' : n <= 3 ? 'text-amber-800' : 'text-gray-500'}`}>{n <= 0 ? 'Esgotado' : 'un.'}</span>
+    </div>
   );
 }
 
@@ -285,16 +306,10 @@ function StockTag({ stock }: { stock: number }) {
 function VisibilityToggle({ product, onToggle }: { product: Product; onToggle: (p: Product) => unknown }) {
   const on = product.active !== false;
   return (
-    <button
-      type="button" role="switch" aria-checked={on} onClick={() => onToggle(product)}
-      aria-label={`Mostrar ${product.title} na vitrine`} title={on ? 'Clique para ocultar da vitrine' : 'Clique para mostrar na vitrine'}
-      className="inline-flex items-center gap-2 rounded-full py-2 -my-2 pr-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-    >
-      <span aria-hidden="true" className={`relative h-5 w-9 rounded-full transition-colors ${on ? 'bg-green-600' : 'bg-gray-300'}`}>
-        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`} />
-      </span>
-      <span className={`text-xs font-semibold whitespace-nowrap ${on ? 'text-green-800' : 'text-gray-500'}`}>{on ? 'Na vitrine' : 'Oculto'}</span>
-    </button>
+    <InlineSwitch
+      on={on} onToggle={() => onToggle(product)} label={`Mostrar ${product.title} na vitrine`} onText="Na vitrine" offText="Oculto"
+      title={on ? 'Clique para ocultar da vitrine' : 'Clique para mostrar na vitrine'}
+    />
   );
 }
 
