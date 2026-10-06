@@ -72,5 +72,6 @@ describe('uso das auras', () => {
     expect(d.style.width).toBe(14);
     expect(d.style.height).toBe(14);
     expect(d.className).toContain('aura');
+    expect(d.style.borderRadius).toBe('9999px'); // redonda mesmo com cantos "Reto" (a classe .aura segue o arredondamento dos cards)
   });
 });

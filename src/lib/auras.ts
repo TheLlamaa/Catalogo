@@ -169,5 +169,6 @@ export const optionsFor = (lib: AuraLib, current?: string | null): AuraOption[] 
 // Bolinha com o efeito da aura (tamanho em px). O tamanho vai inline porque a classe .aura força height: 100%.
 export const auraDot = (key: string, lib: AuraLib = EMPTY_LIB, size = 20): { className: string; style: AuraStyle } => {
   const { className, style } = auraProps(key, lib);
-  return { className: `inline-block rounded-full bg-white aura ${className}`, style: { ...style, width: size, height: size } };
+  // borderRadius no style: a classe .aura usa o arredondamento dos cards (Aparência > Cantos), e com "Reto" a bolinha virava quadrado
+  return { className: `inline-block rounded-full bg-white aura ${className}`, style: { ...style, width: size, height: size, borderRadius: '9999px' } };
 };
