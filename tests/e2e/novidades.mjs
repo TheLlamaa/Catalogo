@@ -193,6 +193,28 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Versão nova publicada com o painel aberto: o arquivo da tela sumiu → recarrega sozinho, sem registrar erro
+  const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
+  await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+  const page = await ctx.newPage();
+  const logs = [];
+  await ctx.route('https://mock.supabase.co/**', async (route) => {
+    const req = route.request(); const url = new URL(req.url());
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (url.pathname === '/rest/v1/error_log' && req.method() === 'POST') logs.push(req.postData());
+    const body = url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : url.pathname === '/rest/v1/products' ? products : [];
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+  });
+  let falhou = 0;
+  await page.route(/\/assets\/AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
+  await page.goto(BASE + '/admin');
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor({ timeout: 10000 }).catch(() => {});
+  check('arquivo antigo some: a página recarrega e o painel abre', falhou >= 2 && await page.getByRole('button', { name: /^Pedidos \(/ }).isVisible(), `tentativas=${falhou}`);
+  check('isso não vira "erro do site"', logs.length === 0, logs.join(' | '));
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

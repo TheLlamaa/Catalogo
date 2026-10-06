@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { lazyWithReload } from './lib/staleChunk';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
@@ -21,15 +22,15 @@ import CartDrawer from './features/vitrine/CartDrawer';
 import { StoreHeader, AdminHeader, StoreFooter } from './components/Layout';
 
 import CatalogView from './features/vitrine/CatalogView';
-const CustomRequestView = lazy(() => import('./features/vitrine/CustomRequestView'));
-const LoginView = lazy(() => import('./features/auth/LoginView'));
-const PrivacyView = lazy(() => import('./features/vitrine/PrivacyView'));
-const AboutView = lazy(() => import('./features/vitrine/AboutView'));
-const PageView = lazy(() => import('./features/vitrine/PageView'));
+const CustomRequestView = lazyWithReload(() => import('./features/vitrine/CustomRequestView'));
+const LoginView = lazyWithReload(() => import('./features/auth/LoginView'));
+const PrivacyView = lazyWithReload(() => import('./features/vitrine/PrivacyView'));
+const AboutView = lazyWithReload(() => import('./features/vitrine/AboutView'));
+const PageView = lazyWithReload(() => import('./features/vitrine/PageView'));
 
-const AdminView = lazy(() => import('./features/admin/AdminView'));
-const CustomOrderDetailModal = lazy(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
-const CatalogOrderDetailModal = lazy(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
+const AdminView = lazyWithReload(() => import('./features/admin/AdminView'));
+const CustomOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
+const CatalogOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
 
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)

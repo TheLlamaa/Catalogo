@@ -27,3 +27,29 @@ describe('registro de erros', () => {
     expect(buildErrorEntry(new TypeError('Failed to fetch'))).toBeNull();
   });
 });
+
+import { isStaleChunkError, reloadForNewVersion } from '../../src/lib/staleChunk';
+
+describe('versão nova publicada com o site aberto', () => {
+  const msg = 'Failed to fetch dynamically imported module: https://catalogo-teste.brndamian.workers.dev/assets/AdminView-BqB2b7Gr.js';
+  it('reconhece o erro de arquivo de tela que sumiu (Chrome, Safari, Firefox)', () => {
+    expect(isStaleChunkError(new TypeError(msg))).toBe(true);
+    expect(isStaleChunkError('Importing a module script failed.')).toBe(true);
+    expect(isStaleChunkError({ message: 'error loading dynamically imported module: /assets/x.js' })).toBe(true);
+    expect(isStaleChunkError(new Error('Cannot read properties of undefined'))).toBe(false);
+  });
+  it('não vai para a lista de erros do site', () => {
+    expect(buildErrorEntry(new TypeError(msg), 'react')).toBeNull();
+  });
+  it('recarrega uma vez só (sem laço se o arquivo faltar de verdade)', () => {
+    const store = {};
+    let reloads = 0;
+    globalThis.sessionStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = v; } };
+    globalThis.window = { location: { reload: () => { reloads++; } } };
+    expect(reloadForNewVersion(1_000_000)).toBe(true);
+    expect(reloadForNewVersion(1_005_000)).toBe(false);
+    expect(reloadForNewVersion(1_040_000)).toBe(true);
+    expect(reloads).toBe(2);
+    delete globalThis.sessionStorage; delete globalThis.window;
+  });
+});
