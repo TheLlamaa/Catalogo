@@ -19,7 +19,8 @@ const mkProducts = () => [
 
 const br = await launch();
 
-async function newPage({ rows, w = 1100, admin = false, products = mkProducts(), categories = cats }) {
+async function newPage({ rows, w: width, admin = false, products = mkProducts(), categories = cats }) {
+  const w = width ?? (admin ? 1300 : 1100); // painel em largura de computador (menu lateral a partir de 1280 px)
   const ctx = await br.newContext({ viewport: { width: w, height: 900 } });
   if (admin) await ctx.addInitScript((s) => localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)), session);
   const p = await ctx.newPage();
@@ -137,7 +138,7 @@ const rowsExtra = [
   check('link extra no rodapé abre em nova aba', (await p.locator('footer').getByRole('link', { name: 'Mercado Livre' }).getAttribute('target')) === '_blank');
   await p.goto(BASE + '/custom'); await p.waitForSelector('form');
   check('pedidos pausados: aviso aparece', await p.getByText('Voltamos em março!').count() >= 1);
-  check('pedidos pausados: botão de enviar desligado', await p.getByRole('button', { name: /Enviar Solicitação/ }).isDisabled());
+  check('pedidos pausados: botão de enviar desligado', await p.getByRole('button', { name: /Enviar solicitação/ }).isDisabled());
   await p.close();
 }
 {
@@ -147,15 +148,15 @@ const rowsExtra = [
   check('padrão: busca aparece', await p.getByPlaceholder('Buscar modelos...').count() === 1);
   check('padrão: ordem = mais recentes', (await p.locator('#ordem').inputValue()) === 'recent');
   await p.goto(BASE + '/custom'); await p.waitForSelector('form');
-  check('padrão: pedidos abertos', await p.getByRole('button', { name: /Enviar Solicitação/ }).isEnabled());
+  check('padrão: pedidos abertos', await p.getByRole('button', { name: /Enviar solicitação/ }).isEnabled());
   await p.close();
 }
 
 // ============ ADMIN ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
-  await p.waitForSelector('[role=tablist]');
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
+  await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
   // tema pronto preenche tudo
   await p.getByRole('button', { name: 'Floresta' }).click();
   check('tema pronto troca a cor principal', (await p.getByLabel('Cor principal (código)').inputValue()) === '#15803d');
@@ -163,7 +164,7 @@ const rowsExtra = [
   check('tema pronto mostra o fundo na hora', bgNow === '#fdf8ee', bgNow);
   check('tema pronto não grava nada sozinho', writes.length === 0);
   // criar página pelo painel: incompleta bloqueia
-  await p.getByRole('tab', { name: 'Menus e páginas' }).click();
+  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
   check('nomes dos botões do menu aparecem na aba', await p.getByLabel('Nome do botão da vitrine').count() === 1 && await p.getByLabel('Nome do botão “Sobre”').count() === 1);
   await p.getByRole('button', { name: 'Nova página' }).click();
   await p.getByLabel('Título da página').fill('Só título');
@@ -196,7 +197,7 @@ const rowsExtra = [
   check('menu do topo guarda a página e mantém os botões da loja', mt && JSON.parse(mt).some(i => i.k === 'page' && i.r === 'pageA') && ['home', 'about', 'custom'].every(k => JSON.parse(mt).some(i => i.k === k)), mt);
   check('rodapé não guarda botões da loja', !JSON.parse(post?.body.find(r => r.key === 'menuFoot')?.value || '[]').some(i => ['home', 'about', 'custom'].includes(i.k)));
   // pedido mínimo inválido bloqueia
-  await p.getByRole('tab', { name: 'Recursos' }).click();
+  await p.getByRole('button', { name: 'Pedidos e carrinho', exact: true }).click();
   await p.getByLabel('Pedido mínimo (R$)').fill('abc');
   const n0 = writes.length;
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
@@ -213,8 +214,7 @@ const rowsExtra = [
 // ============ ADMIN: ligar o botão Sobre direto no menu ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
-  await p.getByRole('tab', { name: 'Menus e páginas' }).click();
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
   await p.getByRole('listitem').filter({ hasText: 'Sobre' }).getByLabel('Mostrar na loja').check();
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
@@ -243,11 +243,11 @@ const rowsExtra = [
 // ============ ADMIN: busca de configurações e ícones de colunas ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
-  await p.waitForSelector('[role=tablist]');
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
+  await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
   const search = p.getByLabel('Buscar configurações');
   await search.fill('frete');
-  check('busca esconde as abas', await p.locator('[role=tablist]').count() === 0);
+  check('busca troca a tela pelos resultados', await p.getByRole('heading', { name: 'Buscar configuração' }).isVisible());
   check('busca acha campo em outra aba (frete)', await p.getByText('Aviso sobre frete e prazo').count() >= 1);
   check('busca mostra a contagem', await p.getByRole('status').filter({ hasText: /configura/ }).count() >= 1);
   await search.fill('voce tambem');
@@ -255,12 +255,12 @@ const rowsExtra = [
   await search.fill('zzzxxx');
   check('busca sem resultado avisa', await p.getByText(/Nenhuma configuração encontrada/).count() === 1);
   await search.press('Escape');
-  check('Esc limpa a busca e volta às abas', (await search.inputValue()) === '' && await p.locator('[role=tablist]').count() === 1);
+  check('Esc limpa a busca e volta à área', (await search.inputValue()) === '' && await p.getByRole('heading', { name: 'Aparência', exact: true }).isVisible());
   // edita pela busca e a edição vale
   await search.fill('cor principal');
   await p.getByLabel('Cor principal (código)').fill('#7c3aed');
   await search.fill('');
-  await p.getByRole('tab', { name: 'Aparência' }).click();
+  await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   check('edição feita pela busca é mantida', (await p.getByLabel('Cor principal (código)').inputValue()) === '#7c3aed');
   // ícones de colunas
   const radios = p.getByRole('radiogroup', { name: /Produtos por linha/ }).getByRole('radio');

@@ -61,7 +61,7 @@ export default function ProductDetailModal({ product, products = [], categories,
           {images.length > 0 ? (
             <ProductImage src={images[activeImageIndex]} alt={product.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon className="w-12 h-12" /></div>
+            <div className="w-full h-full flex items-center justify-center text-gray-500"><ImageIcon className="w-12 h-12" /></div>
           )}
         </div>
         {images.length > 1 && (
@@ -84,7 +84,7 @@ export default function ProductDetailModal({ product, products = [], categories,
         <div className="flex-1 md:overflow-y-auto p-6">
           {(productCategories.length > 0 || badge) && (
             <div className="flex flex-wrap items-center gap-1.5 mb-3 pr-10">
-              {badge && <span style={badgeStyle(settings.badgeColor)} className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{badge}</span>}
+              {badge && <span style={badgeStyle(settings.badgeColor)} className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{badge}</span>}
               {productCategories.map(cat => (
                 <span key={cat.id} className="text-[11px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full">{cat.name}</span>
               ))}
@@ -102,12 +102,12 @@ export default function ProductDetailModal({ product, products = [], categories,
           </div>
 
           {settings.leadTimeEnabled && product.leadTime && (
-            <p className="text-sm text-gray-600 mb-4 flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" /> {product.leadTime}</p>
+            <p className="text-sm text-gray-600 mb-4 flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-500" /> {product.leadTime}</p>
           )}
 
           {options.map(opt => (
             <div key={opt.name} className="mb-4">
-              <span className="block text-xs font-semibold uppercase text-gray-400 tracking-wider mb-2">{opt.name}</span>
+              <span className="block text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{opt.name}</span>
               <div className="flex flex-wrap gap-2">
                 {opt.values.map(v => (
                   <button
@@ -125,17 +125,17 @@ export default function ProductDetailModal({ product, products = [], categories,
           ))}
 
           <div className="border-t border-gray-100 pt-4 mb-4">
-            <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-2">Descrição</h3>
+            <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">Descrição</h3>
             <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
           </div>
 
           {related.length > 0 && (
             <div className="border-t border-gray-100 pt-4">
-              <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-3">{settings.relatedTitle}</h3>
+              <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-3">{settings.relatedTitle}</h3>
               <ul className="grid grid-cols-3 gap-2">
                 {related.map(rp => (
                   <li key={rp.id}>
-                    <button type="button" onClick={() => onOpenProduct?.(rp)} className="w-full text-left group" aria-label={`Ver ${rp.title}`}>
+                    <button type="button" onClick={() => onOpenProduct?.(rp)} className="w-full text-left group">
                       <div className="aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
                         {rp.imageUrls?.[0] ? <ProductImage thumb src={rp.imageUrls[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <ImageIcon className="w-6 h-6 text-gray-300" />}
                       </div>

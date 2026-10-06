@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
+import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
 import { resolveMenu, type MenuContext } from '../lib/menus';
 import type { Category } from '../types';
@@ -62,34 +62,30 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
             return <button key={item.id} onClick={() => navigate(item.to!)} className={`${base} ${tone}${visibility}`}>{item.label}</button>;
           })}
 
-          {user ? (
+          {/* Painel: atalho só para quem já está logado. Visitantes não veem o ícone de login
+              (era ruído no topo); o acesso fica no rodapé, em "Área do lojista". */}
+          {user && (
             <button
               onClick={() => window.open('/admin', '_blank')}
               className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-600 hover:bg-gray-100 transition-colors ml-1"
+              aria-label="Acessar painel (abre em nova aba)"
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span className="hidden sm:inline">Acessar Painel</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => window.open('/login', '_blank')}
-              className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-400 hover:bg-gray-50 transition-colors"
-              title="Acesso Administrativo" aria-label="Acesso administrativo"
-            >
-              <LogIn className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+              <span className="hidden sm:inline">Painel</span>
             </button>
           )}
 
           <div className="w-px h-6 bg-gray-300 mx-2"></div>
 
+          {/* O nome lido em voz alta inclui o número que aparece no selo: "Abrir orçamento (2 item(ns))" */}
           <button
             onClick={onOpenCart}
-            aria-label={`Abrir orçamento (${cartCount} item(ns))`}
-            className="relative p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
+            className="relative p-2.5 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-5 h-5" aria-hidden="true" />
+            <span className="sr-only">{`Abrir orçamento (${cartCount} item(ns))`}</span>
             {cartCount > 0 && (
-              <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-sm">
+              <span aria-hidden="true" className="absolute top-0 right-0 -mt-0.5 -mr-0.5 flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-sm">
                 {cartCount}
               </span>
             )}
@@ -101,29 +97,34 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
 }
 
 // Cabeçalho do painel administrativo
-export function AdminHeader({ onLogout }: { onLogout: () => void }) {
+export function AdminHeader({ onLogout, storeName }: { onLogout: () => void; storeName?: string }) {
   return (
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link to="/admin" className="flex items-center gap-3">
-          <Settings className="w-6 h-6 text-blue-500" strokeWidth={2.5} />
-          <span className="text-lg font-bold tracking-tight">Sistema Admin</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <Link to="/admin" className="flex items-center gap-3 min-w-0">
+          <Settings className="w-6 h-6 text-blue-500 flex-shrink-0" strokeWidth={2.5} />
+          <span className="min-w-0">
+            <span className="block text-base font-bold tracking-tight truncate">{storeName || 'Minha loja'}</span>
+            <span className="block text-[11px] uppercase tracking-wider text-slate-400 -mt-0.5">Painel de gestão</span>
+          </span>
         </Link>
         <nav className="flex items-center gap-4">
           <button
             onClick={() => window.open('/', '_blank')}
-            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors p-2 -m-2"
+            aria-label="Ver loja (abre em nova aba)"
           >
             <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline">Ver Loja</span>
+            <span className="hidden sm:inline">Ver loja</span>
           </button>
           <div className="w-px h-5 bg-slate-700"></div>
           <button
             onClick={onLogout}
-            className="text-sm font-medium text-red-400 hover:text-red-300 flex items-center gap-2 transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors p-2 -m-2"
+            aria-label="Sair do painel"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair do Sistema</span>
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </nav>
       </div>
@@ -141,19 +142,20 @@ export function StoreFooter({ settings, categories }: { settings: SiteSettings; 
           {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600">{settings.menuAbout}</Link>}
+          {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600 py-2">{settings.menuAbout}</Link>}
           {resolveMenu(settings.menus.foot, menuContext(settings, categories)).map(item => (
             item.href
-              ? <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{item.label}</a>
-              : <Link key={item.id} to={item.to!} className="hover:text-blue-600">{item.label}</Link>
+              ? <a key={item.id} href={item.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{item.label}</a>
+              : <Link key={item.id} to={item.to!} className="hover:text-blue-600 py-2">{item.label}</Link>
           ))}
           {socialLinks(settings).map(l => (
-            <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600">{l.label}</a>
+            <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{l.label}</a>
           ))}
           {settings.whatsapp && (
-            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600">WhatsApp</a>
+            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">WhatsApp</a>
           )}
-          <Link to="/privacidade" className="hover:text-blue-600">Política de privacidade</Link>
+          <Link to="/privacidade" className="hover:text-blue-600 py-2">Política de privacidade</Link>
+          <Link to="/login" className="hover:text-blue-600 py-2">Área do lojista</Link>
         </div>
       </div>
     </footer>

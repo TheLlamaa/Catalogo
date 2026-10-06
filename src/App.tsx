@@ -37,7 +37,7 @@ function SlowHint() {
     const t = setTimeout(() => setShow(true), 4000);
     return () => clearTimeout(t);
   }, []);
-  return show ? <p className="text-xs text-gray-400 mt-2">Está demorando mais que o normal. Só mais um instante…</p> : null;
+  return show ? <p className="text-xs text-gray-500 mt-2">Está demorando mais que o normal. Só mais um instante…</p> : null;
 }
 
 export default function App() {
@@ -149,6 +149,9 @@ function MainLayout() {
     <SettingsContext.Provider value={settings}>
     <div className="min-h-screen bg-[var(--page-bg)] text-gray-900 font-sans flex flex-col">
 
+      {/* Atalho de teclado: aparece no primeiro Tab e pula cabeçalho e menus */}
+      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">Pular para o conteúdo</a>
+
       {ENV_LABEL && (
         <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">
           {ENV_LABEL} — os dados aqui não são os da loja real
@@ -166,10 +169,10 @@ function MainLayout() {
 
       {/* HEADER 2: ADMIN */}
       {isAdminRoute && (
-        <AdminHeader onLogout={handleLogout} />
+        <AdminHeader onLogout={handleLogout} storeName={settings.storeName} />
       )}
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+      <main id="conteudo" tabIndex={-1} className={`outline-none flex-1 mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full ${isAdminRoute ? 'max-w-7xl' : 'max-w-6xl'}`}>
         <Suspense fallback={<p role="status" className="py-16 text-center text-sm text-gray-500">Carregando...</p>}>
         <Routes>
           <Route path="/" element={catalogElement} />

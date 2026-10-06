@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare, Box } from 'lucide-react';
+import { whatsappButtonClass } from '../../../components/ui';
 import Dialog from '../../../components/Dialog';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
@@ -42,7 +43,7 @@ function ModalShell({ title, icon: Icon, onClose, children, footer }: ModalShell
           <Icon className="w-5 h-5 text-blue-600" />
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
         </div>
-        <button onClick={onClose} aria-label="Fechar" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
+        <button onClick={onClose} aria-label="Fechar" className="p-1.5 text-gray-500 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -65,7 +66,7 @@ function WhatsappButton({ order, label, message }: { order: Pick<CatalogOrder, '
     <a
       href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, message)}
       target="_blank" rel="noreferrer"
-      className="bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+      className={whatsappButtonClass}
     >
       <MessageSquare className="w-4 h-4" /> {label}
     </a>
@@ -83,7 +84,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
   const { confirm } = useUI();
 
   const handleDelete = async () => {
-    const ok = await confirm({ title: 'Excluir solicitação', message: `Excluir a solicitação de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir solicitação?', message: `A solicitação de ${order.client_name} será apagada. Isso não pode ser desfeito.`, confirmLabel: 'Excluir solicitação' });
     if (ok) onDelete(order.id);
   };
 
@@ -100,7 +101,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
           <img src={order.image_url} alt="Referência enviada" className="object-contain max-h-80 w-auto" />
         </div>
       ) : (
-        <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 text-gray-400">
+        <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 text-gray-500">
           <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
           <p className="text-sm font-medium">Nenhuma imagem enviada para este pedido</p>
         </div>
@@ -118,7 +119,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Observações e Especificações do Pedido</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Observações do pedido</h3>
         <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 whitespace-pre-line leading-relaxed">{order.description}</div>
       </div>
     </ModalShell>
@@ -130,7 +131,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
   const { modelLinkEnabled } = useSettings();
 
   const handleDelete = async () => {
-    const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir pedido?', message: `O pedido de ${order.client_name} será apagado e sai dos relatórios. Isso não pode ser desfeito.`, confirmLabel: 'Excluir pedido' });
     if (ok) onDelete(order.id);
   };
 
@@ -169,7 +170,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
               <div key={idx} className="p-3 bg-white flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-gray-400" />}
+                    {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
@@ -197,7 +198,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
       )}
 
       <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <span className="text-sm font-semibold text-gray-700">Total do Pedido</span>
+        <span className="text-sm font-semibold text-gray-700">Total do pedido</span>
         <span className="text-xl font-extrabold text-blue-600">{brl(order.total)}</span>
       </div>
     </ModalShell>

@@ -6,15 +6,17 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
+import { Switch, PageHeader, Button, inputClass } from '../../../components/ui';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
-import type { Category } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import type { Category, Product } from '../../../types';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
+import { friendlyError } from '../../../lib/errorMessage';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
@@ -32,7 +34,7 @@ const fieldMatches = (f: SettingField, q: string): boolean => {
   return normalizeText(`${f.label} ${f.hint || ''} ${optionText}`).includes(q);
 };
 
-const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
+const inputCls = inputClass;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DB_VALUE_MAX = 5000;
 
@@ -46,10 +48,6 @@ interface FaqDraft { q?: string; a?: string }
 
 // Texto de um valor do formulário (interruptores não têm texto)
 const str = (v: string | boolean | undefined): string => (typeof v === 'string' ? v : '');
-// Texto de um erro desconhecido (Error, objeto com message ou qualquer outro valor)
-const errorText = (err: unknown): string => (
-  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string' && err.message ? err.message : String(err)
-);
 
 const toForm = (key: string, value: unknown): string | boolean => (key === 'whatsapp' ? formatPhoneBR(value) : value as string | boolean); // valores já validados por mergeSettings
 const formFrom = (settings: Settings): FormValues => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, settings[k])]));
@@ -74,19 +72,25 @@ interface SiteSettingsProps {
   onSave: (changes: SettingChanges, successMessage?: string) => Promise<boolean>;
   onUndo: () => unknown;
   categories: Category[];
+  products: Product[];
+  group: string; // grupo escolhido no menu do painel
+  onGroupChange: (group: string) => void;
+  onDirtyChange?: (dirty: boolean) => void; // o painel avisa antes de sair com alterações não publicadas
+  onShowProducts?: (filter: string) => void; // atalho para a lista de produtos já filtrada
 }
 
-export default function SiteSettings({ settings, categories, onSave, onUndo }: SiteSettingsProps) {
+export default function SiteSettings({ settings, categories, products, group, onGroupChange, onDirtyChange, onShowProducts, onSave, onUndo }: SiteSettingsProps) {
   const { toast, confirm } = useUI();
   const [form, setForm] = useState<FormValues>(() => formFrom(settings));
   const [base, setBase] = useState(form);
-  const [group, setGroup] = useState(GROUPS[0].id);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
 
   const dirty = Object.keys(DEFAULT_SETTINGS).some(k => toStored(k, form[k]) !== toStored(k, base[k]));
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   // Depois de salvar ou desfazer, o painel acompanha o que está publicado (se não há edição pendente)
   useEffect(() => {
@@ -170,19 +174,19 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
   };
 
   const discard = async () => {
-    if (!(await confirm({ title: 'Descartar alterações', message: 'Voltar ao que está publicado e perder o que você mudou aqui?', confirmLabel: 'Descartar' }))) return;
+    if (!(await confirm({ title: 'Descartar alterações?', message: 'O que você mudou aqui e ainda não publicou volta a como está no site.', confirmLabel: 'Descartar' }))) return;
     setForm(base);
   };
 
   const resetField = (key: string) => set(key, toForm(key, DEFAULT_SETTINGS[key]));
   const resetSection = (section: SettingsSection) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
   const resetAll = async () => {
-    if (!(await confirm({ title: 'Voltar tudo ao padrão', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar.', confirmLabel: 'Voltar ao padrão' }))) return;
+    if (!(await confirm({ title: 'Voltar tudo ao padrão?', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar alterações.', confirmLabel: 'Voltar ao padrão' }))) return;
     setForm(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, DEFAULT_SETTINGS[k])])));
   };
 
   const handleUndo = async () => {
-    if (dirty && !(await confirm({ title: 'Desfazer', message: 'Você tem alterações não publicadas aqui. Desfazer a última publicação descarta elas. Continuar?', confirmLabel: 'Desfazer' }))) return;
+    if (dirty && !(await confirm({ title: 'Desfazer a última publicação?', message: 'O site volta a como estava antes da última publicação, e o que você mudou aqui sem publicar será descartado.', confirmLabel: 'Desfazer publicação' }))) return;
     setBase(form); dirtyRef.current = false;
     await onUndo();
   };
@@ -195,12 +199,18 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
         const sectionHit = normalizeText(`${s.title} ${groupLabel(s.group)}`).includes(q);
         return { ...s, fields: sectionHit ? s.fields : s.fields.filter(f => fieldMatches(f, q)) };
       }).filter(s => s.fields.length > 0)
-    : SETTINGS_SCHEMA.filter(s => s.group === group);
+    : (GROUPS.find(g => g.id === group)?.sections || []).map(t => SETTINGS_SCHEMA.find(s => s.title === t)).filter((s): s is SettingsSection => !!s);
+  const current = GROUPS.find(g => g.id === group) || GROUPS[0];
+  const count = (section: string) => products.filter(p => p.section === section).length;
   const resultCount = sections.reduce((n, s) => n + (s.group === 'menus' ? 1 : s.fields.length), 0);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <p className="text-sm text-gray-600">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
+      <PageHeader
+        title={searching ? 'Buscar configuração' : current.label}
+        description={searching ? 'Resultados de todas as áreas do site.' : current.description}
+      />
+      <p className="text-xs text-gray-500 -mt-3">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Cor, fonte e logo aparecem em prévia aqui enquanto você escolhe.</p>
 
       {settings.backup && (
         <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm">
@@ -210,7 +220,7 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
       )}
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" aria-hidden="true" />
         <input
           type="search" value={query} onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); setQuery(''); } }}
@@ -226,19 +236,11 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
         </div>
       )}
 
-      {!searching && <div role="tablist" aria-label="Áreas do site" className="flex flex-wrap gap-2">
-        {GROUPS.map(g => (
-          <button
-            key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${group === g.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-          >{g.label}</button>
-        ))}
-      </div>}
 
       {!searching && group === 'aparencia' && (
-        <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+        <fieldset className="rounded-lg border border-gray-200 bg-white shadow-sm p-5">
           <legend className="sr-only">Temas prontos</legend>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h3>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h2>
           <p className="text-xs text-gray-500 mb-3">Preenche cor, fonte, fundo e cantos de uma vez. Dá para ajustar depois; nada vai ao ar até publicar.</p>
           <div className="flex flex-wrap gap-2">
             {THEME_PRESETS.map(t => (
@@ -257,15 +259,19 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
         return (
-          <fieldset key={section.title} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <fieldset key={section.title} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
             <legend className="sr-only">{section.title}</legend>
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
-              <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
+              <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
                 {section.title}
-                {searching && <span className="text-xs font-normal text-gray-500">· {groupLabel(section.group)}</span>}
-              </h3>
-              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
+                {searching && (
+                  <button type="button" onClick={() => { onGroupChange(section.group); setQuery(''); }} className="text-xs font-normal text-blue-700 underline py-1">
+                    em {groupLabel(section.group)}
+                  </button>
+                )}
+              </h2>
+              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap py-2 -my-2"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
             </div>
             <div className="p-5 space-y-5">
               {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
@@ -275,6 +281,15 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
                 <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
+              {section.title === 'Seções no topo da vitrine' && (
+                <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-900 space-y-2">
+                  <p><strong>Quais produtos aparecem?</strong> Você escolhe na lista de Produtos (estrela ★ Destaque) ou no cadastro do produto, em “Onde aparece na vitrine”. Novidades entram sozinhas: produtos dos últimos 30 dias.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => onShowProducts?.('destaque')}>Ver Destaques ({count('destaque')})</Button>
+                    <Button size="sm" onClick={() => onShowProducts?.('popular')}>Ver Mais pedidos ({count('popular')})</Button>
+                  </div>
+                </div>
+              )}
             </div>
           </fieldset>
         );
@@ -282,13 +297,13 @@ export default function SiteSettings({ settings, categories, onSave, onUndo }: S
 
       <div className="sticky bottom-0 -mx-1 px-1 py-4 bg-white/95 backdrop-blur border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:text-red-600">Voltar tudo ao padrão</button>
-          {dirty && <button type="button" onClick={discard} className="text-sm text-gray-500 hover:text-gray-800">Descartar alterações</button>}
+          <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:text-red-600 py-2">Voltar tudo ao padrão</button>
+          {dirty && <button type="button" onClick={discard} className="text-sm text-gray-500 hover:text-gray-800 py-2">Descartar alterações</button>}
         </div>
         <div className="flex items-center gap-3">
           {dirty && <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">Alterações não publicadas</span>}
-          <a href="/" target="_blank" rel="noreferrer" className="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">Ver site</a>
-          <button type="submit" disabled={saving || !dirty} className="px-5 py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? 'Publicando…' : 'Publicar alterações'}</button>
+          <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Ver site</a>
+          <Button type="submit" variant="primary" disabled={saving || !dirty}>{saving ? 'Publicando…' : 'Publicar alterações'}</Button>
         </div>
       </div>
     </form>
@@ -306,19 +321,11 @@ function Field({ f, form, set, resetField }: FieldProps) {
   const id = `s-${f.key}`;
   const isDefault = toStored(f.key, form[f.key]) === null;
   const resetBtn = !isDefault && (
-    <button type="button" onClick={() => resetField(f.key)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Padrão</button>
+    <button type="button" onClick={() => resetField(f.key)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 py-1.5 -my-1.5"><RotateCcw className="w-3 h-3" /> Padrão</button>
   );
 
   if (f.type === 'toggle') {
-    return (
-      <div>
-        <label htmlFor={id} className="flex items-center gap-3 cursor-pointer select-none">
-          <input id={id} type="checkbox" checked={!!form[f.key]} onChange={e => set(f.key, e.target.checked)} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-          <span className="text-sm font-medium text-gray-700">{f.label}</span>
-        </label>
-        {f.hint && <p className="text-xs text-gray-500 mt-1 ml-7">{f.hint}</p>}
-      </div>
-    );
+    return <Switch id={id} checked={!!form[f.key]} onChange={v => set(f.key, v)} label={f.label} hint={f.hint} />;
   }
 
   let control: ReactNode;
@@ -396,7 +403,7 @@ function Field({ f, form, set, resetField }: FieldProps) {
 }
 
 function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorFieldDef; value: string; onChange: (v: string) => void; primary: string }) {
-  const fallback = f.key === 'bannerColor' && isHex(primary) ? primary : DEFAULT_PRIMARY;
+  const fallback = f.key === 'badgeColor' ? DEFAULT_BADGE_BG : f.key === 'bannerColor' && isHex(primary) ? primary : DEFAULT_PRIMARY;
   const shown = isHex(value.trim()) ? value.trim() : fallback;
   return (
     <div className="flex items-center gap-3">
@@ -416,13 +423,13 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
     if (!file.type.startsWith('image/')) return toast.error('Escolha um arquivo de imagem.');
     setBusy(true);
     try { onChange(await uploadSiteImage(file)); }
-    catch (err) { console.error(err); toast.error(`Erro ao enviar imagem: ${errorText(err)}`); }
+    catch (err) { console.error(err); toast.error(`A imagem não foi enviada. ${friendlyError(err)}`); }
     setBusy(false);
   };
   return (
     <div className="flex items-center gap-4">
       <div className="h-16 w-24 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-        {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-400" />}
+        {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
       </div>
       <div className="flex flex-wrap gap-2">
         <label htmlFor={id} className={`px-3 py-2 border border-gray-300 rounded-md text-sm font-medium cursor-pointer hover:bg-gray-50 flex items-center gap-1.5 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>

@@ -31,7 +31,7 @@ export function OrderFilters({ value, onChange, showDelivery = false, placeholde
     <div className="mb-4 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem]">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="search" aria-label="Buscar pedidos" placeholder={placeholder || 'Buscar por cliente, telefone, produto ou código'}
             value={value.query} onChange={e => set({ query: e.target.value })}
@@ -80,7 +80,7 @@ export function StatusChips({ counts, total, value, onChange }: StatusChipsProps
       key={id} onClick={() => onChange(id)} aria-pressed={value === id}
       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${value === id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
     >
-      {label} <span className="opacity-70">({n})</span>
+      {label} <span className={value === id ? "text-gray-300" : "text-gray-500"}>({n})</span>
     </button>
   );
   return (

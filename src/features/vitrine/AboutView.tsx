@@ -17,7 +17,7 @@ export default function AboutView() {
   return (
     <article className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">
       <Link to="/" className="mb-6 text-sm font-medium text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 transition-colors">
-        <ChevronLeft className="w-4 h-4" /> Voltar para Loja
+        <ChevronLeft className="w-4 h-4" /> Voltar para a loja
       </Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{settings.aboutTitle}</h1>
 
@@ -39,7 +39,7 @@ export default function AboutView() {
               <details key={i} className="group bg-white">
                 <summary className="flex items-center justify-between gap-3 cursor-pointer select-none px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 list-none [&::-webkit-details-marker]:hidden">
                   <span>{item.q}</span>
-                  <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform group-open:rotate-180" />
+                  <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0 transition-transform group-open:rotate-180" />
                 </summary>
                 <p className="px-4 pb-4 text-sm text-gray-600 leading-relaxed whitespace-pre-line">{item.a}</p>
               </details>

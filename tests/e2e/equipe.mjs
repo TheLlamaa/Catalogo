@@ -9,7 +9,7 @@ let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
 
 async function abrir(browser, { version = '11', metaError = false, adminsError = false } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
   await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
   const page = await ctx.newPage();
   page.on('pageerror', e => { fails++; console.log('PAGEERROR', e.message); });

@@ -44,7 +44,7 @@ await page.route('https://mock.supabase.co/**', async (route) => {
 await page.goto(BASE + '/admin');
 await page.getByTestId('resumo-pedidos').waitFor();
 const resumo = () => page.getByTestId('resumo-pedidos').innerText();
-const cards = () => page.locator('div.cursor-pointer').count();
+const cards = () => page.getByRole('button', { name: / — ver pedido$/ }).count();
 
 let r = await resumo();
 check('mostra os 4 pedidos', await cards() === 4);
@@ -82,7 +82,7 @@ await page.getByRole('button', { name: /^Todos/ }).click();
 
 // ordenação
 await page.getByLabel('Ordenar por').selectOption('total_desc');
-check('maior valor primeiro (o cancelado de 500)', (await page.locator('div.cursor-pointer h3').first().innerText()) === 'Pedro Cancelou');
+check('maior valor primeiro (o cancelado de 500)', (await page.getByRole('button', { name: / — ver pedido$/ }).first().textContent()).replace(' — ver pedido', '').trim() === 'Pedro Cancelou');
 await page.getByLabel('Ordenar por').selectOption('recent');
 
 // relatório (aba nova)
@@ -114,7 +114,7 @@ const csv2 = fs.readFileSync(await d2.path(), 'utf8');
 check('planilha de pedidos: cabeçalho e 4 linhas', csv2.startsWith('﻿"Código";"Data"') && csv2.trim().split('\r\n').length === 5);
 
 // pedidos personalizados também têm busca e filtros
-await page.getByRole('button', { name: /Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 await page.getByLabel('Buscar pedidos').waitFor();
 check('custom: lista os 2', await cards() === 2);
 await page.getByLabel('Buscar pedidos').fill('controle');

@@ -126,3 +126,6 @@ body {
 .aura-purple { --aura-stops: #a855f7, #c084fc, #7e22ce, #a855f7; }
 .aura-red { --aura-stops: #ef4444, #fca5a5, #b91c1c, #ef4444; }
 .aura-green { --aura-stops: #22c55e, #86efac, #15803d, #22c55e; }
+/* Menu do painel no celular: desliza da direita */
+@keyframes slideIn { from { transform: translateX(16px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

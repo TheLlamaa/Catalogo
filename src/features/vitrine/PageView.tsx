@@ -22,7 +22,7 @@ export default function PageView() {
   return (
     <article className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">
       <Link to="/" className="mb-6 text-sm font-medium text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 transition-colors">
-        <ChevronLeft className="w-4 h-4" /> Voltar para Loja
+        <ChevronLeft className="w-4 h-4" /> Voltar para a loja
       </Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{page.title}</h1>
       <RichText text={page.text} />

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2, MessageSquare } from 'lucide-react';
+import { inputClass, whatsappButtonClass } from '../../components/ui';
 import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
@@ -103,7 +104,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
     <Dialog variant="drawer" onClose={handleClose} label={settings.cartTitle} panelClassName="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
         <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-blue-600" /> {settings.cartTitle}</h2>
-        <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
+        <button onClick={handleClose} aria-label="Fechar orçamento" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
       </div>
 
       {step === 'cart' && (
@@ -122,7 +123,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                   return (
                     <li key={line.key} className="flex gap-4">
                       <div className="w-20 h-20 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-gray-400" />}
+                        {imgUrl ? <ProductImage thumb src={imgUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-gray-500" />}
                       </div>
                       <div className="flex-1 flex flex-col">
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{line.product.title}</h3>
@@ -134,7 +135,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                             <span className="px-3 text-sm font-medium">{line.quantity}</span>
                             <button onClick={() => updateQuantity(line.key, 1)} aria-label="Aumentar quantidade" className="p-1.5 text-gray-500 hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
                           </div>
-                          <button onClick={() => removeItem(line.key)} className="text-xs text-red-500 font-medium">Remover</button>
+                          <button onClick={() => removeItem(line.key)} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">Remover</button>
                         </div>
                       </div>
                     </li>
@@ -168,16 +169,16 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             className="absolute -left-[9999px] w-px h-px opacity-0"
           />
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para Contato</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para contato</h3>
             <p className="text-xs text-gray-500 mb-5">{settings.cartIntro}</p>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu Nome *</label>
+                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome *</label>
                 <input
                   id="k-nome" required type="text" placeholder="Ex: João Souza" maxLength={100}
                   value={clientName} onChange={e => setClientName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
               <div>
@@ -185,7 +186,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                 <input
                   id="k-whats" required type="text" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
                   value={clientPhone} onChange={e => setClientPhone(formatPhoneBR(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -210,23 +211,23 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                 <input
                   id="k-end" type="text" maxLength={300} placeholder="Rua, número, bairro e cidade"
                   value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
-                {settings.deliveryNote && <p className="text-xs text-gray-400 mt-1">{settings.deliveryNote}</p>}
+                {settings.deliveryNote && <p className="text-xs text-gray-500 mt-1">{settings.deliveryNote}</p>}
               </div>
             )}
           </fieldset>}
 
           {settings.notesEnabled && <div>
             <label htmlFor="k-obs" className="block text-sm font-medium text-gray-700 mb-1">
-              Observações <span className="text-gray-400 font-normal">(opcional)</span>
+              Observações <span className="text-gray-500 font-normal">(opcional)</span>
             </label>
             <textarea
               id="k-obs" rows={3} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Ex: cor preferida, prazo desejado..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{notes.length}/500</p>
+            <p className="text-xs text-gray-500 mt-1 text-right">{notes.length}/500</p>
           </div>}
 
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2">
@@ -251,7 +252,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
               disabled={isSubmitting}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Finalizar Pedido'}
+              {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Finalizar pedido'}
             </button>
           </div>
         </form>
@@ -268,7 +269,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             <a
               href={whatsappLink(settings.whatsapp, buildOrderMessage({ ...lastOrder, intro: settings.orderMessageIntro }))}
               target="_blank" rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-3"
+              className={whatsappButtonClass}
             >
               <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
             </a>

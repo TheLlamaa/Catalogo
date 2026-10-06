@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquare, Truck, Store, AlertTriangle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { PageHeader, whatsappIconClass, Button } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import Pagination from './Pagination';
 import ViewToggle from './ViewToggle';
 import { useViewMode } from '../../../hooks/useViewMode';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { usePagination } from '../../../hooks/usePagination';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
@@ -29,7 +32,7 @@ function Card({ label, value, sub, tone = 'text-gray-900' }: CardProps) {
     <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
       <span className="block text-xs text-gray-500 font-medium">{label}</span>
       <strong className={`block text-xl font-extrabold mt-0.5 ${tone}`}>{value}</strong>
-      {sub && <span className="block text-[11px] text-gray-400">{sub}</span>}
+      {sub && <span className="block text-[11px] text-gray-500">{sub}</span>}
     </div>
   );
 }
@@ -42,15 +45,8 @@ interface ActionButtonProps {
   primary?: boolean;
 }
 
-function ActionButton({ icon: Icon, children, onClick, disabled, primary }: ActionButtonProps) {
-  return (
-    <button
-      onClick={onClick} disabled={disabled}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-40 ${primary ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700'}`}
-    >
-      <Icon className="w-4 h-4" /> {children}
-    </button>
-  );
+function ActionButton({ icon, children, onClick, disabled, primary }: ActionButtonProps) {
+  return <Button icon={icon as LucideIcon} onClick={onClick} disabled={disabled} variant={primary ? 'primary' : 'secondary'}>{children}</Button>;
 }
 
 function filtersText(f: OrderFiltersValue, status: string) {
@@ -70,6 +66,7 @@ interface CatalogOrdersManagerProps {
 
 export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, onUpdateStatus }: CatalogOrdersManagerProps) {
   const { confirm, toast } = useUI();
+  const wide = useMediaQuery('(min-width: 640px)');
   const { storeName } = useSettings();
   const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
   const [status, setStatus] = useState('all');
@@ -83,7 +80,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const [view, setView] = useViewMode();
 
   const handleDelete = async (order: CatalogOrder) => {
-    const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir pedido?', message: `O pedido de ${order.client_name} será apagado e sai dos relatórios. Isso não pode ser desfeito.`, confirmLabel: 'Excluir pedido' });
     if (ok) onDelete(order.id);
   };
 
@@ -98,20 +95,32 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
-        <h2 className="text-lg font-medium text-gray-900">Vendas do Catálogo ({orders.length})</h2>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Pedidos"
+        description="Orçamentos enviados pelo carrinho da vitrine. Responda pelo WhatsApp e acompanhe o status."
+        actions={orders.length > 0 && <>
           <ActionButton icon={FileBarChart} onClick={report} disabled={visible.length === 0} primary>Relatório</ActionButton>
-          <ActionButton icon={Download} onClick={exportOrders} disabled={visible.length === 0}>Planilha de pedidos</ActionButton>
-          <ActionButton icon={Download} onClick={exportItems} disabled={visible.length === 0}>Planilha de itens</ActionButton>
-        </div>
-      </div>
+          {wide ? <>
+            <ActionButton icon={Download} onClick={exportOrders} disabled={visible.length === 0}>Planilha de pedidos</ActionButton>
+            <ActionButton icon={Download} onClick={exportItems} disabled={visible.length === 0}>Planilha de itens</ActionButton>
+          </> : (
+            /* No celular as planilhas (uso raro) ficam juntas em "Exportar" */
+            <details className="relative">
+              <summary className="list-none cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-gray-300 bg-white text-gray-700"><Download className="w-4 h-4" /> Exportar</summary>
+              <div className="absolute right-0 mt-1 z-20 w-56 bg-white border border-gray-200 rounded-md shadow-lg p-1">
+                <button type="button" onClick={exportOrders} disabled={visible.length === 0} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50">Planilha de pedidos</button>
+                <button type="button" onClick={exportItems} disabled={visible.length === 0} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50">Planilha de itens</button>
+              </div>
+            </details>
+          )}
+        </>}
+      />
 
       {orders.length === 0 ? (
         <div className="py-12 text-center border border-gray-200 rounded-lg border-dashed">
           <ShoppingBag className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-4 text-base font-medium text-gray-900">Nenhum pedido realizado</h3>
-          <p className="mt-1 text-sm text-gray-500">Os pedidos feitos no carrinho da vitrine aparecem aqui.</p>
+          <h2 className="mt-4 text-base font-medium text-gray-900">Nenhum pedido ainda</h2>
+          <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">Quando um cliente enviar o carrinho da vitrine, o pedido aparece aqui (e no Telegram, se estiver configurado). Novos pedidos ganham um selo vermelho no menu.</p>
         </div>
       ) : (
         <>
@@ -176,26 +185,26 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
   const extra = items.length - first.length;
   const delivery = order.delivery_method === 'entrega';
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(order.id)}
-      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(order.id); } }}
-      className={`bg-white border rounded-lg p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${age.stale ? 'border-red-300' : 'border-gray-200'}`}
-    >
+    // O nome do cliente é o botão que abre o pedido; uma camada dele cobre o card (clique em qualquer ponto)
+    // e os outros controles ficam por cima. Assim não há botão dentro de botão.
+    <div className={`relative bg-white border rounded-lg p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow ${age.stale ? 'border-red-300' : 'border-gray-200'}`}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-bold text-gray-900 text-base truncate min-w-0">{order.client_name}</h3>
-        <div className="flex items-center gap-0.5 flex-shrink-0 -mt-1 -mr-1">
+        <h2 className="font-bold text-gray-900 text-base truncate min-w-0">
+          <button type="button" onClick={() => onSelect(order.id)} className="text-left focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-blue-500">
+            {order.client_name}<span className="sr-only"> — ver pedido</span>
+          </button>
+        </h2>
+        <div className="relative z-10 flex items-center gap-0.5 flex-shrink-0 -mt-1 -mr-1">
           <a
             href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-            className="p-1.5 text-[#25D366] hover:bg-green-50 rounded transition-colors" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
+            className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           >
             <MessageSquare className="w-4 h-4" />
           </a>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(order); }}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
             title="Excluir" aria-label="Excluir pedido"
           >
             <Trash2 className="w-4 h-4" />
@@ -204,15 +213,15 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mb-2 text-xs">
         <span className="text-blue-600 font-medium">{order.client_phone}</span>
-        <span className="text-gray-400" title={new Date(order.created_at).toLocaleString('pt-BR')}>{orderCode(order)} · {age.label}</span>
+        <span className="text-gray-500" title={new Date(order.created_at).toLocaleString('pt-BR')}>{orderCode(order)} · {age.label}</span>
         {age.stale && <span className="inline-flex items-center gap-1 font-semibold text-red-600"><AlertTriangle className="w-3 h-3" /> sem resposta</span>}
       </div>
       <ul className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded border border-gray-100 mb-2 space-y-0.5">
         {first.map((i, idx) => {
           const opt = formatOptions(i.options);
-          return <li key={idx} className="truncate">{i.quantity}x {i.title}{opt && <span className="text-gray-400"> ({opt})</span>}</li>;
+          return <li key={idx} className="truncate">{i.quantity}x {i.title}{opt && <span className="text-gray-500"> ({opt})</span>}</li>;
         })}
-        {extra > 0 && <li className="text-gray-400">+ {extra} item(ns)</li>}
+        {extra > 0 && <li className="text-gray-500">+ {extra} item(ns)</li>}
       </ul>
       <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5 min-w-0">
         {delivery ? <Truck className="w-3.5 h-3.5 flex-shrink-0" /> : <Store className="w-3.5 h-3.5 flex-shrink-0" />}
@@ -220,10 +229,10 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
       </p>
       {order.notes && <p className="text-xs text-gray-500 italic mb-2 line-clamp-1">“{order.notes}”</p>}
       <div className="flex items-center justify-between gap-2 mt-3">
-        <StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} />
+        <div className="relative z-10"><StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} /></div>
         <div className="flex items-center gap-3">
           <span className="font-bold text-gray-900">{brl(order.total)}</span>
-          <span className="hidden sm:flex text-xs font-semibold text-blue-600 hover:underline items-center gap-1">Ver <ExternalLink className="w-3 h-3" /></span>
+          <span className="hidden sm:flex text-xs font-semibold text-blue-700 items-center gap-1" aria-hidden="true">Ver <ExternalLink className="w-3 h-3" /></span>
         </div>
       </div>
     </div>
@@ -247,7 +256,7 @@ function OrderRow({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps)
       <td className="px-3 py-2.5 align-top min-w-[11rem]">
         <span className="block font-semibold text-gray-900 truncate max-w-[14rem]">{order.client_name}</span>
         <span className="block text-xs text-blue-600 font-medium">{order.client_phone}</span>
-        <span className="block text-xs text-gray-400" title={new Date(order.created_at).toLocaleString('pt-BR')}>
+        <span className="block text-xs text-gray-500" title={new Date(order.created_at).toLocaleString('pt-BR')}>
           {orderCode(order)} · {age.label}
           {age.stale && <span className="ml-1.5 inline-flex items-center gap-0.5 font-semibold text-red-600"><AlertTriangle className="w-3 h-3" /> sem resposta</span>}
         </span>
@@ -266,11 +275,11 @@ function OrderRow({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps)
           <a
             href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-            className="p-1.5 text-[#25D366] hover:bg-green-50 rounded transition-colors" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
+            className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           ><MessageSquare className="w-4 h-4" /></a>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(order); }}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir" aria-label="Excluir pedido"
+            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir" aria-label="Excluir pedido"
           ><Trash2 className="w-4 h-4" /></button>
         </div>
       </td>

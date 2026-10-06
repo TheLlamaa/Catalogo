@@ -6,6 +6,7 @@ import type { CatalogOrder, Category, CustomOrder, OrderTable, SettingRow, Store
 import { upsertProduct, setModelUrl, deleteProductRow, upsertCategory, deleteCategoryRow, updateSortOrders } from '../services/catalog';
 import { insertOrder, deleteOrderRow, setOrderStatus } from '../services/orders';
 import { upsertSettings, deleteSettings } from '../services/settings';
+import { friendlyError } from '../lib/errorMessage';
 
 interface AdminActionsDeps {
   toast: Toast;
@@ -34,7 +35,7 @@ export function useAdminActions({
   // -------------------------------------------------------------------------
   // Produtos e categorias (admin)
   // -------------------------------------------------------------------------
-  const saveProduct = async (product: Partial<StoredProduct>) => {
+  const saveProduct = async (product: Partial<StoredProduct>, successMessage = 'Produto salvo.') => {
     const payload: Record<string, unknown> = {
       title: product.title,
       description: product.description,
@@ -57,7 +58,7 @@ export function useAdminActions({
 
     const { data: saved, error } = await upsertProduct(payload);
     if (error) {
-      toast.error(`Erro ao salvar produto: ${error.message}`);
+      toast.error(`Não foi possível salvar o produto. ${friendlyError(error)}`);
       return false;
     }
 
@@ -68,12 +69,12 @@ export function useAdminActions({
     if (newUrl !== oldUrl || copiedFromOther) {
       const { error: privError } = await setModelUrl(saved.id, newUrl);
       if (privError) {
-        toast.error(`Produto salvo, mas o link do modelo não foi salvo: ${privError.message}`);
+        toast.error(`Produto salvo, mas o link do modelo não. ${friendlyError(privError)}`);
         await fetchData();
         return true;
       }
     }
-    toast.success('Produto salvo.');
+    toast.success(successMessage);
     await fetchData();
     return true;
   };
@@ -96,11 +97,11 @@ export function useAdminActions({
 
     if (toSave.length) {
       const { error } = await upsertSettings(toSave);
-      if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
+      if (error) { toast.error(`Não foi possível publicar. ${friendlyError(error)}`); return false; }
     }
     if (toReset.length) {
       const { error } = await deleteSettings(toReset);
-      if (error) { toast.error(`Erro ao salvar: ${error.message}`); return false; }
+      if (error) { toast.error(`Não foi possível publicar. ${friendlyError(error)}`); return false; }
     }
     toast.success(successMessage);
     await fetchData();
@@ -129,7 +130,7 @@ export function useAdminActions({
     setList(prev => prev.map(i => (next.has(i.id) ? { ...i, sortOrder: next.get(i.id) } : i)));
     const results = await updateSortOrders(table, updates);
     const failedError = results.find(r => r.error)?.error;
-    if (failedError) toast.error(`Erro ao reordenar: ${failedError.message}`);
+    if (failedError) toast.error(`A nova ordem não foi salva. ${friendlyError(failedError)}`);
     await fetchData();
     return !failedError;
   };
@@ -138,7 +139,7 @@ export function useAdminActions({
 
   const deleteProduct = async (id: string) => {
     const { error } = await deleteProductRow(id);
-    if (error) return toast.error(`Erro ao remover produto: ${error.message}`);
+    if (error) return toast.error(`Não foi possível excluir o produto. ${friendlyError(error)}`);
     toast.success('Produto excluído.');
     await fetchData();
   };
@@ -151,7 +152,7 @@ export function useAdminActions({
 
     const { error } = await upsertCategory(payload);
     if (error) {
-      toast.error(`Erro ao salvar categoria: ${error.message}`);
+      toast.error(`Não foi possível salvar a categoria. ${friendlyError(error)}`);
       return false;
     }
     toast.success('Categoria salva.');
@@ -161,7 +162,7 @@ export function useAdminActions({
 
   const deleteCategory = async (id: string) => {
     const { error } = await deleteCategoryRow(id);
-    if (error) return toast.error(`Erro ao remover categoria: ${error.message}`);
+    if (error) return toast.error(`Não foi possível excluir a categoria. ${friendlyError(error)}`);
     toast.success('Categoria excluída.');
     await fetchData();
   };
@@ -173,7 +174,7 @@ export function useAdminActions({
     const { error } = await insertOrder('custom_orders', orderData);
     if (error) {
       console.error('Erro ao salvar pedido customizado:', error);
-      toast.error(`Não foi possível enviar a solicitação: ${error.message}`);
+      toast.error(`Não foi possível enviar a solicitação. ${friendlyError(error)}`);
       return false;
     }
     if (userRef.current) await fetchData();
@@ -184,7 +185,7 @@ export function useAdminActions({
     const { error } = await insertOrder('orders', orderData);
     if (error) {
       console.error('Erro ao realizar pedido:', error);
-      toast.error(`Não foi possível enviar o pedido: ${error.message}`);
+      toast.error(`Não foi possível enviar o pedido. ${friendlyError(error)}`);
       return false;
     }
     clearCart();
@@ -194,7 +195,7 @@ export function useAdminActions({
 
   const deleteOrder = <T extends { id: string }>(table: OrderTable, setList: Dispatch<SetStateAction<T[]>>, selectedId: string | null | undefined, clearSelected: () => void) => async (id: string) => {
     const { error } = await deleteOrderRow(table, id);
-    if (error) return toast.error(`Erro ao excluir: ${error.message}`);
+    if (error) return toast.error(`Não foi possível excluir. ${friendlyError(error)}`);
     if (selectedId === id) clearSelected();
     setList(list => list.filter(o => o.id !== id));
     toast.success('Pedido excluído.');
@@ -202,7 +203,7 @@ export function useAdminActions({
 
   const updateOrderStatus = async (table: OrderTable, id: string, status: string) => {
     const { error } = await setOrderStatus(table, id, status);
-    if (error) return toast.error(`Erro ao atualizar o status: ${error.message}`);
+    if (error) return toast.error(`O status não foi alterado. ${friendlyError(error)}`);
     const patch = <T extends { id: string }>(list: T[]) => list.map(o => (o.id === id ? { ...o, status } : o));
     if (table === 'orders') setCatalogOrders(patch); else setCustomOrders(patch);
   };

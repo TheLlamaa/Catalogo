@@ -96,7 +96,7 @@ await dlg.waitFor({ state: 'detached' });
 check('segundo Esc fecha o modal do pedido', true);
 
 // CSV injection (pedidos personalizados)
-await page.getByRole('button', { name: /^Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 const [dl2] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV' }).click()]);
 const csv2 = fs.readFileSync(await dl2.path(), 'utf8');
 check('CSV neutraliza fórmulas digitadas por clientes (=…)', csv2.includes(`"'=cmd|calc"`) && csv2.includes(`"'=HYPERLINK`));
@@ -119,7 +119,7 @@ check('formulário carrega opções e prazo', (await page.getByLabel('Valores da
 await page.getByRole('button', { name: 'Mover para a direita' }).first().click({ force: true });
 await page.getByRole('button', { name: 'Adicionar opção' }).click();
 await page.getByLabel('Nome da opção').nth(1).fill('Tamanho');
-await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+await page.getByRole('button', { name: 'Salvar alterações' }).click();
 await page.getByText(/valor/).first().waitFor({ timeout: 2000 }).catch(() => {});
 check('opção sem valor é recusada com aviso', await page.getByText(/Cada opção precisa de um nome e de ao menos um valor/).isVisible());
 await page.getByLabel('Valores da opção').nth(1).fill('P, M, G, M');
@@ -127,32 +127,32 @@ await page.getByLabel(/Prazo de produção/).fill('Sob encomenda: 5 a 7 dias');
 check('formulário carrega o link do modelo', (await page.getByLabel(/Link do modelo 3D/).inputValue()) === 'https://makerworld.com/models/1');
 await page.getByLabel(/Link do modelo 3D/).fill('javascript:alert(1)');
 const beforeBad = upserts.length;
-await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+await page.getByRole('button', { name: 'Salvar alterações' }).click();
 await page.waitForTimeout(300);
 check('link inválido é recusado e nada é enviado', upserts.length === beforeBad && await page.getByText(/precisa começar com http/).isVisible());
 await page.getByLabel(/Link do modelo 3D/).fill('https://drive.google.com/file/d/abc');
 privReqs.length = 0;
 const before = upserts.length;
-await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+await page.getByRole('button', { name: 'Salvar alterações' }).click();
 await page.waitForTimeout(500);
 const saved = upserts[before] || {};
 check('salvar envia opções (sem repetidos), prazo e fotos reordenadas', saved.options?.[1]?.name === 'Tamanho' && JSON.stringify(saved.options?.[1]?.values) === '["P","M","G"]' && saved.lead_time === 'Sob encomenda: 5 a 7 dias' && saved.image_urls?.[0]?.endsWith('/b.jpg') && saved.id === 'p1', JSON.stringify({ opts: saved.options, imgs: saved.image_urls?.map(u => u.split('/').pop()) }));
 const priv = privReqs.find(r => r.method === 'POST');
 check('salvar novo link grava em product_private', priv?.body?.product_id === 'p1' && priv?.body?.model_url === 'https://drive.google.com/file/d/abc', JSON.stringify(priv));
 check('o link NÃO vai junto com os dados públicos do produto', !JSON.stringify(saved).includes('drive.google'));
-check('formulário fecha depois de salvar com sucesso', await page.getByRole('heading', { name: /Produtos Cadastrados/ }).isVisible());
+check('formulário fecha depois de salvar com sucesso', await page.getByRole('heading', { name: 'Produtos', exact: true }).isVisible());
 
 // limpar link => DELETE
 await page.getByRole('button', { name: 'Editar Vaso Ondulado' }).click();
 await page.getByLabel(/Link do modelo 3D/).fill('');
 privReqs.length = 0;
-await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+await page.getByRole('button', { name: 'Salvar alterações' }).click();
 await page.waitForTimeout(500);
 check('limpar o link faz DELETE em product_private do produto certo', privReqs.some(r => r.method === 'DELETE' && r.query.includes('product_id=eq.p1')), JSON.stringify(privReqs));
 
 // edição rápida (ativo/inativo) não mexe no link
 privReqs.length = 0;
-await page.getByRole('button', { name: /^Ativo$/ }).click();
+await page.getByRole('switch', { name: /na vitrine/ }).first().click();
 await page.waitForTimeout(400);
 check('edição rápida não escreve em product_private', !privReqs.some(r => r.method !== 'GET'), JSON.stringify(privReqs));
 

@@ -36,7 +36,7 @@ await page.route('https://mock.supabase.co/**', async (route) => {
 
 await page.goto(BASE + '/admin');
 await page.getByTestId('resumo-pedidos').waitFor();
-const cards = () => page.locator('div.cursor-pointer').count();
+const cards = () => page.getByRole('button', { name: / — ver pedido$/ }).count();
 const nav = page.getByRole('navigation', { name: 'Paginação' });
 
 check('32 pedidos: mostra 10 por página (padrão)', await cards() === 10);
@@ -96,7 +96,7 @@ await page.getByRole('button', { name: 'Cards' }).click();
 check('voltar para cards', await cards() === 10 && await page.getByTestId('lista-pedidos').count() === 0);
 
 // pedidos personalizados
-await page.getByRole('button', { name: /^Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 await page.getByText('Custom 01').waitFor();
 check('custom: usa as mesmas escolhas (10 por página, cards)', await cards() === 10);
 await page.getByRole('navigation', { name: 'Paginação' }).getByRole('button', { name: 'Página 2' }).click();

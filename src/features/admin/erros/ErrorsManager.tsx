@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bug, Trash2, RefreshCw } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
+import { PageHeader } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { clearErrors, listErrors } from '../../../services/errors';
+import { friendlyError } from '../../../lib/errorMessage';
 
 // Linha da tabela error_log (colunas pedidas em listErrors)
 interface ErrorRow {
@@ -31,21 +33,17 @@ export default function ErrorsManager() {
   useEffect(() => { load(); }, [load]);
 
   const clear = async () => {
-    const ok = await confirm({ title: 'Limpar log de erros', message: 'Apagar todos os erros registrados?', confirmLabel: 'Apagar tudo' });
+    const ok = await confirm({ title: 'Limpar a lista de erros?', message: 'Todos os erros registrados serão apagados. Isso não pode ser desfeito.', confirmLabel: 'Limpar lista' });
     if (!ok) return;
     const { error } = await clearErrors();
-    if (error) { toast.error(`Não foi possível limpar: ${error.message}`); return; }
-    toast.success('Log limpo.');
+    if (error) { toast.error(`Não foi possível limpar a lista. ${friendlyError(error)}`); return; }
+    toast.success('Lista de erros limpa.');
     load();
   };
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-2 mb-1">
-        <Bug className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-bold text-gray-900">Erros do site</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-4">Erros ocorridos no navegador dos visitantes. Lista vazia = tudo certo.</p>
+      <PageHeader title="Erros do site" description="Erros que aconteceram no navegador dos visitantes. Lista vazia = tudo certo." />
 
       {loadError && (
         <p role="alert" className="mb-4 p-3 text-sm bg-amber-50 text-amber-800 border border-amber-200 rounded-md">
@@ -55,7 +53,7 @@ export default function ErrorsManager() {
 
       <div className="flex gap-2 mb-4">
         <button type="button" onClick={load} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"><RefreshCw className="w-4 h-4" /> Atualizar</button>
-        {rows && rows.length > 0 && <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50"><Trash2 className="w-4 h-4" /> Limpar tudo</button>}
+        {rows && rows.length > 0 && <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50"><Trash2 className="w-4 h-4" /> Limpar lista</button>}
       </div>
 
       {rows === null ? <p className="text-sm text-gray-500">Carregando...</p>

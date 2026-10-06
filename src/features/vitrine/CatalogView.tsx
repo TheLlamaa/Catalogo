@@ -10,7 +10,7 @@ import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
 import { brl } from '../../lib/format';
 import { badgeStyle } from '../../lib/theme';
-import { badgeFor, newProducts } from '../../lib/catalog';
+import { badgeFor, newProducts, LOW_STOCK_MAX } from '../../lib/catalog';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -100,7 +100,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           <label htmlFor="busca" className="sr-only">Buscar produtos</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-500" />
             </div>
             <input
               id="busca"
@@ -113,7 +113,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           </div>
         </div>}
 
-        <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorias">
+        <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)]" aria-label="Categorias">
           <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Categorias</h2>
           <button
             onClick={() => updateParam('categoria', 'all', 'all')}
@@ -170,8 +170,8 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
               className="block w-full border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm bg-white cursor-pointer"
             >
               <option value="recent">Mais recentes</option>
-              <option value="price_asc">Menor Preço</option>
-              <option value="price_desc">Maior Preço</option>
+              <option value="price_asc">Menor preço</option>
+              <option value="price_desc">Maior preço</option>
             </select>
           </div>
         </div>
@@ -306,11 +306,11 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
             )}
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon className="h-10 w-10 opacity-50" /></div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-500"><ImageIcon className="h-10 w-10 opacity-60" aria-hidden="true" /><span className="text-xs text-gray-600">Foto em breve</span></div>
         )}
 
         {badge && (
-          <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
+          <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
         )}
         {isOutOfStock && (
           <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">Esgotado</span>
@@ -318,21 +318,22 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
       </div>
       <div className="p-3 sm:p-5 flex flex-col flex-1">
         <h3 className="text-sm sm:text-base font-semibold text-gray-900 leading-tight mb-1 line-clamp-2">{product.title}</h3>
-        {settings.stockControl && (
-          <span className="hidden sm:block text-xs text-gray-500 mb-1 font-medium">
-            {isOutOfStock ? 'Sem estoque disponível' : `${product.stock} unidade(s) disponível(is)`}
+        {/* Estoque só aparece quando ajuda a decidir: poucas unidades (o "Esgotado" já está na foto) */}
+        {settings.stockControl && !isOutOfStock && product.stock <= LOW_STOCK_MAX && (
+          <span className="text-xs text-amber-700 mb-1 font-medium">
+            {product.stock === 1 ? 'Resta 1 unidade' : `Restam ${product.stock} unidades`}
           </span>
         )}
         {settings.leadTimeEnabled && product.leadTime && (
           <span className="hidden sm:flex text-xs text-gray-500 mb-2 font-medium items-center gap-1"><Clock className="w-3 h-3" /> {product.leadTime}</span>
         )}
         <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-auto pt-2 sm:pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 mt-auto pt-2 sm:pt-4 border-t border-gray-100">
           {!settings.hidePrices && <span className="text-base sm:text-lg font-bold text-gray-900">{brl(product.price)}</span>}
           <button
             disabled={isOutOfStock}
             onClick={(e) => { e.stopPropagation(); if (hasOptions) onClick(); else onAddToCart(); }}
-            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
+            className={`px-2 sm:px-3 py-2 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
           >
             <ShoppingCart className="w-4 h-4" /> {isOutOfStock ? 'Indisponível' : hasOptions ? 'Escolher opções' : 'Adicionar'}
           </button>

@@ -9,7 +9,7 @@ let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
 
 async function abrir(browser, { logged = false } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
   if (logged) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
   const page = await ctx.newPage();
   const state = { inserts: [], rows: [
@@ -53,8 +53,8 @@ const browser = await launch();
   await page.getByRole('button', { name: /^Erros/ }).click();
   await page.getByText('Cannot read properties of undefined').waitFor();
   check('aba Erros mostra mensagem e página', await page.getByText(/\/produto\/1/).count() === 1);
-  await page.getByRole('button', { name: 'Limpar tudo' }).click();
-  await page.getByRole('button', { name: 'Apagar tudo' }).click();
+  await page.getByRole('button', { name: 'Limpar lista' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Limpar lista' }).click();
   await page.getByText('Nenhum erro registrado.').waitFor();
   check('limpar apaga e mostra lista vazia', state.cleared);
   await ctx.close();

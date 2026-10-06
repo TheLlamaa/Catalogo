@@ -152,8 +152,8 @@ describe('pedido mínimo e selos', () => {
     expect(badgeFor(p, { stockControl: true, lowStockBadge: true, lowStockText: 'Corre!' })).toBe('Corre!');
   });
   it('cor do selo só vale se for hexadecimal', () => {
-    expect(badgeStyle('#ff0000')).toEqual({ backgroundColor: '#ff0000' });
-    expect(badgeStyle('red')).toEqual({});
+    expect(badgeStyle('#ff0000').backgroundColor).toBe('#ff0000');
+    expect(badgeStyle('red').backgroundColor).toBe('#f59e0b'); // inválida: laranja padrão
   });
   it('padrões novos não mudam o comportamento atual', () => {
     const s = mergeSettings([]);

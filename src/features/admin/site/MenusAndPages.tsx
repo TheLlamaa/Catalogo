@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, Plus, Trash2, Eye, Pencil, Bold, Italic, Heading2, List, Link2 } from 'lucide-react';
+import { inputClass } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import RichText from '../../../components/RichText';
 import {
@@ -8,7 +9,7 @@ import {
 import { MENU_LABEL_MAX, editMenu, serializeMenu, isBuiltin, type MenuItem, type MenuKind } from '../../../lib/menus';
 import type { Category } from '../../../types';
 
-const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
+const inputCls = inputClass;
 const iconBtn = 'p-1.5 text-gray-500 hover:text-blue-600 disabled:opacity-30';
 
 type Form = Record<string, string | boolean>;
@@ -31,7 +32,7 @@ export function PagesEditor({ form, set }: PagesEditorProps) {
     setOpen(key);
   };
   const remove = async (key: string, title: string) => {
-    if (!(await confirm({ title: 'Apagar página', message: `Apagar “${title || 'página sem título'}”? Ela sai também dos menus. Nada muda para os clientes até você publicar.`, confirmLabel: 'Apagar' }))) return;
+    if (!(await confirm({ title: 'Excluir página?', message: `“${title || 'Página sem título'}” sai também dos menus. Nada muda para os clientes até você publicar.`, confirmLabel: 'Excluir página' }))) return;
     set(key, '');
   };
   return (
@@ -90,7 +91,7 @@ function PageCard({ value, expanded, onToggle, onChange, onRemove }: PageCardPro
           <span className="text-xs text-gray-500">/p/{slug || '…'} · {d.p === false ? 'Rascunho (oculta)' : 'Publicada'}{!complete && ' · incompleta'}</span>
         </button>
         <button type="button" onClick={onToggle} className="text-xs font-medium text-blue-700 hover:underline whitespace-nowrap">{expanded ? 'Fechar' : 'Editar'}</button>
-        <button type="button" onClick={() => onRemove(d.t || '')} aria-label={`Apagar página ${d.t || ''}`} className={`${iconBtn} hover:text-red-600`}><Trash2 className="w-4 h-4" /></button>
+        <button type="button" onClick={() => onRemove(d.t || '')} aria-label={`Excluir página ${d.t || ''}`} className={`${iconBtn} hover:text-red-600`}><Trash2 className="w-4 h-4" /></button>
       </div>
       {expanded && (
         <div className="border-t border-gray-200 p-3 space-y-3">

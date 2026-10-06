@@ -40,7 +40,7 @@ async function abrir(browser, settings = []) {
   });
   await page.goto(BASE + '/admin');
   await page.getByTestId('resumo-pedidos').waitFor();
-  await page.locator('div.cursor-pointer').first().click();
+  await page.getByRole('button', { name: / — ver pedido$/ }).first().click();
   await page.getByRole('dialog').waitFor();
   return { page, ctx };
 }
