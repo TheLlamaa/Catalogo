@@ -90,6 +90,7 @@ begin
   end if;
 
   NEW.status := 'novo';
+  NEW.created_at := now(); -- a data também é do servidor (ver limitar_pedidos)
   return NEW;
 end $$;
 
@@ -106,6 +107,11 @@ declare
   ultimo_minuto int;
   digitos text := regexp_replace(NEW.client_phone, '\D', '', 'g');
 begin
+  -- A data do pedido é sempre a do servidor. Sem isso, um pedido enviado com data no futuro
+  -- ficaria contando para sempre no limite abaixo e travaria os pedidos de todo mundo;
+  -- e um com data no passado escaparia do limite. (Este gatilho roda antes dos outros.)
+  NEW.created_at := now();
+
   execute format(
     'select count(*) from public.%I where created_at > now() - interval ''2 minutes''
        and regexp_replace(client_phone, ''\D'', '''', ''g'') = $1', tabela)

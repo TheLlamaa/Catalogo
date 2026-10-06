@@ -1,4 +1,4 @@
-"""Testes do banco: aplica os arquivos supabase/0*.sql num Postgres local e confere políticas, gatilhos e preços.
+"""Testes do banco: aplica os arquivos supabase/[0-9]*.sql num Postgres local e confere políticas, gatilhos e preços.
 Rodar: pip install pgserver psycopg2-binary && python supabase/tests/test_sql.py"""
 import pgserver, psycopg2, tempfile, json, glob, os
 allok=True
@@ -22,7 +22,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 cur.execute("""create table public.categories (id uuid primary key default gen_random_uuid(), name text);
 alter table public.categories enable row level security;
 create policy "Permitir tudo em categorias" on public.categories for all to public using (true) with check (true);""")
-files=sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '0*.sql')))
+files=sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '[0-9]*.sql')))
 for rep in (1,2):
     for f in files:
         sql=open(f,encoding='utf-8').read()
@@ -114,8 +114,8 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (9)', cur.fetchone()[0]=='9')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='9')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (10)', cur.fetchone()[0]=='10')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='10')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
 cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
@@ -135,6 +135,28 @@ role('anon')
 for i in range(40): att("insert into public.error_log (message) values (%s)",(f'e{i}',))
 role('authenticated','admin@teste.com'); cur.execute("select count(*) from public.error_log"); n=cur.fetchone()[0]; check('limite de 30 erros por minuto', n==30, str(n))
 cur.execute("delete from public.error_log"); cur.execute("select count(*) from public.error_log"); check('admin limpa o log', cur.fetchone()[0]==0)
+
+
+# --- data sempre do servidor (10): o visitante não escolhe o created_at ---
+cur.execute("reset role"); cur.execute("delete from public.orders"); cur.execute("delete from public.custom_orders"); cur.execute("delete from public.error_log")
+role('anon')
+for i in range(3): att("insert into public.orders (client_name, client_phone, items, total, created_at) values ('Spam',%s,%s,0,'2099-01-01')",(f'(48) 99888-000{i}',json.dumps([{"id":pid,"quantity":1}])))
+for i in range(3): att("insert into public.custom_orders (client_name, client_phone, description, created_at) values ('Spam',%s,'quero uma peça','2099-01-01')",(f'(48) 99777-000{i}',))
+for i in range(3): att("insert into public.error_log (message, created_at) values ('falso','2099-01-01')")
+cur.execute("reset role")
+cur.execute("select count(*), count(*) filter (where created_at > now() + interval '1 minute') from public.orders"); n,fut=cur.fetchone(); check('pedido com data no futuro entra com a data do servidor', n==3 and fut==0, f'{n} {fut}')
+cur.execute("select count(*), count(*) filter (where created_at > now() + interval '1 minute') from public.custom_orders"); n,fut=cur.fetchone(); check('pedido personalizado com data no futuro entra com a data do servidor', n==3 and fut==0, f'{n} {fut}')
+cur.execute("select count(*), count(*) filter (where created_at > now() + interval '1 minute') from public.error_log"); n,fut=cur.fetchone(); check('erro com data no futuro entra com a data do servidor', n==3 and fut==0, f'{n} {fut}')
+role('anon'); ok,m=att("insert into public.custom_orders (client_name, client_phone, description, created_at) values ('Spam','(48) 99666-0000','quero uma peça','2000-01-01')")
+ok2,m2=att("insert into public.custom_orders (client_name, client_phone, description, created_at) values ('Spam','(48) 99666-0000','quero uma peça','2000-01-01')"); check('data no passado não escapa do limite por telefone', ok and not ok2, m+' / '+m2)
+# o 10 também limpa o que já tenha entrado com data no futuro (simula a falha com os gatilhos desligados)
+cur.execute("reset role"); cur.execute("set session_replication_role = replica")
+cur.execute("insert into public.orders (client_name, client_phone, items, total, created_at) values ('Spam','48999990000','[]',0,'2099-01-01')")
+cur.execute("insert into public.error_log (message, created_at) values ('falso','2099-01-01')")
+cur.execute("set session_replication_role = origin")
+sql10=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '10-data-do-servidor.sql'),encoding='utf-8').read(); ok,m=att(sql10)
+cur.execute("select (select count(*) from public.orders where created_at > now() + interval '1 day') + (select count(*) from public.error_log where created_at > now() + interval '1 day')"); check('o 10 apaga registros já gravados com data no futuro', ok and cur.fetchone()[0]==0, m)
+cur.execute("select count(*) from public.orders"); check('...e mantém os pedidos normais', cur.fetchone()[0]==3)
 
 
 # --- migração de um banco antigo (e-mails dentro da função is_admin) ---

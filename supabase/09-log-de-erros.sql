@@ -22,6 +22,9 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Data sempre do servidor: com data no futuro, um erro falso travaria o limite abaixo e
+  -- ficaria por cima dos erros reais na limpeza dos 2000 mais recentes.
+  NEW.created_at := now();
   if (select count(*) from public.error_log where created_at > now() - interval '1 minute') >= 30 then
     return null; -- descarta em silêncio (não vale a pena devolver erro para quem já está com erro)
   end if;
