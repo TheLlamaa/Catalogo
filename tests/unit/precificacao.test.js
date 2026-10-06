@@ -40,3 +40,13 @@ describe('calculadora de preço', () => {
     expect(t).not.toContain('Lucro');
   });
 });
+
+import { resolveDark } from '../../src/lib/colorMode';
+describe('modo escuro', () => {
+  it('sem escolha segue o aparelho; escolha manual vale mais', () => {
+    expect(resolveDark('auto', true)).toBe(true);
+    expect(resolveDark('auto', false)).toBe(false);
+    expect(resolveDark('light', true)).toBe(false);
+    expect(resolveDark('dark', false)).toBe(true);
+  });
+});

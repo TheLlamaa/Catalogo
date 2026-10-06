@@ -215,6 +215,44 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Modo escuro: segue o aparelho, botão sol/lua guarda a escolha, lojista pode travar a vitrine no claro
+  const abrirEscuro = async (rows, path, admin = false) => {
+    const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 }, colorScheme: 'dark' });
+    if (admin) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+    const page = await ctx.newPage();
+    await ctx.route('https://mock.supabase.co/**', (route) => {
+      const url = new URL(route.request().url());
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+      const body = url.pathname === '/rest/v1/products' ? products : url.pathname === '/rest/v1/categories' ? categories : url.pathname === '/rest/v1/site_settings' ? rows
+        : url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : [];
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+    });
+    await page.goto(BASE + path);
+    await page.getByText(admin ? 'Painel de gestão' : 'Vaso Cubo').first().waitFor();
+    return { page, ctx };
+  };
+  const escuro = (page) => page.evaluate(() => document.documentElement.classList.contains('dark'));
+  const fundo = (page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+  let { page, ctx } = await abrirEscuro([], '/');
+  check('vitrine segue o aparelho (modo escuro)', await escuro(page), await fundo(page));
+  await page.getByRole('button', { name: 'Usar modo claro' }).click();
+  check('botão sol/lua troca para o claro', !(await escuro(page)));
+  await page.reload(); await page.getByText('Vaso Cubo').first().waitFor();
+  check('a escolha fica guardada', !(await escuro(page)) && await page.getByRole('button', { name: 'Usar modo escuro' }).isVisible());
+  await ctx.close();
+
+  ({ page, ctx } = await abrirEscuro([{ key: 'darkMode', value: 'off' }], '/'));
+  check('lojista travou no claro: vitrine clara mesmo com aparelho escuro', !(await escuro(page)));
+  check('lojista travou no claro: sem botão sol/lua', await page.getByRole('button', { name: /Usar modo/ }).count() === 0);
+  await ctx.close();
+
+  ({ page, ctx } = await abrirEscuro([{ key: 'darkMode', value: 'off' }], '/admin', true));
+  check('painel tem modo escuro mesmo com a vitrine travada', await escuro(page) && await page.getByRole('button', { name: 'Usar modo claro' }).isVisible());
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

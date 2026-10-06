@@ -78,9 +78,9 @@ export function StatusChips({ counts, total, value, onChange }: StatusChipsProps
   const chip = (id: string, label: string, n: number) => (
     <button
       key={id} onClick={() => onChange(id)} aria-pressed={value === id}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${value === id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${value === id ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
     >
-      {label} <span className={value === id ? "text-gray-300" : "text-gray-500"}>({n})</span>
+      {label} <span className={value === id ? "text-slate-300 dark:text-slate-600" : "text-gray-500"}>({n})</span>
     </button>
   );
   return (

@@ -144,8 +144,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
             {chips.filter(c => !c.hide).map(c => (
               <button
                 key={c.id || 'todos'} type="button" onClick={() => setStatus(c.id)} aria-pressed={status === c.id}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${status === c.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-              >{c.label} <span className={status === c.id ? 'text-gray-300' : 'text-gray-500'}>({counts[c.id]})</span></button>
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${status === c.id ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+              >{c.label} <span className={status === c.id ? 'text-slate-300 dark:text-slate-600' : 'text-gray-500'}>({counts[c.id]})</span></button>
             ))}
           </div>
 
@@ -330,7 +330,7 @@ function RowActions({ product, onFeatured, onDuplicate, onEdit, onDelete }: RowA
         type="button" onClick={() => onFeatured(product)} aria-pressed={featured}
         aria-label={featured ? `Tirar ${product.title} dos Destaques` : `Destacar ${product.title}`}
         title={featured ? 'Nos Destaques — clique para tirar' : 'Colocar nos Destaques da vitrine'}
-        className={`${icon} ${featured ? 'text-amber-500 hover:text-amber-600' : 'hover:text-amber-500'}`}
+        className={`${icon.replace('text-gray-500', '')} ${featured ? 'text-amber-600 hover:text-amber-700' : 'text-gray-500 hover:text-amber-600'}`} // sem text-gray-500 junto: a ordem do CSS deixava a estrela destacada cinza
       ><Star className={`w-4 h-4 ${featured ? 'fill-current' : ''}`} /></button>
       <button type="button" onClick={() => onDuplicate(product)} className={`${icon} hover:text-blue-600`} title="Duplicar (a cópia fica oculta)" aria-label={`Duplicar ${product.title}`}><Copy className="w-4 h-4" /></button>
       <button type="button" onClick={() => onEdit(product)} className={`${icon} hover:text-blue-600`} title="Editar" aria-label={`Editar ${product.title}`}><Edit2 className="w-4 h-4" /></button>

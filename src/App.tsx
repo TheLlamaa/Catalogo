@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { lazyWithReload } from './lib/staleChunk';
+import { useColorMode } from './lib/colorMode';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
@@ -126,6 +127,10 @@ function MainLayout() {
   const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';
   useEffect(() => { applySeo(settings, !ownTitle); }, [settings, ownTitle]);
 
+  // Modo escuro: painel e login sempre podem; a vitrine só se o lojista não travou no claro
+  const onPanel = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
+  const colorMode = useColorMode(onPanel || settings.darkMode !== 'off');
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center font-sans">
@@ -161,7 +166,7 @@ function MainLayout() {
 
   return (
     <SettingsContext.Provider value={settings}>
-    <div className="min-h-screen bg-[var(--page-bg)] text-gray-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-[var(--page)] text-gray-900 font-sans flex flex-col">
 
       {/* Atalho de teclado: aparece no primeiro Tab e pula cabeçalho e menus */}
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">Pular para o conteúdo</a>
@@ -178,12 +183,12 @@ function MainLayout() {
 
       {/* HEADER 1: VITRINE */}
       {isStoreRoute && (
-        <StoreHeader settings={settings} categories={publicCategories} user={user} cartCount={cartCount} onOpenCart={openCart} />
+        <StoreHeader settings={settings} categories={publicCategories} user={user} cartCount={cartCount} onOpenCart={openCart} colorMode={settings.darkMode !== 'off' ? colorMode : undefined} />
       )}
 
       {/* HEADER 2: ADMIN */}
       {isAdminRoute && (
-        <AdminHeader onLogout={handleLogout} storeName={settings.storeName} />
+        <AdminHeader onLogout={handleLogout} storeName={settings.storeName} colorMode={colorMode} />
       )}
 
       <main id="conteudo" tabIndex={-1} className={`outline-none flex-1 mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full ${isAdminRoute ? 'max-w-7xl' : 'max-w-6xl'}`}>
