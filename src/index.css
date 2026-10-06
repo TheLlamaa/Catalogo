@@ -44,7 +44,7 @@ body {
 /* Wrapper da Aura */
 .aura {
   position: relative;
-  border-radius: 0.75rem; /* Arredondamento exato dos seus cards (rounded-xl/lg) */
+  border-radius: var(--radius-xl, 0.75rem); /* Mesmo arredondamento dos cards (acompanha a escolha de Cantos no painel) */
   z-index: 1; /* Cria um contexto de empilhamento */
   height: 100%; /* Garante que ocupe o espaço correto no Grid */
 }

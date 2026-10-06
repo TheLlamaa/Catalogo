@@ -179,7 +179,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         {shelves.map(shelf => (
           <section key={shelf.id} className="mb-8" aria-labelledby={`shelf-${shelf.id}`}>
             <h2 id={`shelf-${shelf.id}`} className="text-lg font-bold text-gray-900 mb-3">{shelf.title}</h2>
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory py-3 px-2 -mx-2 [scrollbar-width:thin]">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory py-6 -my-3 px-6 -mx-6 [scrollbar-width:thin]">
               {shelf.items.map(product => (
                 <div key={product.id} className="w-44 sm:w-56 flex-shrink-0 snap-start">
                   <ProductCard
