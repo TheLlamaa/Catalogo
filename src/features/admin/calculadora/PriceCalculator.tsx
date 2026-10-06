@@ -47,7 +47,7 @@ const SECTIONS: SectionDef[] = [
     fields: [
       { key: 'materialPrice', label: 'Preço do rolo', prefix: 'R$', suffix: '/kg', step: 1 },
       { key: 'weightGrams', label: 'Peso por peça', suffix: 'g', step: 1, hint: 'O que o fatiador mostra para uma peça.' },
-      { key: 'wastePercent', label: 'Perdas (purga, suportes)', suffix: '%', step: 1 },
+      { key: 'wastePercent', label: 'Perdas', suffix: '%', step: 1, hint: 'Purga, suportes e bordas.' },
     ],
   },
   {
@@ -63,7 +63,7 @@ const SECTIONS: SectionDef[] = [
   {
     title: 'Mão de obra e embalagem',
     fields: [
-      { key: 'laborHours', label: 'Tempo manual (mesa toda)', suffix: 'h', step: 0.25, hint: 'Preparar, tirar suportes, acabamento.' },
+      { key: 'laborHours', label: 'Tempo manual', suffix: 'h', step: 0.25, hint: 'Da mesa toda: preparar, tirar suportes, acabamento.' },
       { key: 'laborRate', label: 'Valor da sua hora', prefix: 'R$', step: 5 },
       { key: 'packaging', label: 'Embalagem por peça', prefix: 'R$', step: 0.5 },
     ],
@@ -137,7 +137,7 @@ export default function PriceCalculator({ products, onSaveProduct }: PriceCalcul
               <legend className="sr-only">{section.title}</legend>
               <h2 className="text-base font-semibold text-gray-900">{section.title}</h2>
               {section.hint && <p className="mt-1 text-xs text-gray-500">{section.hint}</p>}
-              <div className={`mt-4 grid gap-4 sm:grid-cols-2 ${section.fields.length === 3 ? 'xl:grid-cols-3' : ''}`}>
+              <div className={`mt-4 grid gap-x-4 gap-y-4 sm:grid-cols-2 ${section.fields.length === 3 ? 'xl:grid-cols-3' : ''}`}>
                 {section.fields.map(f => <NumberField key={f.key} def={f} value={form[f.key]} onChange={v => set(f.key, v)} />)}
               </div>
             </fieldset>
@@ -189,8 +189,10 @@ export default function PriceCalculator({ products, onSaveProduct }: PriceCalcul
 function NumberField({ def, value, onChange }: { def: FieldDef; value: string; onChange: (v: string) => void }) {
   const id = `calc-${def.key}`;
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+    // Subgrid: rótulo, campo e dica de cada coluna ficam em linhas compartilhadas,
+    // então um rótulo que quebra em duas linhas não desalinha os campos ao lado
+    <div className="grid grid-rows-subgrid row-span-3 gap-y-1">
+      <label htmlFor={id} className="self-end text-sm font-medium text-gray-700">
         {def.label}{(def.prefix || def.suffix) && <span className="sr-only"> (em {[def.prefix, def.suffix].filter(Boolean).join(' ')})</span>}
       </label>
       <div className="flex items-center rounded-md border border-gray-300 bg-white px-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500">
@@ -202,7 +204,7 @@ function NumberField({ def, value, onChange }: { def: FieldDef; value: string; o
         />
         {def.suffix && <span className="ml-2 whitespace-nowrap text-sm text-gray-500" aria-hidden="true">{def.suffix}</span>}
       </div>
-      {def.hint && <p id={`${id}-dica`} className="mt-1 text-xs text-gray-500">{def.hint}</p>}
+      {def.hint ? <p id={`${id}-dica`} className="text-xs text-gray-500">{def.hint}</p> : <span aria-hidden="true" />}
     </div>
   );
 }
