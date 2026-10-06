@@ -47,9 +47,8 @@ describe('versão nova publicada com o site aberto', () => {
     globalThis.sessionStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = v; } };
     globalThis.window = { location: { reload: () => { reloads++; } } };
     expect(reloadForNewVersion(1_000_000)).toBe(true);
-    expect(reloadForNewVersion(1_005_000)).toBe(false);
-    expect(reloadForNewVersion(1_040_000)).toBe(true);
-    expect(reloads).toBe(2);
+    expect(reloadForNewVersion(1_005_000)).toBe(true); // já está recarregando: não recarrega de novo
+    expect(reloads).toBe(1);
     delete globalThis.sessionStorage; delete globalThis.window;
   });
 });

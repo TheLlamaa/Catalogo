@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navig
 import { signOut } from './services/auth';
 import { ENV_LABEL } from './lib/config';
 import { applySeo } from './lib/seo';
-import { applyTheme, cacheTheme, isBannerActive, bannerStyle } from './lib/theme';
+import { applyPublishedTheme, cacheTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { mergeSettings } from './lib/settings';
 import { IS_PREVIEW, usePreviewRows } from './lib/preview';
 import { useCart } from './hooks/useCart';
@@ -127,7 +127,7 @@ function MainLayout() {
   // Enquanto carrega, fica a aparência guardada da última visita (main.tsx), não a padrão
   useLayoutEffect(() => {
     if (loading) return;
-    applyTheme(settings);
+    applyPublishedTheme(settings); // não passa por cima do rascunho de Site > Aparência
     if (!IS_PREVIEW) cacheTheme(settings);
   }, [settings, loading]);
   const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';

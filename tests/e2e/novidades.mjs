@@ -313,6 +313,31 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Tema pronto no painel: a cor escolhida não "volta" quando os dados recarregam sozinhos
+  const { page, ctx } = await abrir({ path: '/' });
+  await page.clock.install(); // controla o relógio para simular "30 s depois"
+  await page.goto(BASE + '/admin');
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Aparência').click();
+  const cor = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--c-blue-600').trim());
+  await page.getByRole('button', { name: 'Rosa', exact: true }).click();
+  await page.waitForTimeout(200);
+  const rosa = await cor();
+  let recarregou = false;
+  page.on('request', r => { if (r.url().includes('/rest/v1/site_settings')) recarregou = true; });
+  await page.clock.fastForward(31000);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus'))); // ex.: voltar do seletor de cor do sistema
+  await page.waitForTimeout(800);
+  check('tema pronto aplicado no painel', rosa === '190 24 93', rosa);
+  check('dados recarregaram e a cor do rascunho continua', recarregou && await cor() === rosa, `${recarregou} ${await cor()}`);
+  await nav(page, 'Dados da loja').click(); await page.waitForTimeout(200);
+  await nav(page, 'Produtos (3)').click();
+  await page.getByRole('dialog').getByRole('button', { name: /Sair sem publicar/ }).click();
+  await page.waitForTimeout(300);
+  check('saindo sem publicar, volta a cor publicada', await cor() === '37 99 235', await cor());
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

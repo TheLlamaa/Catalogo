@@ -141,6 +141,22 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTo
   }
 };
 
+// Aparência publicada × rascunho do painel.
+// Enquanto o lojista mexe em Site > Aparência, o painel mostra o rascunho (cor, fonte...). O site recarrega os dados
+// sozinho (a cada 30 s, ao voltar para a aba, ao fechar o seletor de cor do sistema...) e reaplicava a aparência
+// publicada por cima do rascunho: a cor "voltava" logo depois de escolher um tema pronto.
+// Agora o rascunho, quando existe, tem prioridade; a publicada só volta quando o rascunho é encerrado.
+let published: ThemeInput = {};
+let draft: ThemeInput | null = null;
+export const applyPublishedTheme = (input: ThemeInput): void => {
+  published = input;
+  if (!draft) applyTheme(input);
+};
+export const setThemeDraft = (input: ThemeInput | null): void => {
+  draft = input;
+  applyTheme(input || published);
+};
+
 // Última aparência publicada, guardada no navegador: aplicada já na abertura (main.tsx), antes dos dados
 // chegarem, para o site não aparecer azul e depois mudar de cor.
 const THEME_CACHE = 'catalogo-aparencia';

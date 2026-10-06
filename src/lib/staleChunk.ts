@@ -14,8 +14,11 @@ export const isStaleChunkError = (err: unknown): boolean => {
   return STALE_RE.test(msg);
 };
 
+let reloading = false; // a página já está recarregando: telas que falharem só esperam
+
 // Recarrega no máximo uma vez a cada 30 s (se o arquivo faltar mesmo, não fica em laço)
 export function reloadForNewVersion(now = Date.now()): boolean {
+  if (reloading) return true;
   try {
     const last = Number(sessionStorage.getItem(KEY) || 0);
     if (now - last < 30_000) return false;
@@ -23,6 +26,7 @@ export function reloadForNewVersion(now = Date.now()): boolean {
   } catch {
     return false; // sem sessionStorage não há como evitar laço: deixa a tela de erro oferecer o botão
   }
+  reloading = true;
   window.location.reload();
   return true;
 }
@@ -37,6 +41,8 @@ export function lazyWithReload<T extends ComponentType<any>>(factory: () => Prom
 }
 
 export function installStaleChunkReload() {
-  // Vite avisa quando falha ao pré-carregar um arquivo de outra tela
-  window.addEventListener('vite:preloadError', (e) => { if (reloadForNewVersion()) e.preventDefault(); });
+  // Vite avisa quando falha ao pré-carregar um arquivo de outra tela. Não chama preventDefault: com ele o
+  // Vite engole o erro e a tela "carrega" vazia (erro "reading 'default'"); a falha segue para o lazyWithReload,
+  // que espera a página recarregar.
+  window.addEventListener('vite:preloadError', () => { reloadForNewVersion(); });
 }
