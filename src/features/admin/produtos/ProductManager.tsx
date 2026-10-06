@@ -260,7 +260,7 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
       </div>
       <div className="min-w-0">
         <button type="button" onClick={() => onEdit(product)} className="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline text-left block truncate max-w-full py-0.5">{product.title}</button>
-        <span className="text-xs"><Price product={product} className="text-xs text-gray-500 font-medium" /></span>
+        <span className="block text-xs"><Price product={product} className="text-xs text-gray-500 font-medium" /></span>
         {(product.badge || product.section) && (
           <span className="mt-1 flex flex-wrap gap-1">
             {product.section === 'destaque' && <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded"><Star className="w-3 h-3 fill-current" aria-hidden="true" />{SECTION_LABEL.destaque}</span>}
@@ -269,8 +269,8 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
           </span>
         )}
         {isHttpUrl(product.modelUrl) && (
-          <a href={product.modelUrl} target="_blank" rel="noreferrer noopener" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
-            <Box className="w-3 h-3" /> Abrir modelo
+          <a href={product.modelUrl} target="_blank" rel="noreferrer noopener" className="mt-1 flex w-fit items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+            <Box className="w-3 h-3" aria-hidden="true" /> Abrir modelo
           </a>
         )}
       </div>
