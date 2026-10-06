@@ -224,6 +224,22 @@ const rowsExtra = [
   await p.close();
 }
 
+// ============ ADMIN: paginação dos produtos cadastrados ============
+{
+  const many = Array.from({ length: 25 }, (_, i) => ({ id: `q${i}`, title: `Peça ${String(i + 1).padStart(2, '0')}`, description: 'd', price: 10, stock: 3, active: true, category_ids: ['c1'], image_urls: [], aura_color: 'none', options: [], lead_time: null, badge: null, section: null, sort_order: i, created_at: iso(i + 1) }));
+  const { p } = await newPage({ rows: [], admin: true, products: many });
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
+  await p.waitForSelector('tbody tr');
+  check('produtos: 10 por página', await p.locator('tbody tr').count() === 10);
+  check('produtos: mostra o intervalo', await p.getByText('Mostrando 1–10 de 25 produtos').count() >= 1);
+  check('produtos: primeira página começa na peça 01', (await p.locator('tbody tr').first().innerText()).includes('Peça 01'));
+  await p.getByRole('navigation', { name: 'Paginação' }).getByRole('button', { name: 'Próxima página' }).click();
+  check('produtos: segunda página começa na peça 11', (await p.locator('tbody tr').first().innerText()).includes('Peça 11'));
+  check('produtos: primeiro da 2ª página pode subir', await p.getByRole('button', { name: 'Subir Peça 11' }).isEnabled());
+  check('produtos: página muda o intervalo', await p.getByText('Mostrando 11–20 de 25 produtos').count() >= 1);
+  await p.close();
+}
+
 // ============ ADMIN: busca de configurações e ícones de colunas ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
