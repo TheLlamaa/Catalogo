@@ -3,6 +3,7 @@ import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
 import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
 import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
+import type { ImageGuideKey } from './imageGuides';
 import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
 import type { SettingRow } from '../types';
 
@@ -22,6 +23,7 @@ interface TextLikeField extends SettingFieldBase {
   type: 'text' | 'phone' | 'email' | 'social' | 'image';
   default: string;
   max?: number;
+  guide?: ImageGuideKey; // campos de imagem: orientação de tamanho mostrada abaixo do envio
 }
 
 export interface TextareaField extends SettingFieldBase { type: 'textarea'; default: string; max?: number; rows?: number }
@@ -131,14 +133,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     group: 'inicio', title: 'Capa da vitrine',
     fields: [
-      { key: 'heroImage', label: 'Imagem de capa (opcional)', type: 'image', default: '', max: 700, hint: 'Aparece no topo da página inicial, com o título e o texto por cima. Use uma imagem larga.' },
+      { key: 'heroImage', label: 'Imagem de capa (opcional)', type: 'image', guide: 'hero', default: '', max: 700, hint: 'Aparece no topo da página inicial, com o título e o texto por cima.' },
     ]
   },
   {
     group: 'aparencia', title: 'Logo',
     fields: [
-      { key: 'logoUrl', label: 'Logo da loja', type: 'image', default: '', max: 700, hint: 'Aparece no topo e na aba do navegador. PNG com fundo transparente fica melhor.' },
-      { key: 'faviconUrl', label: 'Ícone da aba (opcional)', type: 'image', default: '', max: 700, hint: 'Vazio = usa a logo. Quadrado fica melhor.' },
+      { key: 'logoUrl', label: 'Logo da loja', type: 'image', guide: 'logo', default: '', max: 700, hint: 'Aparece no topo e na aba do navegador.' },
+      { key: 'faviconUrl', label: 'Ícone da aba (opcional)', type: 'image', guide: 'favicon', default: '', max: 700, hint: 'Vazio = usa a logo.' },
       { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura no topo. No celular é limitada a 48 px.' },
       { key: 'logoShowName', label: 'Mostrar o nome da loja ao lado da logo', type: 'toggle', default: true },
     ]
@@ -150,7 +152,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
       { key: 'bannerText', label: 'Texto da faixa', type: 'text', max: 160, default: '', hint: 'Ex: Pedidos de Natal até 10/12. Vazio = sem faixa.' },
       { key: 'bannerUntil', label: 'Mostrar até (opcional)', type: 'date', default: '', hint: 'Depois desse dia a faixa some sozinha.' },
       { key: 'bannerColor', label: 'Cor da faixa', type: 'color', default: '' },
-      { key: 'bannerImage', label: 'Imagem de fundo da faixa (opcional)', type: 'image', default: '', max: 700, hint: 'Imagem larga e baixa; o texto fica por cima.' },
+      { key: 'bannerImage', label: 'Imagem de fundo da faixa (opcional)', type: 'image', guide: 'banner', default: '', max: 700, hint: 'O texto da faixa fica por cima.' },
     ]
   },
   {
@@ -242,7 +244,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
       { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
       { key: 'aboutTitle', label: 'Título', type: 'text', max: 80, default: 'Como funciona' },
       { key: 'aboutText', label: 'Texto', type: 'textarea', rows: 10, max: 3500, default: '', hint: 'Quem você é, materiais, prazos e entrega. Linha em branco = novo parágrafo.' },
-      { key: 'aboutImage', label: 'Foto (opcional)', type: 'image', default: '', max: 700 },
+      { key: 'aboutImage', label: 'Foto (opcional)', type: 'image', guide: 'about', default: '', max: 700 },
     ]
   },
   {
@@ -295,7 +297,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'seoTitle', label: 'Título do site', type: 'text', max: 70, default: '', hint: 'Aparece na aba do navegador e nos resultados do Google. Vazio = título padrão.' },
       { key: 'seoDescription', label: 'Descrição', type: 'textarea', rows: 3, max: 160, default: '', hint: 'Resumo da loja para o Google (até 160 caracteres).' },
-      { key: 'seoImage', label: 'Imagem de compartilhamento', type: 'image', default: '', max: 700, hint: 'Imagem de ~1200×630 usada ao compartilhar o link.' },
+      { key: 'seoImage', label: 'Imagem de compartilhamento', type: 'image', guide: 'share', default: '', max: 700, hint: 'Usada ao compartilhar o link (WhatsApp, redes sociais).' },
     ]
   },
   {

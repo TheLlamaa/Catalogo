@@ -240,6 +240,26 @@ const rowsExtra = [
   await p.close();
 }
 
+// ============ ADMIN: orientação de tamanho junto dos campos de imagem ============
+{
+  const { p } = await newPage({ rows: [], admin: true });
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
+  await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
+  await p.getByLabel('Buscar configurações').fill('imagem');
+  await p.getByText('Tamanho ideal: 1600 × 500 px (proporção 16:5)').waitFor();
+  check('capa: orientação de tamanho', await p.getByText('Tamanho ideal: 1600 × 500 px (proporção 16:5)').count() === 1);
+  await p.getByLabel('Buscar configurações').fill('logo');
+  check('logo: PNG transparente ou SVG', await p.getByText(/Tamanho ideal: 768 × 192 px.*transparente ou SVG/).count() === 1);
+  await p.getByLabel('Buscar configurações').fill('ícone');
+  check('ícone da aba: orientação', await p.getByText('Tamanho ideal: 256 × 256 px').count() === 1);
+  await p.getByLabel('Buscar configurações').fill('compartilhamento');
+  check('compartilhamento: 1200 × 630', await p.getByText('Tamanho ideal: 1200 × 630 px').count() === 1);
+  await p.getByRole('button', { name: /^Produtos/ }).click();
+  await p.getByRole('button', { name: 'Novo produto' }).click();
+  check('produto: orientação de tamanho das fotos', await p.getByText('Tamanho ideal: 800 × 800 px (proporção 1:1)').count() === 1);
+  await p.close();
+}
+
 // ============ ADMIN: busca de configurações e ícones de colunas ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });

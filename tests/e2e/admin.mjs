@@ -116,7 +116,7 @@ check('duplicar cria cópia inativa, sem id, com opções e prazo', dup.title ==
 await page.getByRole('button', { name: 'Editar Vaso Ondulado' }).click();
 await page.getByRole('heading', { name: 'Editar Produto' }).waitFor();
 check('formulário carrega opções e prazo', (await page.getByLabel('Valores da opção').inputValue()) === 'Branco, Preto' && (await page.getByLabel(/Prazo de produção/).inputValue()) === 'Pronta entrega');
-await page.getByRole('button', { name: 'Mover para a direita' }).first().click({ force: true });
+await page.getByRole('button', { name: 'Mover para a direita' }).first().dispatchEvent('click'); // botão só aparece ao passar o mouse; evita clicar por coordenada (a barra fixa de salvar pode cobri-lo)
 await page.getByRole('button', { name: 'Adicionar opção' }).click();
 await page.getByLabel('Nome da opção').nth(1).fill('Tamanho');
 await page.getByRole('button', { name: 'Salvar alterações' }).click();
