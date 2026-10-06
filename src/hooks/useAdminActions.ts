@@ -4,6 +4,7 @@ import type { Settings } from '../lib/settings';
 import type { AuthUser } from '../services/auth';
 import type { CatalogOrder, Category, CustomOrder, OrderTable, SettingRow, StoredProduct, Toast } from '../types';
 import { upsertProduct, setModelUrl, deleteProductRow, upsertCategory, deleteCategoryRow, updateSortOrders } from '../services/catalog';
+import { clampDiscount } from '../lib/discount';
 import { insertOrder, deleteOrderRow, setOrderStatus } from '../services/orders';
 import { upsertSettings, deleteSettings } from '../services/settings';
 import { friendlyError } from '../lib/errorMessage';
@@ -54,6 +55,10 @@ export function useAdminActions({
     } else if ((product.badge || '').trim() || product.section) {
       toast.info('Selo e vitrine ainda não foram salvos: falta rodar o SQL 06 no Supabase (supabase/06-personalizacao.sql).');
     }
+    // Desconto (SQL 13): só manda a coluna se o banco já a tem (ela vem na leitura dos produtos) ou se há desconto de fato
+    const discount = clampDiscount(product.discountPercent);
+    const dbHasDiscount = products.some(p => 'discount_percent' in p);
+    if (discount > 0 || dbHasDiscount) payload.discount_percent = discount;
     if (product.id) payload.id = product.id;
 
     const { data: saved, error } = await upsertProduct(payload);

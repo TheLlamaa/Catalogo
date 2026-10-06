@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
+import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info, Moon, Sun } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
 import { resolveMenu, type MenuContext } from '../lib/menus';
 import type { Category } from '../types';
@@ -15,10 +15,22 @@ const menuContext = (settings: SiteSettings, categories: Category[]): MenuContex
   aboutEnabled: settings.aboutEnabled, customEnabled: settings.customEnabled
 });
 
-// Cabeçalho da vitrine: logo, menus, acesso ao painel e carrinho
-interface StoreHeaderProps { settings: SiteSettings; categories: Category[]; user: AuthUser | null; cartCount: number; onOpenCart: () => void }
+// Botão sol/lua do modo escuro (vitrine e painel)
+export interface ColorModeControl { dark: boolean; toggle: () => void }
+export function ColorModeButton({ mode, className = '' }: { mode: ColorModeControl; className?: string }) {
+  const Icon = mode.dark ? Sun : Moon;
+  const label = mode.dark ? 'Usar modo claro' : 'Usar modo escuro';
+  return (
+    <button type="button" onClick={mode.toggle} title={label} className={`p-2.5 rounded-md transition-colors ${className}`}>
+      <Icon className="w-5 h-5" aria-hidden="true" /><span className="sr-only">{label}</span>
+    </button>
+  );
+}
 
-export function StoreHeader({ settings, categories, user, cartCount, onOpenCart }: StoreHeaderProps) {
+// Cabeçalho da vitrine: logo, menus, acesso ao painel e carrinho
+interface StoreHeaderProps { settings: SiteSettings; categories: Category[]; user: AuthUser | null; cartCount: number; onOpenCart: () => void; colorMode?: ColorModeControl }
+
+export function StoreHeader({ settings, categories, user, cartCount, onOpenCart, colorMode }: StoreHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
@@ -75,7 +87,9 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
             </button>
           )}
 
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
+          <div className="w-px h-6 bg-gray-300 mx-1 sm:mx-2"></div>
+
+          {colorMode && <ColorModeButton mode={colorMode} className="text-gray-600 hover:bg-gray-100" />}
 
           {/* O nome lido em voz alta inclui o número que aparece no selo: "Abrir orçamento (2 item(ns))" */}
           <button
@@ -97,12 +111,12 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
 }
 
 // Cabeçalho do painel administrativo
-export function AdminHeader({ onLogout, storeName }: { onLogout: () => void; storeName?: string }) {
+export function AdminHeader({ onLogout, storeName, colorMode }: { onLogout: () => void; storeName?: string; colorMode?: ColorModeControl }) {
   return (
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link to="/admin" className="flex items-center gap-3 min-w-0">
-          <Settings className="w-6 h-6 text-blue-500 flex-shrink-0" strokeWidth={2.5} />
+          <Settings className="w-6 h-6 text-[rgb(var(--accent-on-dark))] flex-shrink-0" strokeWidth={2.5} />
           <span className="min-w-0">
             <span className="block text-base font-bold tracking-tight truncate">{storeName || 'Minha loja'}</span>
             <span className="block text-[11px] uppercase tracking-wider text-slate-400 -mt-0.5">Painel de gestão</span>
@@ -117,6 +131,7 @@ export function AdminHeader({ onLogout, storeName }: { onLogout: () => void; sto
             <ExternalLink className="w-4 h-4" />
             <span className="hidden sm:inline">Ver loja</span>
           </button>
+          {colorMode && <ColorModeButton mode={colorMode} className="-m-2 p-2 text-slate-300 hover:text-white" />}
           <div className="w-px h-5 bg-slate-700"></div>
           <button
             onClick={onLogout}

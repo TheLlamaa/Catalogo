@@ -4,6 +4,7 @@ import { getSession, onSessionChange } from '../services/auth';
 import type { AuthUser, Session } from '../services/auth';
 import { watchAdminChanges } from '../services/realtime';
 import { mergeSettings } from '../lib/settings';
+import { clampDiscount, discountedPrice } from '../lib/discount';
 import { statusInfo } from '../lib/format';
 import { useUI } from '../components/UIContext';
 import type { Category, CatalogOrder, CustomOrder, DbResult, ProductOption, SettingRow, StoredProduct, Toast } from '../types';
@@ -11,7 +12,8 @@ import type { Category, CatalogOrder, CustomOrder, DbResult, ProductOption, Sett
 type OrderKey = 'orders' | 'custom';
 
 // Linhas como vêm do banco (snake_case); o supabase-js sem tipos gerados devolve any, então descrevemos o que usamos.
-type ProductRow = Omit<StoredProduct, 'sortOrder' | 'categoryIds' | 'imageUrls' | 'auraColor' | 'leadTime' | 'modelUrl'> & {
+type ProductRow = Omit<StoredProduct, 'sortOrder' | 'categoryIds' | 'imageUrls' | 'auraColor' | 'leadTime' | 'modelUrl' | 'discountPercent'> & {
+  discount_percent?: number | null;
   sort_order?: number | null; category_ids?: string[] | null; image_urls?: string[] | null;
   aura_color?: string | null; lead_time?: string | null; options?: ProductOption[] | unknown;
 };
@@ -37,7 +39,7 @@ export function useCatalogData() {
   // Sem controle de estoque, todo produto ativo está sempre disponível (available infinito); o número guardado fica intacto
   const trackStock = settings.stockControl;
   const products = useMemo(
-    () => rawProducts.map(p => ({ ...p, available: trackStock ? p.stock : Infinity })),
+    () => rawProducts.map(p => ({ ...p, available: trackStock ? p.stock : Infinity, salePrice: discountedPrice(p.price, p.discountPercent) })),
     [rawProducts, trackStock]
   );
   const userRef = useRef<AuthUser | null>(null); // usuário atual acessível dentro do fetchData
@@ -92,6 +94,7 @@ export function useCatalogData() {
         auraColor: p.aura_color || 'inherit',
         options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
         leadTime: p.lead_time || '',
+        discountPercent: clampDiscount(p.discount_percent),
         modelUrl: modelUrls[p.id] || ''
       })).sort(byManual));
       setCategories(categoryRows.map((c): Category => ({ ...c, sortOrder: c.sort_order ?? 0, auraColor: c.aura_color || 'none' }))

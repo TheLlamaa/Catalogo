@@ -1,3 +1,5 @@
+import { isStaleChunkError } from './staleChunk';
+
 // Monta o registro no formato (e limites) da tabela error_log. Devolve null se for ruído que não vale anotar.
 export interface ErrorEntry {
   source: string;
@@ -18,6 +20,8 @@ export function buildErrorEntry(
   if (!message) return null;
   // ruídos comuns que não são bugs do site
   if (/ResizeObserver loop|^Script error\.?$|Load failed$|Failed to fetch$|NetworkError/i.test(message)) return null;
+  // versão nova publicada com o site aberto: a página recarrega sozinha (lib/staleChunk.ts), não é bug
+  if (isStaleChunkError(message)) return null;
   return {
     source,
     message,

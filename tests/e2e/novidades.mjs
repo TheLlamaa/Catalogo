@@ -171,6 +171,173 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Sistema → Calculadora de preço
+  const { page, ctx, writes } = await abrir();
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Calculadora de preço').click();
+  const precoBox = page.getByRole('complementary', { name: 'Resultado' });
+  const preco = { innerText: async () => (await precoBox.innerText()).replace(/\s+/g, ' ') }; // moeda vem com espaço especial
+  check('calculadora abre com o preço dos valores de exemplo', (await preco.innerText()).includes('R$ 47,67'));
+  await page.getByLabel(/^Peças na mesa/).fill('4');
+  check('várias peças: mostra preço por peça e da mesa', /preço sugerido por peça/i.test(await preco.innerText()) && (await preco.innerText()).includes('Mesa com 4 peças'));
+  await page.reload();
+  await nav(page, 'Calculadora de preço').click();
+  check('valores ficam guardados no navegador', (await page.getByLabel(/^Peças na mesa/).inputValue()) === '4');
+  await page.getByLabel(/^Peças na mesa/).fill('1');
+  await page.getByLabel('Usar como preço de um produto').selectOption('p2');
+  await page.getByRole('button', { name: 'Aplicar' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Atualizar preço' }).click();
+  await page.waitForTimeout(400);
+  const w = writes.filter(x => x.path === '/rest/v1/products').at(-1);
+  check('"Aplicar" grava o preço sugerido no produto', w?.body?.id === 'p2' && w?.body?.price === 47.67, JSON.stringify(w?.body));
+  await ctx.close();
+}
+
+{ // Versão nova publicada com o painel aberto: o arquivo da tela sumiu → recarrega sozinho, sem registrar erro
+  const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
+  await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+  const page = await ctx.newPage();
+  const logs = [];
+  await ctx.route('https://mock.supabase.co/**', async (route) => {
+    const req = route.request(); const url = new URL(req.url());
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (url.pathname === '/rest/v1/error_log' && req.method() === 'POST') logs.push(req.postData());
+    const body = url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : url.pathname === '/rest/v1/products' ? products : [];
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+  });
+  let falhou = 0;
+  await page.route(/\/assets\/AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
+  await page.goto(BASE + '/admin');
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor({ timeout: 10000 }).catch(() => {});
+  check('arquivo antigo some: a página recarrega e o painel abre', falhou >= 2 && await page.getByRole('button', { name: /^Pedidos \(/ }).isVisible(), `tentativas=${falhou}`);
+  check('isso não vira "erro do site"', logs.length === 0, logs.join(' | '));
+  await ctx.close();
+}
+
+{ // Modo escuro: segue o aparelho, botão sol/lua guarda a escolha, lojista pode travar a vitrine no claro
+  const abrirEscuro = async (rows, path, admin = false) => {
+    const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 }, colorScheme: 'dark' });
+    if (admin) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+    const page = await ctx.newPage();
+    await ctx.route('https://mock.supabase.co/**', (route) => {
+      const url = new URL(route.request().url());
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+      const body = url.pathname === '/rest/v1/products' ? products : url.pathname === '/rest/v1/categories' ? categories : url.pathname === '/rest/v1/site_settings' ? rows
+        : url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : [];
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+    });
+    await page.goto(BASE + path);
+    await page.getByText(admin ? 'Painel de gestão' : 'Vaso Cubo').first().waitFor();
+    return { page, ctx };
+  };
+  const escuro = (page) => page.evaluate(() => document.documentElement.classList.contains('dark'));
+  const fundo = (page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+  let { page, ctx } = await abrirEscuro([], '/');
+  check('vitrine segue o aparelho (modo escuro)', await escuro(page), await fundo(page));
+  await page.getByRole('button', { name: 'Usar modo claro' }).click();
+  check('botão sol/lua troca para o claro', !(await escuro(page)));
+  await page.reload(); await page.getByText('Vaso Cubo').first().waitFor();
+  check('a escolha fica guardada', !(await escuro(page)) && await page.getByRole('button', { name: 'Usar modo escuro' }).isVisible());
+  await ctx.close();
+
+  ({ page, ctx } = await abrirEscuro([{ key: 'darkMode', value: 'off' }], '/'));
+  check('lojista travou no claro: vitrine clara mesmo com aparelho escuro', !(await escuro(page)));
+  check('lojista travou no claro: sem botão sol/lua', await page.getByRole('button', { name: /Usar modo/ }).count() === 0);
+  await ctx.close();
+
+  ({ page, ctx } = await abrirEscuro([{ key: 'darkMode', value: 'off' }], '/admin', true));
+  check('painel tem modo escuro mesmo com a vitrine travada', await escuro(page) && await page.getByRole('button', { name: 'Usar modo claro' }).isVisible());
+  await ctx.close();
+}
+
+{ // Desconto em %: preço riscado na vitrine, total do carrinho, pedido e campo no cadastro
+  const promo = [P('p1', 'Vaso Promo', { price: 39.9, discount_percent: 15 }), P('p2', 'Vaso Cheio', { price: 20, discount_percent: 0 })];
+  const abrirPromo = async (path, admin = false) => {
+    const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
+    if (admin) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+    const page = await ctx.newPage();
+    const writes = [];
+    await ctx.route('https://mock.supabase.co/**', (route) => {
+      const req = route.request(); const url = new URL(req.url());
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+      if (req.method() !== 'GET') { writes.push({ path: url.pathname, body: req.postData() ? JSON.parse(req.postData()) : null }); return route.fulfill({ status: 201, headers: cors, body: '' }); }
+      const body = url.pathname === '/rest/v1/products' ? promo : url.pathname === '/rest/v1/categories' ? categories
+        : url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : [];
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+    });
+    await page.goto(BASE + path);
+    return { page, ctx, writes };
+  };
+  const txt = async (loc) => (await loc.innerText()).replace(/\s+/g, ' ');
+
+  let { page, ctx, writes } = await abrirPromo('/');
+  const card = page.locator('article').filter({ hasText: 'Vaso Promo' }).first();
+  await card.waitFor();
+  const t = await txt(card);
+  check('card mostra preço antigo, novo e o selo', t.includes('R$ 39,90') && t.includes('R$ 33,92') && t.includes('-15%'), t);
+  check('leitor de tela ouve "De ... por ..."', await card.getByText('De R$ 39,90 por R$ 33,92 (15% de desconto)').count() === 1);
+  check('produto sem desconto mostra só o preço', !(await txt(page.locator('article').filter({ hasText: 'Vaso Cheio' }).first())).includes('%'));
+  await card.getByRole('button', { name: /Adicionar/ }).click();
+  const gaveta = page.getByRole('dialog');
+  check('carrinho soma com desconto', (await txt(gaveta)).includes('Total R$ 33,92'), await txt(gaveta));
+  await gaveta.getByRole('button', { name: 'Avançar para Identificação' }).click();
+  await page.getByLabel('Seu nome').fill('Ana Souza');
+  await page.getByLabel('Seu WhatsApp').fill('48999990000');
+  await page.getByRole('button', { name: 'Finalizar pedido' }).click();
+  await page.waitForTimeout(500);
+  const pedido = writes.find(w => w.path === '/rest/v1/orders')?.body;
+  check('pedido vai com o preço com desconto', pedido?.total === 33.92 && pedido?.items?.[0]?.price === 33.92, JSON.stringify(pedido));
+  await ctx.close();
+
+  ({ page, ctx, writes } = await abrirPromo('/admin', true));
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Produtos (2)').click();
+  check('lista do painel mostra o desconto', (await txt(page.locator('tbody tr').filter({ hasText: 'Vaso Promo' }))).includes('-15%'));
+  await page.getByRole('button', { name: 'Editar Vaso Promo' }).click();
+  const campo = page.getByLabel(/^Desconto/);
+  check('cadastro abre com o desconto', await campo.inputValue() === '15' && (await txt(page.locator('#p-desconto-dica'))).includes('R$ 33,92'));
+  await campo.fill('20');
+  check('dica mostra por quanto sai', (await txt(page.locator('#p-desconto-dica'))).includes('Sai por R$ 31,92'));
+  await campo.fill('95');
+  await page.getByRole('button', { name: /Salvar/ }).first().click();
+  check('desconto acima de 90% é recusado', !(await campo.evaluate(el => el.validity.valid)) && !writes.some(w => w.path === '/rest/v1/products'));
+  await campo.fill('');
+  await page.getByRole('button', { name: /Salvar/ }).first().click();
+  await page.waitForTimeout(500);
+  const w = writes.filter(x => x.path === '/rest/v1/products').at(-1)?.body;
+  check('apagar o desconto grava 0 (tira a promoção)', w?.discount_percent === 0 && w?.id === 'p1', JSON.stringify(w));
+  await ctx.close();
+}
+
+{ // Tema pronto no painel: a cor escolhida não "volta" quando os dados recarregam sozinhos
+  const { page, ctx } = await abrir({ path: '/' });
+  await page.clock.install(); // controla o relógio para simular "30 s depois"
+  await page.goto(BASE + '/admin');
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Aparência').click();
+  const cor = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--c-blue-600').trim());
+  await page.getByRole('button', { name: 'Rosa', exact: true }).click();
+  await page.waitForTimeout(200);
+  const rosa = await cor();
+  let recarregou = false;
+  page.on('request', r => { if (r.url().includes('/rest/v1/site_settings')) recarregou = true; });
+  await page.clock.fastForward(31000);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus'))); // ex.: voltar do seletor de cor do sistema
+  await page.waitForTimeout(800);
+  check('tema pronto aplicado no painel', rosa === '190 24 93', rosa);
+  check('dados recarregaram e a cor do rascunho continua', recarregou && await cor() === rosa, `${recarregou} ${await cor()}`);
+  await nav(page, 'Dados da loja').click(); await page.waitForTimeout(200);
+  await nav(page, 'Produtos (3)').click();
+  await page.getByRole('dialog').getByRole('button', { name: /Sair sem publicar/ }).click();
+  await page.waitForTimeout(300);
+  check('saindo sem publicar, volta a cor publicada', await cor() === '37 99 235', await cor());
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

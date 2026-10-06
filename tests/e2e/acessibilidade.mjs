@@ -1,4 +1,4 @@
-// Acessibilidade (WCAG 2.1 AA) com axe-core: vitrine e painel, computador e celular.
+// Acessibilidade (WCAG 2.1 AA) com axe-core: vitrine e painel, computador e celular, modo claro e escuro.
 // Também confere alvos de toque (mínimo 24 px, WCAG 2.2) no celular.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -26,8 +26,8 @@ const check = (name, ok, extra = '') => { results.push({ name, ok }); console.lo
 const browser = await launch();
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-async function abrir(path, { mobile = false, admin = false } = {}) {
-  const ctx = await browser.newContext(mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: 1300, height: 900 } });
+async function abrir(path, { mobile = false, admin = false, dark = false } = {}) {
+  const ctx = await browser.newContext({ ...(mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: 1300, height: 900 } }), colorScheme: dark ? 'dark' : 'light' });
   if (admin) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
   const page = await ctx.newPage();
   await page.route('https://mock.supabase.co/**', async (route) => {
@@ -65,16 +65,16 @@ async function alvos(page, name) {
   check(`${name}: alvos de toque com pelo menos 24 px`, small.length === 0, small.join(' | '));
 }
 
-for (const mobile of [false, true]) {
-  const tag = mobile ? 'celular' : 'computador';
-  let { page, ctx } = await abrir('/', { mobile });
+for (const dark of [false, true]) for (const mobile of [false, true]) {
+  const tag = `${mobile ? 'celular' : 'computador'}${dark ? ', modo escuro' : ''}`;
+  let { page, ctx } = await abrir('/', { mobile, dark });
   await axe(page, `vitrine (${tag})`); if (mobile) await alvos(page, 'vitrine (celular)');
   await page.getByText('Vaso Cubo').first().click(); await page.getByRole('dialog').waitFor();
   await axe(page, `janela do produto (${tag})`);
   await ctx.close();
-  ({ page, ctx } = await abrir('/custom', { mobile })); await axe(page, `peça personalizada (${tag})`); await ctx.close();
+  ({ page, ctx } = await abrir('/custom', { mobile, dark })); await axe(page, `peça personalizada (${tag})`); await ctx.close();
 
-  ({ page, ctx } = await abrir('/admin', { mobile, admin: true }));
+  ({ page, ctx } = await abrir('/admin', { mobile, admin: true, dark }));
   await axe(page, `painel: pedidos (${tag})`); if (mobile) await alvos(page, 'painel: pedidos (celular)');
   const ir = async (label) => {
     if (mobile) { await page.getByRole('button', { name: /Abrir menu do painel/ }).click(); }
@@ -89,6 +89,7 @@ for (const mobile of [false, true]) {
   await ir('Personalizados'); await axe(page, `painel: personalizados (${tag})`);
   await ir('Página inicial'); await axe(page, `painel: página inicial (${tag})`);
   await ir('Pedidos e carrinho'); await axe(page, `painel: pedidos e carrinho (${tag})`);
+  await ir('Calculadora de preço'); await axe(page, `painel: calculadora de preço (${tag})`); if (mobile) await alvos(page, 'painel: calculadora (celular)');
   await ctx.close();
 }
 

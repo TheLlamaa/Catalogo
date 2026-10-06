@@ -64,7 +64,7 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 // A assinatura de índice cobre chaves dinâmicas (ex.: acesso por field.key).
 export interface Settings {
   [key: string]: unknown;
-  primaryColor: string; fontChoice: string; bgTone: string; cardStyle: string; gridCols: string; heroImage: string;
+  primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string;
   faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
@@ -118,6 +118,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
       { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Vazio = azul padrão. Prefira cores escuras ou médias: com cor clara o texto dos botões fica ruim de ler.' },
       { key: 'fontChoice', label: 'Fonte', type: 'select', display: 'font', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
       { key: 'bgTone', label: 'Fundo da loja', type: 'select', display: 'tone', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
+      { key: 'darkMode', label: 'Modo escuro na vitrine', type: 'select', default: 'auto', options: [{ value: 'auto', label: 'Cliente escolhe (segue o aparelho, com botão sol/lua)' }, { value: 'off', label: 'Sempre claro' }], hint: 'No modo escuro o fundo escolhido acima não é usado; a cor principal continua.' },
     ]
   },
   {

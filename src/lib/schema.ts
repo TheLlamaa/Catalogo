@@ -1,5 +1,5 @@
 // Versão do banco que este site espera. Sobe junto com cada arquivo novo em supabase/ (o arquivo grava a versão em app_meta).
-export const EXPECTED_SCHEMA_VERSION = 12;
+export const EXPECTED_SCHEMA_VERSION = 13;
 
 // Interpreta a resposta de "select value from app_meta where key = 'schema_version'"
 export interface SchemaStatus {

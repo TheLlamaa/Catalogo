@@ -42,6 +42,12 @@ export const THEME_PRESETS: ThemePreset[] = [
 
 export const DEFAULT_PRIMARY = '#2563eb'; // = blue-600 do Tailwind
 export const isHex = (v: unknown): v is string => /^#[0-9a-fA-F]{6}$/.test(String(v || '').trim());
+// Código digitado à mão: aceita sem "#" e o formato curto (#f0a → #ff00aa). Devolve o texto como veio se não der.
+export const normalizeHex = (v: string): string => {
+  const t = v.trim().replace(/^#?/, '#').toLowerCase();
+  if (/^#[0-9a-f]{3}$/.test(t)) return `#${[...t.slice(1)].map(c => c + c).join('')}`;
+  return /^#[0-9a-f]{6}$/.test(t) ? t : v;
+};
 
 // Cor em canais [r, g, b] (0 a 255)
 type Rgb = number[];
@@ -69,6 +75,26 @@ export const luminance = (hex: string): number => {
 };
 export const isTooLight = (hex: unknown): boolean => isHex(hex) && luminance(hex) > 0.4;
 
+const toHex = (c: Rgb): string => `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+
+// Superfície dos cards no modo escuro (= --white escuro em tailwind.config.js)
+export const DARK_SURFACE = '#151c27';
+
+// No modo escuro, uma cor principal muito escura (ex.: o tema Clássico, #1e293b) some sobre o fundo escuro:
+// botões e destaques ficam quase invisíveis. Clareia aos poucos até ter contraste com a superfície,
+// sem perder a leitura do texto branco dos botões. Devolve a mesma cor se ela já funciona.
+export const darkModeBase = (hex: string): string => {
+  const base = hexToRgb(hex);
+  let best = hex;
+  for (let t = 0; t <= 0.7; t += 0.05) {
+    const c = toHex(mix(base, WHITE, t));
+    best = c;
+    if (contrastRatio(c, DARK_SURFACE) >= 2.4) break;
+    if (contrastRatio(c, '#ffffff') < 4.5) { best = toHex(mix(base, WHITE, Math.max(0, t - 0.05))); break; }
+  }
+  return best;
+};
+
 // Escreve a aparência no documento. Sem argumentos úteis, volta ao padrão do site.
 // Campos de aparência lidos das configurações do site
 export interface ThemeInput { primaryColor?: string; fontChoice?: string; logoUrl?: string; faviconUrl?: string; bgTone?: string; cardStyle?: string }
@@ -76,12 +102,24 @@ export interface ThemeInput { primaryColor?: string; fontChoice?: string; logoUr
 export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTone, cardStyle }: ThemeInput = {}): void => {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  if (isHex(primaryColor) && primaryColor.toLowerCase() !== DEFAULT_PRIMARY) {
+  const steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+  const custom = isHex(primaryColor) && primaryColor.toLowerCase() !== DEFAULT_PRIMARY;
+  if (custom) {
     const pal = paletteFrom(primaryColor);
     Object.entries(pal).forEach(([step, rgb]) => root.style.setProperty(`--c-blue-${step}`, rgb.join(' ')));
   } else {
-    [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].forEach(s => root.style.removeProperty(`--c-blue-${s}`));
+    steps.forEach(s => root.style.removeProperty(`--c-blue-${s}`));
   }
+  // Paleta do modo escuro (--d-blue-*, lida em tailwind.config.js): só existe quando a cor precisa clarear
+  const darkBase = custom ? darkModeBase(primaryColor) : DEFAULT_PRIMARY;
+  if (custom && darkBase !== primaryColor.toLowerCase()) {
+    const dpal = paletteFrom(darkBase);
+    Object.entries(dpal).forEach(([step, rgb]) => root.style.setProperty(`--d-blue-${step}`, rgb.join(' ')));
+  } else {
+    steps.forEach(s => root.style.removeProperty(`--d-blue-${s}`));
+  }
+  // Destaque sobre fundo sempre escuro (ícone do cabeçalho do painel)
+  root.style.setProperty('--accent-on-dark', paletteFrom(darkBase)[400].join(' '));
   const font = FONT_CHOICES.find(f => f.id === fontChoice);
   if (font && font.id !== 'padrao') root.style.setProperty('--font-body', font.stack);
   else root.style.removeProperty('--font-body');
@@ -101,6 +139,36 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTo
     if (/^https?:\/\//i.test(iconUrl || '')) { icon.setAttribute('href', String(iconUrl)); icon.removeAttribute('type'); }
     else { icon.setAttribute('href', icon.dataset.original); icon.setAttribute('type', 'image/svg+xml'); }
   }
+};
+
+// Aparência publicada × rascunho do painel.
+// Enquanto o lojista mexe em Site > Aparência, o painel mostra o rascunho (cor, fonte...). O site recarrega os dados
+// sozinho (a cada 30 s, ao voltar para a aba, ao fechar o seletor de cor do sistema...) e reaplicava a aparência
+// publicada por cima do rascunho: a cor "voltava" logo depois de escolher um tema pronto.
+// Agora o rascunho, quando existe, tem prioridade; a publicada só volta quando o rascunho é encerrado.
+let published: ThemeInput = {};
+let draft: ThemeInput | null = null;
+export const applyPublishedTheme = (input: ThemeInput): void => {
+  published = input;
+  if (!draft) applyTheme(input);
+};
+export const setThemeDraft = (input: ThemeInput | null): void => {
+  draft = input;
+  applyTheme(input || published);
+};
+
+// Última aparência publicada, guardada no navegador: aplicada já na abertura (main.tsx), antes dos dados
+// chegarem, para o site não aparecer azul e depois mudar de cor.
+const THEME_CACHE = 'catalogo-aparencia';
+const THEME_KEYS: (keyof ThemeInput)[] = ['primaryColor', 'fontChoice', 'logoUrl', 'faviconUrl', 'bgTone', 'cardStyle'];
+export const cacheTheme = (input: ThemeInput): void => {
+  try { localStorage.setItem(THEME_CACHE, JSON.stringify(Object.fromEntries(THEME_KEYS.map(k => [k, String(input[k] ?? '')])))); } catch { /* só não guarda */ }
+};
+export const applyCachedTheme = (): void => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(THEME_CACHE) || 'null');
+    if (saved && typeof saved === 'object') applyTheme(Object.fromEntries(THEME_KEYS.map(k => [k, typeof saved[k] === 'string' ? saved[k] : ''])));
+  } catch { /* sem cache: fica o padrão até os dados chegarem */ }
 };
 
 // Cor dos selos dos produtos (vazio = laranja padrão da classe)

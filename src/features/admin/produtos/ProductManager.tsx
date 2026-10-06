@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Price from '../../vitrine/Price';
 import { useDragReorder } from '../../../hooks/useDragReorder';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import {
@@ -12,7 +13,7 @@ import Pagination from '../pedidos/Pagination';
 import { usePagination } from '../../../hooks/usePagination';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
-import { brl, isHttpUrl } from '../../../lib/format';
+import { isHttpUrl } from '../../../lib/format';
 import type { Category, Product, StoredProduct } from '../../../types';
 
 interface ProductManagerProps {
@@ -144,8 +145,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
             {chips.filter(c => !c.hide).map(c => (
               <button
                 key={c.id || 'todos'} type="button" onClick={() => setStatus(c.id)} aria-pressed={status === c.id}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${status === c.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-              >{c.label} <span className={status === c.id ? 'text-gray-300' : 'text-gray-500'}>({counts[c.id]})</span></button>
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${status === c.id ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+              >{c.label} <span className={status === c.id ? 'text-slate-300 dark:text-slate-600' : 'text-gray-500'}>({counts[c.id]})</span></button>
             ))}
           </div>
 
@@ -259,7 +260,7 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
       </div>
       <div className="min-w-0">
         <button type="button" onClick={() => onEdit(product)} className="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline text-left block truncate max-w-full py-0.5">{product.title}</button>
-        <span className="text-xs text-gray-500 font-medium">{brl(product.price)}</span>
+        <span className="text-xs"><Price product={product} className="text-xs text-gray-500 font-medium" /></span>
         {(product.badge || product.section) && (
           <span className="mt-1 flex flex-wrap gap-1">
             {product.section === 'destaque' && <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded"><Star className="w-3 h-3 fill-current" aria-hidden="true" />{SECTION_LABEL.destaque}</span>}
@@ -330,7 +331,7 @@ function RowActions({ product, onFeatured, onDuplicate, onEdit, onDelete }: RowA
         type="button" onClick={() => onFeatured(product)} aria-pressed={featured}
         aria-label={featured ? `Tirar ${product.title} dos Destaques` : `Destacar ${product.title}`}
         title={featured ? 'Nos Destaques — clique para tirar' : 'Colocar nos Destaques da vitrine'}
-        className={`${icon} ${featured ? 'text-amber-500 hover:text-amber-600' : 'hover:text-amber-500'}`}
+        className={`${icon.replace('text-gray-500', '')} ${featured ? 'text-amber-600 hover:text-amber-700' : 'text-gray-500 hover:text-amber-600'}`} // sem text-gray-500 junto: a ordem do CSS deixava a estrela destacada cinza
       ><Star className={`w-4 h-4 ${featured ? 'fill-current' : ''}`} /></button>
       <button type="button" onClick={() => onDuplicate(product)} className={`${icon} hover:text-blue-600`} title="Duplicar (a cópia fica oculta)" aria-label={`Duplicar ${product.title}`}><Copy className="w-4 h-4" /></button>
       <button type="button" onClick={() => onEdit(product)} className={`${icon} hover:text-blue-600`} title="Editar" aria-label={`Editar ${product.title}`}><Edit2 className="w-4 h-4" /></button>
