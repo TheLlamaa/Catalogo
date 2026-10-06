@@ -87,6 +87,12 @@ begin
     if char_length(coalesce(j->>'image_url', '')) >= 700000 then
       raise exception 'Imagem muito grande.';
     end if;
+    -- A foto de referência só pode vir embutida (o site sempre manda assim). Um link externo faria o
+    -- navegador do admin buscar a imagem no servidor de quem mandou, revelando o IP e a hora em que abriu.
+    if coalesce(j->>'image_url', '') <> ''
+       and j->>'image_url' !~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$' then
+      raise exception 'Imagem inválida. Envie a foto pelo formulário do site.';
+    end if;
   end if;
 
   NEW.status := 'novo';
