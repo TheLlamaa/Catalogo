@@ -22,7 +22,6 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
   const s = summarize(orders);
   const top = topProducts(orders, 10);
   const days = dailyTotals(orders);
-  const maxDay = Math.max(1, ...days.map(d => d.total));
 
   const kpi = (label: string, value: string, sub = '') => `<div class="kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
 
@@ -33,7 +32,7 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
     `<tr><td>${i + 1}</td><td>${esc(p.title)}</td><td class="n">${p.quantity}</td><td class="n">${esc(brl(p.revenue))}</td></tr>`).join('');
 
   const dayRows = days.map(d =>
-    `<tr><td>${esc(fmtDay(d.day))}</td><td class="n">${d.count}</td><td class="n">${esc(brl(d.total))}</td><td class="bar"><i style="width:${Math.round((d.total / maxDay) * 100)}%"></i></td></tr>`).join('');
+    `<tr><td>${esc(fmtDay(d.day))}</td><td class="n">${d.count}</td><td class="n">${esc(brl(d.total))}</td></tr>`).join('');
 
   const orderRows = [...orders].sort((a, b) => new Date(a.created_at as string).getTime() - new Date(b.created_at as string).getTime()).map(o => {
     const items = (o.items || []).map(i => { const opt = formatOptions(i.options); return `${esc(i.quantity)}x ${esc(i.title)}${opt ? ` <span class="muted">(${esc(opt)})</span>` : ''}`; }).join('<br>');
@@ -63,7 +62,6 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
   .kpi strong{display:block;font-size:20px;margin-top:2px} .kpi small{color:#6b7280}
   table{width:100%;border-collapse:collapse;font-size:13px} th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;border-bottom:1px solid #d1d5db;padding:6px 8px}
   td{padding:6px 8px;border-bottom:1px solid #eef0f3;vertical-align:top} .n{text-align:right;white-space:nowrap}
-  td.bar{width:30%} td.bar i{display:block;height:10px;background:#93c5fd;border-radius:3px}
   tr{break-inside:avoid} .empty{color:#6b7280;padding:12px 0}
   .foot{margin-top:28px;color:#9ca3af;font-size:11px}
   @media print{body{background:#fff} main{padding:0;max-width:none} .noprint{display:none} h2{break-after:avoid} @page{margin:14mm}}
@@ -88,7 +86,7 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
   <h2>Produtos mais pedidos</h2>
   ${topRows ? `<table><tr><th>#</th><th>Produto</th><th class="n">Unidades</th><th class="n">Valor</th></tr>${topRows}</table>` : '<p class="empty">Sem itens.</p>'}
   <h2>Valor por dia</h2>
-  ${dayRows ? `<table><tr><th>Dia</th><th class="n">Pedidos</th><th class="n">Valor</th><th></th></tr>${dayRows}</table>` : '<p class="empty">Sem pedidos.</p>'}
+  ${dayRows ? `<table><tr><th>Dia</th><th class="n">Pedidos</th><th class="n">Valor</th></tr>${dayRows}</table>` : '<p class="empty">Sem pedidos.</p>'}
   <h2>Pedidos (${orders.length})</h2>
   ${orderRows ? `<table><tr><th>Pedido</th><th>Cliente</th>${detailed ? '<th>Itens</th>' : ''}<th>Recebimento</th><th>Status</th><th class="n">Total</th></tr>${orderRows}</table>` : '<p class="empty">Nenhum pedido.</p>'}
   <p class="foot">Gerado em ${esc(generatedAt.toLocaleString('pt-BR'))}. Pedidos cancelados aparecem na lista, mas não entram no faturamento, no ticket médio nem no ranking.</p>

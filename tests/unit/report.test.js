@@ -33,6 +33,11 @@ describe('buildReportHtml', () => {
     expect(html).not.toMatch(/<script/i);
     expect(html).toContain('id="imprimir"');
   });
+  it('tabela "Valor por dia" sem a barrinha de gráfico', () => {
+    const html = buildReportHtml({ ...base, orders: [order()] });
+    expect(html).not.toContain('class="bar"');
+    expect(html).not.toMatch(/style="width:/);
+  });
   it('NÃO deixa texto do cliente virar HTML (nome, endereço, observação, produto)', () => {
     const evil = '<img src=x onerror=alert(1)>';
     const html = buildReportHtml({ ...base, orders: [order({ client_name: evil, delivery_address: evil, notes: evil, items: [{ id: 'p', title: evil, price: 1, quantity: 1, options: { [evil]: evil } }] })] });
