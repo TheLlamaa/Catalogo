@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Plus, Edit2, Trash2, ArrowLeft, ArrowUp, ArrowDown, Tags } from 'lucide-react';
-import { Button, EmptyState, PageHeader } from '../../../components/ui';
+import { Button, EmptyState, PageHeader, inputClass } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
@@ -35,7 +35,7 @@ export default function CategoryManager({ categories, products, onShowProducts, 
 
   const handleDelete = async (category: Category) => {
     const n = productCount(category.id);
-    const ok = await confirm({ title: 'Excluir categoria', message: `Excluir “${category.name}”? ${n ? `Os ${n} produto(s) dela continuam existindo, só saem desta categoria.` : 'Ela não tem produtos.'}`, confirmLabel: 'Excluir' });
+    const ok = await confirm({ title: 'Excluir categoria?', message: `“${category.name}” sai do menu da vitrine. ${n ? `Os ${n} produto(s) dela continuam existindo, só deixam de estar nesta categoria.` : 'Ela não tem produtos.'}`, confirmLabel: 'Excluir categoria' });
     if (ok) onDelete(category.id);
   };
 
@@ -57,7 +57,7 @@ export default function CategoryManager({ categories, products, onShowProducts, 
           <PageHeader
             title="Categorias"
             description="Organizam o menu da vitrine. A ordem desta lista é a ordem do menu; categoria nova entra no fim."
-            actions={<Button variant="primary" icon={Plus} onClick={handleNew}>Nova Categoria</Button>}
+            actions={<Button variant="primary" icon={Plus} onClick={handleNew}>Nova categoria</Button>}
           />
           {categories.length === 0 ? (
             <EmptyState
@@ -73,8 +73,8 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                   <th className="pl-4 pr-0 py-4 w-12"><span className="sr-only">Ordem</span></th>
                   <th className="px-3 sm:px-6 py-4">Nome</th>
                   <th className="px-3 sm:px-4 py-4">Produtos</th>
-                  {aurasEnabled && <th className="px-6 py-4 hidden sm:table-cell">Aura Padrão</th>}
-                  <th className="px-6 py-4 hidden md:table-cell">Descrição</th>
+                  {aurasEnabled && <th className="px-6 py-4 hidden sm:table-cell">Aura padrão</th>}
+                  <th className="px-6 py-4 hidden lg:table-cell">Descrição</th>
                   <th className="px-3 sm:px-6 py-4 text-right"><span className="sr-only sm:not-sr-only">Ações</span></th>
                 </tr>
               </thead>
@@ -103,7 +103,7 @@ export default function CategoryManager({ categories, products, onShowProducts, 
                           <span className="text-gray-500 text-xs">Nenhuma</span>
                         )}
                       </td>}
-                      <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-[300px] hidden md:table-cell">{category.description || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-[300px] hidden lg:table-cell">{category.description || <span className="text-gray-300">—</span>}</td>
                       <td className="px-2 sm:px-6 py-4 text-right whitespace-nowrap">
                         <button onClick={() => { setEditingCategory(category); setIsFormOpen(true); }} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Editar" aria-label={`Editar ${category.name}`}><Edit2 className="w-4 h-4" /></button>
                         <button onClick={() => handleDelete(category)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md" title="Excluir" aria-label={`Excluir ${category.name}`}><Trash2 className="w-4 h-4" /></button>
@@ -142,7 +142,7 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
         <div>
           <label htmlFor="cat-nome" className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-          <input id="cat-nome" required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+          <input id="cat-nome" required type="text" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} className={inputClass} />
         </div>
 
         {aurasEnabled && <div>
@@ -163,11 +163,11 @@ function CategoryForm({ initialData, onSave, onCancel }: CategoryFormProps) {
         <div>
           <label htmlFor="cat-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição <span className="text-gray-500 font-normal">(opcional)</span></label>
           <p className="text-xs text-gray-500 mb-2">Aparece embaixo do título quando o cliente abre esta categoria na vitrine.</p>
-          <textarea id="cat-desc" rows={3} value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+          <textarea id="cat-desc" rows={3} value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} className={inputClass} />
         </div>
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <Button onClick={onCancel}>Cancelar</Button>
-          <Button type="submit" variant="primary">{initialData ? 'Salvar Alterações' : 'Criar categoria'}</Button>
+          <Button type="submit" variant="primary">{initialData ? 'Salvar alterações' : 'Criar categoria'}</Button>
         </div>
       </form>
     </div>

@@ -113,6 +113,25 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // nenhuma tabela do painel transborda para o lado (tablet, notebook e monitor)
+  const ruins = [];
+  for (const w of [768, 900, 1024, 1280, 1440]) {
+    const { page, ctx } = await abrir();
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.getByRole('heading', { name: 'Pedidos', exact: true }).waitFor();
+    for (const area of ['Produtos', 'Categorias']) {
+      const lateral = page.locator('nav[aria-label="Seções do painel"]');
+      if (await lateral.isVisible()) await lateral.getByRole('button', { name: new RegExp(`^${area} \\(`) }).click();
+      else { await page.getByRole('button', { name: /Abrir menu do painel/ }).click(); await page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${area} \\(`) }).click(); }
+      await page.waitForTimeout(250);
+      const over = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('.overflow-x-auto')].map(e => e.scrollWidth - e.clientWidth)));
+      if (over > 1) ruins.push(`${w}px ${area}: ${over}px`);
+    }
+    await ctx.close();
+  }
+  check('tabelas do painel cabem na tela de 768 a 1440 px (sem rolagem lateral)', ruins.length === 0, ruins.join(' | '));
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

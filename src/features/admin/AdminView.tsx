@@ -85,7 +85,7 @@ export default function AdminView({
   const siteGroup = active.startsWith('site:') ? active.slice(5) : null;
 
   return (
-    <div className="lg:flex lg:gap-8 lg:items-start">
+    <div className="xl:flex xl:gap-8 xl:items-start">
       <AdminNav sections={sections} active={active} onSelect={go} />
       <div className="flex-1 min-w-0">
         {schema && !schema.ok && (

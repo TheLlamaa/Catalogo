@@ -6,16 +6,17 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
-import { Switch, PageHeader, Button } from '../../../components/ui';
+import { Switch, PageHeader, Button, inputClass } from '../../../components/ui';
 import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import type { Category, Product } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
+import { friendlyError } from '../../../lib/errorMessage';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
@@ -33,8 +34,7 @@ const fieldMatches = (f: SettingField, q: string): boolean => {
   return normalizeText(`${f.label} ${f.hint || ''} ${optionText}`).includes(q);
 };
 
-const DEFAULT_BADGE = '#f59e0b'; // laranja dos selos na vitrine (bg-amber-500)
-const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
+const inputCls = inputClass;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DB_VALUE_MAX = 5000;
 
@@ -48,10 +48,6 @@ interface FaqDraft { q?: string; a?: string }
 
 // Texto de um valor do formulário (interruptores não têm texto)
 const str = (v: string | boolean | undefined): string => (typeof v === 'string' ? v : '');
-// Texto de um erro desconhecido (Error, objeto com message ou qualquer outro valor)
-const errorText = (err: unknown): string => (
-  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string' && err.message ? err.message : String(err)
-);
 
 const toForm = (key: string, value: unknown): string | boolean => (key === 'whatsapp' ? formatPhoneBR(value) : value as string | boolean); // valores já validados por mergeSettings
 const formFrom = (settings: Settings): FormValues => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, settings[k])]));
@@ -178,19 +174,19 @@ export default function SiteSettings({ settings, categories, products, group, on
   };
 
   const discard = async () => {
-    if (!(await confirm({ title: 'Descartar alterações', message: 'Voltar ao que está publicado e perder o que você mudou aqui?', confirmLabel: 'Descartar' }))) return;
+    if (!(await confirm({ title: 'Descartar alterações?', message: 'O que você mudou aqui e ainda não publicou volta a como está no site.', confirmLabel: 'Descartar' }))) return;
     setForm(base);
   };
 
   const resetField = (key: string) => set(key, toForm(key, DEFAULT_SETTINGS[key]));
   const resetSection = (section: SettingsSection) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
   const resetAll = async () => {
-    if (!(await confirm({ title: 'Voltar tudo ao padrão', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar.', confirmLabel: 'Voltar ao padrão' }))) return;
+    if (!(await confirm({ title: 'Voltar tudo ao padrão?', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar alterações.', confirmLabel: 'Voltar ao padrão' }))) return;
     setForm(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, DEFAULT_SETTINGS[k])])));
   };
 
   const handleUndo = async () => {
-    if (dirty && !(await confirm({ title: 'Desfazer', message: 'Você tem alterações não publicadas aqui. Desfazer a última publicação descarta elas. Continuar?', confirmLabel: 'Desfazer' }))) return;
+    if (dirty && !(await confirm({ title: 'Desfazer a última publicação?', message: 'O site volta a como estava antes da última publicação, e o que você mudou aqui sem publicar será descartado.', confirmLabel: 'Desfazer publicação' }))) return;
     setBase(form); dirtyRef.current = false;
     await onUndo();
   };
@@ -242,7 +238,7 @@ export default function SiteSettings({ settings, categories, products, group, on
 
 
       {!searching && group === 'aparencia' && (
-        <fieldset className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+        <fieldset className="rounded-lg border border-gray-200 bg-white shadow-sm p-5">
           <legend className="sr-only">Temas prontos</legend>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Temas prontos</h2>
           <p className="text-xs text-gray-500 mb-3">Preenche cor, fonte, fundo e cantos de uma vez. Dá para ajustar depois; nada vai ao ar até publicar.</p>
@@ -263,7 +259,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
         return (
-          <fieldset key={section.title} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <fieldset key={section.title} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
             <legend className="sr-only">{section.title}</legend>
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
               <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
@@ -306,8 +302,8 @@ export default function SiteSettings({ settings, categories, products, group, on
         </div>
         <div className="flex items-center gap-3">
           {dirty && <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">Alterações não publicadas</span>}
-          <a href="/" target="_blank" rel="noreferrer" className="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">Ver site</a>
-          <button type="submit" disabled={saving || !dirty} className="px-5 py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? 'Publicando…' : 'Publicar alterações'}</button>
+          <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Ver site</a>
+          <Button type="submit" variant="primary" disabled={saving || !dirty}>{saving ? 'Publicando…' : 'Publicar alterações'}</Button>
         </div>
       </div>
     </form>
@@ -407,7 +403,7 @@ function Field({ f, form, set, resetField }: FieldProps) {
 }
 
 function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorFieldDef; value: string; onChange: (v: string) => void; primary: string }) {
-  const fallback = f.key === 'badgeColor' ? DEFAULT_BADGE : f.key === 'bannerColor' && isHex(primary) ? primary : DEFAULT_PRIMARY;
+  const fallback = f.key === 'badgeColor' ? DEFAULT_BADGE_BG : f.key === 'bannerColor' && isHex(primary) ? primary : DEFAULT_PRIMARY;
   const shown = isHex(value.trim()) ? value.trim() : fallback;
   return (
     <div className="flex items-center gap-3">
@@ -427,7 +423,7 @@ function ImageField({ id, label, value, onChange }: { id: string; label: string;
     if (!file.type.startsWith('image/')) return toast.error('Escolha um arquivo de imagem.');
     setBusy(true);
     try { onChange(await uploadSiteImage(file)); }
-    catch (err) { console.error(err); toast.error(`Erro ao enviar imagem: ${errorText(err)}`); }
+    catch (err) { console.error(err); toast.error(`A imagem não foi enviada. ${friendlyError(err)}`); }
     setBusy(false);
   };
   return (

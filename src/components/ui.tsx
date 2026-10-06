@@ -3,6 +3,14 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
+// Campo de texto padrão (input, select, textarea): mesma borda, tamanho e foco em todo o site
+export const inputClass = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+
+// Botão "Enviar pelo WhatsApp": verde da marca escurecido para o texto branco passar 4,5:1 (o #25D366 dá 2:1)
+export const whatsappButtonClass = 'inline-flex items-center justify-center gap-2 bg-[#0F7A6E] hover:bg-[#075E54] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0F7A6E]';
+// Ícone do WhatsApp sobre fundo branco (3:1 para ícones)
+export const whatsappIconClass = 'text-[#128C7E]';
+
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',

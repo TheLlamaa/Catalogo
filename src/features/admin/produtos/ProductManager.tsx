@@ -65,14 +65,14 @@ export default function ProductManager({ products, categories, onSave, onDelete,
   const filtering = !!(q || status || categoryId);
   const pager = usePagination(visible, 'produtos');
   const counts: Record<string, number> = Object.fromEntries(chips.map(c => [c.id, c.id ? bySearch.filter(tests[c.id as Exclude<StatusFilter, ''>]).length : bySearch.length]));
-  const wide = useMediaQuery('(min-width: 768px)');
+  const wide = useMediaQuery('(min-width: 1024px)');
 
   const clearFilters = () => { setQuery(''); setStatus(''); setCategoryId(''); };
   const handleAddNew = () => { setEditingProduct(null); setIsFormOpen(true); };
   const handleEdit = (product: Product) => { setEditingProduct(product); setIsFormOpen(true); };
 
   const handleDelete = async (product: Product) => {
-    const ok = await confirm({ title: 'Excluir produto', message: `Excluir “${product.title}”? Isso não pode ser desfeito. Se quiser só tirar da vitrine, use “Ocultar”.`, confirmLabel: 'Excluir' });
+    const ok = await confirm({ title: 'Excluir produto?', message: `“${product.title}” será excluído com fotos e opções. Isso não pode ser desfeito. Para só tirar da vitrine, desligue “Na vitrine”.`, confirmLabel: 'Excluir produto' });
     if (ok) onDelete(product.id);
   };
 
@@ -114,7 +114,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
       <PageHeader
         title="Produtos"
         description="A ordem desta lista é a ordem da vitrine. Produto novo entra no topo."
-        actions={<Button variant="primary" icon={Plus} onClick={handleAddNew}>Novo Produto</Button>}
+        actions={<Button variant="primary" icon={Plus} onClick={handleAddNew}>Novo produto</Button>}
       />
 
       {products.length === 0 ? (
@@ -173,11 +173,11 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
                       {!filtering && <th className="pl-3 pr-0 py-3 w-10"><span className="sr-only">Ordem</span></th>}
-                      <th className="px-4 py-3">Produto</th>
-                      {stockControl && <th className="px-4 py-3">Estoque</th>}
-                      {aurasEnabled && <th className="px-4 py-3">Aura (Edição Rápida)</th>}
-                      <th className="px-4 py-3">Vitrine</th>
-                      <th className="px-4 py-3 text-right">Ações</th>
+                      <th className="px-3 py-3">Produto</th>
+                      {stockControl && <th className="px-3 py-3">Estoque</th>}
+                      {aurasEnabled && <th className="px-3 py-3">Aura (edição rápida)</th>}
+                      <th className="px-3 py-3">Vitrine</th>
+                      <th className="px-3 py-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
@@ -193,11 +193,11 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                               </div>
                             </td>
                           )}
-                          <td className="px-4 py-3"><ProductSummary product={product} onEdit={handleEdit} /></td>
-                          {stockControl && <td className="px-4 py-3"><StockTag stock={product.stock} /></td>}
-                          {aurasEnabled && <td className="px-4 py-3"><AuraQuickEdit product={product} categories={categories} onSave={onSave} /></td>}
-                          <td className="px-4 py-3"><VisibilityToggle product={product} onToggle={toggleVisible} /></td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3"><ProductSummary product={product} onEdit={handleEdit} /></td>
+                          {stockControl && <td className="px-3 py-3"><StockTag stock={product.stock} /></td>}
+                          {aurasEnabled && <td className="px-3 py-3"><AuraQuickEdit product={product} categories={categories} onSave={onSave} /></td>}
+                          <td className="px-3 py-3"><VisibilityToggle product={product} onToggle={toggleVisible} /></td>
+                          <td className="px-3 py-3">
                             <RowActions product={product} onFeatured={toggleFeatured} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete} />
                           </td>
                         </tr>
@@ -310,7 +310,7 @@ function RowActions({ product, onFeatured, onDuplicate, onEdit, onDelete }: RowA
   const featured = product.section === 'destaque';
   const icon = 'p-2.5 md:p-2 rounded-md text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
   return (
-    <div className="flex justify-end items-center gap-1">
+    <div className="flex justify-end items-center gap-0.5">
       <button
         type="button" onClick={() => onFeatured(product)} aria-pressed={featured}
         aria-label={featured ? `Tirar ${product.title} dos Destaques` : `Destacar ${product.title}`}
@@ -343,7 +343,7 @@ function AuraQuickEdit({ product, categories, onSave }: { product: Product; cate
         aria-label={`Aura de ${product.title}`}
         value={product.auraColor || 'inherit'}
         onChange={(e) => onSave({ ...product, auraColor: e.target.value }, `Aura de “${product.title}” atualizada.`)}
-        className="bg-white text-xs font-medium px-2 py-1.5 rounded outline-none border border-gray-200 focus:border-blue-500 cursor-pointer text-gray-700 hover:bg-gray-50 transition-colors w-36"
+        className="bg-white text-xs font-medium px-2 py-1.5 rounded outline-none border border-gray-200 focus:border-blue-500 cursor-pointer text-gray-700 hover:bg-gray-50 transition-colors w-28 xl:w-36"
       >
         {optionsFor(auraLib, product.auraColor || 'inherit').map(aura => (
           <option key={aura.id} value={aura.id}>{aura.name}</option>

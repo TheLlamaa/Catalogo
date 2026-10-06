@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { UserPlus, Trash2, ShieldCheck } from 'lucide-react';
-import { PageHeader } from '../../../components/ui';
+import { PageHeader, inputClass, Button } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { normalizeEmail, validateAdminEmail } from '../../../lib/admins';
 import { addAdmin, listAdmins, removeAdmin } from '../../../services/team';
+import { friendlyError } from '../../../lib/errorMessage';
 
-const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500';
+const inputCls = inputClass;
 
 // Linha da tabela admins (colunas pedidas em listAdmins)
 interface AdminRow {
@@ -50,10 +51,10 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
   };
 
   const remove = async (a: AdminRow) => {
-    const ok = await confirm({ title: 'Remover acesso', message: `Remover o acesso de ${a.email}? A pessoa deixa de entrar no painel na hora.`, confirmLabel: 'Remover' });
+    const ok = await confirm({ title: 'Remover acesso?', message: `${a.email} deixa de entrar no painel na hora. Dá para adicionar de novo depois.`, confirmLabel: 'Remover acesso' });
     if (!ok) return;
     const { error: e } = await removeAdmin(a.email);
-    if (e) { toast.error(`Não foi possível remover: ${e.message}`); return; }
+    if (e) { toast.error(`Não foi possível remover o acesso. ${friendlyError(e)}`); return; }
     toast.success('Acesso removido.');
     load();
   };
@@ -74,9 +75,7 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
           id="novo-admin" type="email" inputMode="email" autoComplete="off" placeholder="email@exemplo.com"
           value={email} onChange={e => { setEmail(e.target.value); setError(''); }} className={inputCls}
         />
-        <button type="submit" disabled={busy || !!loadError} className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-40 whitespace-nowrap">
-          <UserPlus className="w-4 h-4" /> Adicionar
-        </button>
+        <Button type="submit" variant="primary" icon={UserPlus} disabled={busy || !!loadError} className="whitespace-nowrap">Adicionar</Button>
       </form>
       {error && <p role="alert" className="text-sm text-red-600 mb-4">{error}</p>}
 

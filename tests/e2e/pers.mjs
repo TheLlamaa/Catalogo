@@ -19,7 +19,8 @@ const mkProducts = () => [
 
 const br = await launch();
 
-async function newPage({ rows, w = 1100, admin = false, products = mkProducts(), categories = cats }) {
+async function newPage({ rows, w: width, admin = false, products = mkProducts(), categories = cats }) {
+  const w = width ?? (admin ? 1300 : 1100); // painel em largura de computador (menu lateral a partir de 1280 px)
   const ctx = await br.newContext({ viewport: { width: w, height: 900 } });
   if (admin) await ctx.addInitScript((s) => localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)), session);
   const p = await ctx.newPage();
@@ -272,7 +273,7 @@ const baseRows = [
   await p.getByRole('button', { name: 'Editar Chaveiro Cão' }).click();
   await p.getByLabel(/Selo no card/).fill('Novo');
   await p.getByRole('radio', { name: 'Destaques', exact: true }).check();
-  await p.getByRole('button', { name: 'Salvar Alterações' }).click(); await p.waitForTimeout(600);
+  await p.getByRole('button', { name: 'Salvar alterações' }).click(); await p.waitForTimeout(600);
   const up = writes.find(w => w.method === 'POST' && w.path.endsWith('products'));
   const row = up ? [].concat(up.body)[0] : {};
   check('produto salva badge e section', row.badge === 'Novo' && row.section === 'destaque', JSON.stringify(row));
@@ -284,7 +285,7 @@ const baseRows = [
   const { p, writes } = await newPage({ rows: [], admin: true, products: legacy, categories: cats.map(({ sort_order, ...c }) => c) });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
   await p.getByRole('button', { name: 'Editar Chaveiro Cão' }).click();
-  await p.getByRole('button', { name: 'Salvar Alterações' }).click(); await p.waitForTimeout(600);
+  await p.getByRole('button', { name: 'Salvar alterações' }).click(); await p.waitForTimeout(600);
   const up = writes.find(w => w.method === 'POST' && w.path.endsWith('products'));
   const row = up ? [].concat(up.body)[0] : {};
   check('sem SQL 06: não envia badge/section (não quebra)', up && !('badge' in row) && !('section' in row), JSON.stringify(row));

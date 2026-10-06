@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'lucide-react';
+import { inputClass, whatsappButtonClass } from '../../components/ui';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import { formatPhoneBR, validateContact, whatsappLink, fillName } from '../../lib/format';
@@ -91,14 +92,14 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação Enviada!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação enviada!</h2>
         <p className="text-gray-600 text-sm mb-6">{settings.customSuccess}</p>
 
         {settings.whatsapp && (
           <a
             href={whatsappLink(settings.whatsapp, whatsappText)}
             target="_blank" rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-4"
+            className={whatsappButtonClass}
           >
             <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
           </a>
@@ -112,7 +113,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
             Enviar Outra Solicitação
           </button>
           <button onClick={() => navigate('/')} className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-            Voltar para Loja
+            Voltar para a loja
           </button>
         </div>
       </div>
@@ -140,11 +141,11 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="c-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu Nome *</label>
+            <label htmlFor="c-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome *</label>
             <input
               id="c-nome" required type="text" placeholder="Ex: Maria Silva" maxLength={100}
               value={formData.clientName} onChange={e => setFormData(p => ({ ...p, clientName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
@@ -152,7 +153,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
             <input
               id="c-whats" required type="text" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
               value={formData.clientPhone} onChange={e => setFormData(p => ({ ...p, clientPhone: formatPhoneBR(e.target.value) }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
         </div>
@@ -188,12 +189,12 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         </div>
 
         <div>
-          <label htmlFor="c-desc" className="block text-sm font-medium text-gray-700 mb-1">Observações e Detalhes da Peça *</label>
+          <label htmlFor="c-desc" className="block text-sm font-medium text-gray-700 mb-1">Observações e detalhes da peça *</label>
           <textarea
             id="c-desc" required rows={4} maxLength={2000}
             placeholder="Descreva o tamanho desejado, cor, utilização da peça ou qualquer detalhe importante..."
             value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
@@ -210,7 +211,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
           {isSubmitting ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : (
-            <><Send className="w-5 h-5" /> Enviar Solicitação de Orçamento</>
+            <><Send className="w-5 h-5" /> Enviar solicitação de Orçamento</>
           )}
         </button>
       </form>

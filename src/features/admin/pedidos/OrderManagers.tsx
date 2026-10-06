@@ -47,7 +47,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
   const [view, setView] = useViewMode();
 
   const handleDelete = async (order: CustomOrder) => {
-    const ok = await confirm({ title: 'Excluir solicitação', message: `Excluir a solicitação de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir solicitação?', message: `A solicitação de ${order.client_name} será apagada. Isso não pode ser desfeito.`, confirmLabel: 'Excluir solicitação' });
     if (ok) onDelete(order.id);
   };
 

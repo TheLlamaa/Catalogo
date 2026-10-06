@@ -45,7 +45,7 @@ function ItemButton({ item, active, onSelect }: { item: NavItem; active: boolean
       type="button"
       onClick={() => onSelect(item.id)}
       aria-current={active ? 'page' : undefined}
-      className={`w-full flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-md text-sm transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+      className={`w-full flex items-center gap-2.5 px-3 py-2.5 xl:py-2 rounded-md text-sm transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
     >
       <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-blue-600' : 'text-gray-500'}`} aria-hidden="true" />
       <span className="sr-only">{name}</span>
@@ -87,14 +87,14 @@ export default function AdminNav({ sections, active, onSelect }: { sections: Nav
   return (
     <>
       {/* Computador: menu lateral fixo */}
-      <nav aria-label="Seções do painel" className="hidden lg:block w-56 flex-shrink-0">
+      <nav aria-label="Seções do painel" className="hidden xl:block w-56 flex-shrink-0">
         <div className="sticky top-24">
           <NavList sections={sections} active={active} onSelect={select} />
         </div>
       </nav>
 
       {/* Celular e tablet: botão com a seção atual, abre a lista completa */}
-      <div className="lg:hidden mb-4">
+      <div className="xl:hidden mb-4">
         <button
           type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}
           className="w-full flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm text-left"
@@ -112,7 +112,7 @@ export default function AdminNav({ sections, active, onSelect }: { sections: Nav
 
       {open && (
         // Dialog padrão do site: prende o foco, fecha com Esc ou clique fora e devolve o foco ao botão
-        <Dialog label="Menu do painel" variant="drawer" onClose={() => setOpen(false)} panelClassName="lg:hidden h-full w-[min(20rem,88vw)] bg-white shadow-xl overflow-y-auto p-4 animate-[slideIn_.15s_ease-out]">
+        <Dialog label="Menu do painel" variant="drawer" onClose={() => setOpen(false)} panelClassName="xl:hidden h-full w-[min(20rem,88vw)] bg-white shadow-xl overflow-y-auto p-4 animate-[slideIn_.15s_ease-out]">
           <div className="flex items-center justify-between mb-4">
             <span className="text-base font-semibold text-gray-900">Menu do painel</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="p-2.5 -mr-2 text-gray-500 hover:bg-gray-100 rounded-md"><X className="w-5 h-5" /></button>

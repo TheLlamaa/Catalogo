@@ -54,8 +54,8 @@ const browser = await launch();
   check('padrão: aba Auras existe', await page.getByRole('button', { name: 'Auras' }).count() === 1);
   await page.getByRole('button', { name: /^Produtos \(/ }).click();
   check('padrão: lista de produtos tem coluna de aura', await page.getByText('Aura (Edição Rápida)').count() === 1);
-  await page.getByRole('button', { name: 'Novo Produto' }).click();
-  check('padrão: formulário tem prazo, aura e link do modelo', await page.getByLabel(/Prazo de produção/).count() === 1 && await page.getByLabel(/Efeito Aura Próprio/).count() === 1 && await page.getByLabel(/Link do modelo 3D/).count() === 1);
+  await page.getByRole('button', { name: 'Novo produto' }).click();
+  check('padrão: formulário tem prazo, aura e link do modelo', await page.getByLabel(/Prazo de produção/).count() === 1 && await page.getByLabel(/Efeito aura próprio/i).count() === 1 && await page.getByLabel(/Link do modelo 3D/).count() === 1);
   await ctx.close();
 }
 { // tudo desligado
@@ -76,13 +76,13 @@ const browser = await launch();
   check('desligado: aba Auras some', await adm.page.getByRole('button', { name: 'Auras' }).count() === 0);
   await adm.page.getByRole('button', { name: /^Produtos \(/ }).click();
   check('desligado: coluna de aura some da lista', await adm.page.getByText('Aura (Edição Rápida)').count() === 0);
-  await adm.page.getByRole('button', { name: 'Novo Produto' }).click();
-  check('desligado: formulário sem prazo, aura e link do modelo', await adm.page.getByLabel(/Prazo de produção/).count() === 0 && await adm.page.getByLabel(/Efeito Aura Próprio/).count() === 0 && await adm.page.getByLabel(/Link do modelo 3D/).count() === 0);
+  await adm.page.getByRole('button', { name: 'Novo produto' }).click();
+  check('desligado: formulário sem prazo, aura e link do modelo', await adm.page.getByLabel(/Prazo de produção/).count() === 0 && await adm.page.getByLabel(/Efeito aura próprio/i).count() === 0 && await adm.page.getByLabel(/Link do modelo 3D/).count() === 0);
   check('desligado: o resto do formulário continua (título, preço)', await adm.page.getByLabel(/Título|Nome/).count() >= 1);
   await adm.page.keyboard.press('Escape');
   await adm.page.getByRole('button', { name: /^Categorias \(/ }).click();
-  check('desligado: categorias sem coluna de aura', await adm.page.getByText('Aura Padrão').count() === 0);
-  await adm.page.getByRole('button', { name: 'Nova Categoria' }).click();
+  check('desligado: categorias sem coluna de aura', await adm.page.getByText('Aura padrão').count() === 0);
+  await adm.page.getByRole('button', { name: 'Nova categoria' }).click();
   check('desligado: formulário de categoria sem aura', await adm.page.getByText('Efeito de Aura para os Produtos').count() === 0);
   await adm.ctx.close();
 }

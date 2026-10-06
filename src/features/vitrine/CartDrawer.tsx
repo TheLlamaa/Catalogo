@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2, MessageSquare } from 'lucide-react';
+import { inputClass, whatsappButtonClass } from '../../components/ui';
 import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
@@ -168,16 +169,16 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             className="absolute -left-[9999px] w-px h-px opacity-0"
           />
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para Contato</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Informações para contato</h3>
             <p className="text-xs text-gray-500 mb-5">{settings.cartIntro}</p>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu Nome *</label>
+                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome *</label>
                 <input
                   id="k-nome" required type="text" placeholder="Ex: João Souza" maxLength={100}
                   value={clientName} onChange={e => setClientName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
               <div>
@@ -185,7 +186,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                 <input
                   id="k-whats" required type="text" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
                   value={clientPhone} onChange={e => setClientPhone(formatPhoneBR(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -210,7 +211,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                 <input
                   id="k-end" type="text" maxLength={300} placeholder="Rua, número, bairro e cidade"
                   value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
                 {settings.deliveryNote && <p className="text-xs text-gray-500 mt-1">{settings.deliveryNote}</p>}
               </div>
@@ -224,7 +225,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             <textarea
               id="k-obs" rows={3} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Ex: cor preferida, prazo desejado..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
             <p className="text-xs text-gray-500 mt-1 text-right">{notes.length}/500</p>
           </div>}
@@ -251,7 +252,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
               disabled={isSubmitting}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Finalizar Pedido'}
+              {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Finalizar pedido'}
             </button>
           </div>
         </form>
@@ -268,7 +269,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             <a
               href={whatsappLink(settings.whatsapp, buildOrderMessage({ ...lastOrder, intro: settings.orderMessageIntro }))}
               target="_blank" rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm mb-3"
+              className={whatsappButtonClass}
             >
               <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
             </a>

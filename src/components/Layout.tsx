@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Package, Settings, Sparkles, ShoppingCart, LogIn, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
+import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
 import { resolveMenu, type MenuContext } from '../lib/menus';
 import type { Category } from '../types';
@@ -62,21 +62,16 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
             return <button key={item.id} onClick={() => navigate(item.to!)} className={`${base} ${tone}${visibility}`}>{item.label}</button>;
           })}
 
-          {user ? (
+          {/* Painel: atalho só para quem já está logado. Visitantes não veem o ícone de login
+              (era ruído no topo); o acesso fica no rodapé, em "Área do lojista". */}
+          {user && (
             <button
               onClick={() => window.open('/admin', '_blank')}
               className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-600 hover:bg-gray-100 transition-colors ml-1"
+              aria-label="Acessar painel (abre em nova aba)"
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span className="hidden sm:inline">Acessar Painel</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => window.open('/login', '_blank')}
-              className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors"
-              title="Acesso Administrativo" aria-label="Acesso administrativo"
-            >
-              <LogIn className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+              <span className="hidden sm:inline">Painel</span>
             </button>
           )}
 
@@ -160,6 +155,7 @@ export function StoreFooter({ settings, categories }: { settings: SiteSettings; 
             <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">WhatsApp</a>
           )}
           <Link to="/privacidade" className="hover:text-blue-600 py-2">Política de privacidade</Link>
+          <Link to="/login" className="hover:text-blue-600 py-2">Área do lojista</Link>
         </div>
       </div>
     </footer>

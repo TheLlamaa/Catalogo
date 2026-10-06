@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquare, Truck, Store, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../../../components/ui';
+import type { LucideIcon } from 'lucide-react';
+import { PageHeader, whatsappIconClass, Button } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
@@ -44,15 +45,8 @@ interface ActionButtonProps {
   primary?: boolean;
 }
 
-function ActionButton({ icon: Icon, children, onClick, disabled, primary }: ActionButtonProps) {
-  return (
-    <button
-      onClick={onClick} disabled={disabled}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-40 ${primary ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700'}`}
-    >
-      <Icon className="w-4 h-4" /> {children}
-    </button>
-  );
+function ActionButton({ icon, children, onClick, disabled, primary }: ActionButtonProps) {
+  return <Button icon={icon as LucideIcon} onClick={onClick} disabled={disabled} variant={primary ? 'primary' : 'secondary'}>{children}</Button>;
 }
 
 function filtersText(f: OrderFiltersValue, status: string) {
@@ -86,7 +80,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const [view, setView] = useViewMode();
 
   const handleDelete = async (order: CatalogOrder) => {
-    const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir pedido?', message: `O pedido de ${order.client_name} será apagado e sai dos relatórios. Isso não pode ser desfeito.`, confirmLabel: 'Excluir pedido' });
     if (ok) onDelete(order.id);
   };
 
@@ -204,7 +198,7 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
           <a
             href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-            className="p-1.5 text-[#25D366] hover:bg-green-50 rounded transition-colors" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
+            className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           >
             <MessageSquare className="w-4 h-4" />
           </a>
@@ -281,7 +275,7 @@ function OrderRow({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps)
           <a
             href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-            className="p-1.5 text-[#25D366] hover:bg-green-50 rounded transition-colors" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
+            className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           ><MessageSquare className="w-4 h-4" /></a>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(order); }}

@@ -21,6 +21,8 @@ const btn = 'min-w-[2.25rem] h-9 px-2 inline-flex items-center justify-center ro
 // Rodapé da lista: "Mostrando 1–10 de 32", botões de página e itens por página
 export default function Pagination({ page, pages, total, from, to, perPage, onPage, onPerPage, noun = 'pedidos', position = 'bottom', extra }: PaginationProps) {
   if (total === 0) return extra ? <div className="mb-4 flex justify-start">{extra}</div> : null;
+  // Uma página só: o bloco do topo repetiria o de baixo; fica só o controle extra (ex.: cards/lista)
+  if (position === 'top' && pages <= 1) return extra ? <div className="mb-4 flex justify-start">{extra}</div> : null;
   return (
     <nav aria-label={position === 'top' ? 'Páginas, topo da lista' : 'Paginação'} className={`${position === 'top' ? 'mb-4' : 'mt-6'} flex flex-wrap items-center justify-between gap-3`}>
       <div className="flex flex-wrap items-center gap-3">

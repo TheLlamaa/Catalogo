@@ -2,7 +2,7 @@
 export interface AuraOption { id: string; name: string }
 
 export const AURA_OPTIONS: AuraOption[] = [
-  { id: 'inherit', name: 'Padrão da Categoria' },
+  { id: 'inherit', name: 'Padrão da categoria' },
   { id: 'none', name: 'Nenhuma' },
   { id: 'rainbow', name: 'Rainbow' },
   { id: 'holo', name: 'Holo' },

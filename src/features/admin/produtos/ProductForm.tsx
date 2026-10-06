@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { ArrowLeft, Plus, Trash2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Switch, Button } from '../../../components/ui';
+import { Switch, Button, inputClass } from '../../../components/ui';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { uploadProductImage } from '../../../services/storage';
@@ -10,6 +10,7 @@ import { optionsFor } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { isHttpUrl } from '../../../lib/format';
 import type { Category, Product, ProductOption, StoredProduct } from '../../../types';
+import { friendlyError } from '../../../lib/errorMessage';
 
 const MAX_OPTION_GROUPS = 4;
 const MAX_OPTION_VALUES = 12;
@@ -60,10 +61,6 @@ interface ProductFormState {
   options: { name: string; values: string }[];
 }
 
-// Texto de um erro desconhecido (Error, objeto com message ou qualquer outro valor)
-const errorText = (err: unknown): string => (
-  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string' && err.message ? err.message : String(err)
-);
 
 export default function ProductForm({ initialData, categories, onSave, onCancel, onOpenSettings }: ProductFormProps) {
   const { toast } = useUI();
@@ -108,7 +105,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
         newImages.push(await uploadProductImage(file));
       } catch (err) {
         console.error(err);
-        toast.error(`Erro ao enviar imagem: ${errorText(err)}`);
+        toast.error(`A foto não foi enviada. ${friendlyError(err)}`);
       }
     }
     setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, ...newImages] }));
@@ -173,7 +170,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     setSaving(false);
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500';
+  const inputCls = inputClass;
   const sectionOff = (formData.section === 'destaque' && !settings.showFeatured) || (formData.section === 'popular' && !settings.showPopular);
   const isNew = !initialData;
 
@@ -342,7 +339,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
             )}
             {aurasEnabled && (
               <div>
-                <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito Aura Próprio <span className="text-gray-500 font-normal">(sobrescreve a aura da categoria)</span></label>
+                <label htmlFor="p-aura" className="block text-sm font-medium text-gray-700 mb-1">Efeito aura próprio <span className="text-gray-500 font-normal">(sobrescreve a aura da categoria)</span></label>
                 <select id="p-aura" value={formData.auraColor} onChange={e => setFormData(p => ({ ...p, auraColor: e.target.value }))} className={`${inputCls} bg-white`}>
                   {optionsFor(auraLib, formData.auraColor).map(aura => <option key={aura.id} value={aura.id}>{aura.name}</option>)}
                 </select>
@@ -356,7 +353,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
           <div className="flex gap-3">
             <Button onClick={onCancel}>Cancelar</Button>
             <Button type="submit" variant="primary" disabled={saving || isUploading}>
-              {saving ? 'Salvando…' : isNew ? 'Criar produto' : 'Salvar Alterações'}
+              {saving ? 'Salvando…' : isNew ? 'Criar produto' : 'Salvar alterações'}
             </Button>
           </div>
         </div>

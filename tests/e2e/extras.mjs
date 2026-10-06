@@ -19,7 +19,8 @@ const mkProducts = () => [
 
 const br = await launch();
 
-async function newPage({ rows, w = 1100, admin = false, products = mkProducts(), categories = cats }) {
+async function newPage({ rows, w: width, admin = false, products = mkProducts(), categories = cats }) {
+  const w = width ?? (admin ? 1300 : 1100); // painel em largura de computador (menu lateral a partir de 1280 px)
   const ctx = await br.newContext({ viewport: { width: w, height: 900 } });
   if (admin) await ctx.addInitScript((s) => localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)), session);
   const p = await ctx.newPage();
@@ -137,7 +138,7 @@ const rowsExtra = [
   check('link extra no rodapé abre em nova aba', (await p.locator('footer').getByRole('link', { name: 'Mercado Livre' }).getAttribute('target')) === '_blank');
   await p.goto(BASE + '/custom'); await p.waitForSelector('form');
   check('pedidos pausados: aviso aparece', await p.getByText('Voltamos em março!').count() >= 1);
-  check('pedidos pausados: botão de enviar desligado', await p.getByRole('button', { name: /Enviar Solicitação/ }).isDisabled());
+  check('pedidos pausados: botão de enviar desligado', await p.getByRole('button', { name: /Enviar solicitação/ }).isDisabled());
   await p.close();
 }
 {
@@ -147,7 +148,7 @@ const rowsExtra = [
   check('padrão: busca aparece', await p.getByPlaceholder('Buscar modelos...').count() === 1);
   check('padrão: ordem = mais recentes', (await p.locator('#ordem').inputValue()) === 'recent');
   await p.goto(BASE + '/custom'); await p.waitForSelector('form');
-  check('padrão: pedidos abertos', await p.getByRole('button', { name: /Enviar Solicitação/ }).isEnabled());
+  check('padrão: pedidos abertos', await p.getByRole('button', { name: /Enviar solicitação/ }).isEnabled());
   await p.close();
 }
 

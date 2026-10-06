@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare, Box } from 'lucide-react';
+import { whatsappButtonClass } from '../../../components/ui';
 import Dialog from '../../../components/Dialog';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
@@ -65,7 +66,7 @@ function WhatsappButton({ order, label, message }: { order: Pick<CatalogOrder, '
     <a
       href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, message)}
       target="_blank" rel="noreferrer"
-      className="bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+      className={whatsappButtonClass}
     >
       <MessageSquare className="w-4 h-4" /> {label}
     </a>
@@ -83,7 +84,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
   const { confirm } = useUI();
 
   const handleDelete = async () => {
-    const ok = await confirm({ title: 'Excluir solicitação', message: `Excluir a solicitação de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir solicitação?', message: `A solicitação de ${order.client_name} será apagada. Isso não pode ser desfeito.`, confirmLabel: 'Excluir solicitação' });
     if (ok) onDelete(order.id);
   };
 
@@ -118,7 +119,7 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Observações e Especificações do Pedido</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Observações do pedido</h3>
         <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 whitespace-pre-line leading-relaxed">{order.description}</div>
       </div>
     </ModalShell>
@@ -130,7 +131,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
   const { modelLinkEnabled } = useSettings();
 
   const handleDelete = async () => {
-    const ok = await confirm({ title: 'Excluir pedido', message: `Excluir o pedido de ${order.client_name}? Isso não pode ser desfeito.` });
+    const ok = await confirm({ title: 'Excluir pedido?', message: `O pedido de ${order.client_name} será apagado e sai dos relatórios. Isso não pode ser desfeito.`, confirmLabel: 'Excluir pedido' });
     if (ok) onDelete(order.id);
   };
 
@@ -197,7 +198,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
       )}
 
       <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <span className="text-sm font-semibold text-gray-700">Total do Pedido</span>
+        <span className="text-sm font-semibold text-gray-700">Total do pedido</span>
         <span className="text-xl font-extrabold text-blue-600">{brl(order.total)}</span>
       </div>
     </ModalShell>

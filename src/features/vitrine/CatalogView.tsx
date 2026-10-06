@@ -113,7 +113,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           </div>
         </div>}
 
-        <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorias">
+        <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)]" aria-label="Categorias">
           <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Categorias</h2>
           <button
             onClick={() => updateParam('categoria', 'all', 'all')}
@@ -170,8 +170,8 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
               className="block w-full border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm bg-white cursor-pointer"
             >
               <option value="recent">Mais recentes</option>
-              <option value="price_asc">Menor Preço</option>
-              <option value="price_desc">Maior Preço</option>
+              <option value="price_asc">Menor preço</option>
+              <option value="price_desc">Maior preço</option>
             </select>
           </div>
         </div>
