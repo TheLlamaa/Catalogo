@@ -171,6 +171,28 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Sistema → Calculadora de preço
+  const { page, ctx, writes } = await abrir();
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Calculadora de preço').click();
+  const precoBox = page.getByRole('complementary', { name: 'Resultado' });
+  const preco = { innerText: async () => (await precoBox.innerText()).replace(/\s+/g, ' ') }; // moeda vem com espaço especial
+  check('calculadora abre com o preço dos valores de exemplo', (await preco.innerText()).includes('R$ 47,67'));
+  await page.getByLabel(/^Peças na mesa/).fill('4');
+  check('várias peças: mostra preço por peça e da mesa', /preço sugerido por peça/i.test(await preco.innerText()) && (await preco.innerText()).includes('Mesa com 4 peças'));
+  await page.reload();
+  await nav(page, 'Calculadora de preço').click();
+  check('valores ficam guardados no navegador', (await page.getByLabel(/^Peças na mesa/).inputValue()) === '4');
+  await page.getByLabel(/^Peças na mesa/).fill('1');
+  await page.getByLabel('Usar como preço de um produto').selectOption('p2');
+  await page.getByRole('button', { name: 'Aplicar' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Atualizar preço' }).click();
+  await page.waitForTimeout(400);
+  const w = writes.filter(x => x.path === '/rest/v1/products').at(-1);
+  check('"Aplicar" grava o preço sugerido no produto', w?.body?.id === 'p2' && w?.body?.price === 47.67, JSON.stringify(w?.body));
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

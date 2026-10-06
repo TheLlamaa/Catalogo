@@ -8,6 +8,7 @@ import SiteSettings from './site/SiteSettings';
 import AuraManager from './auras/AuraManager';
 import TeamManager from './equipe/TeamManager';
 import ErrorsManager from './erros/ErrorsManager';
+import PriceCalculator from './calculadora/PriceCalculator';
 import AdminNav, { buildNav, type NavId } from './AdminNav';
 import { useUI } from '../../components/UIContext';
 import { Button } from '../../components/ui';
@@ -145,6 +146,7 @@ export default function AdminView({
               onSave={onSaveSettings} onUndo={onUndoSettings}
             />
           )}
+          {active === 'calculator' && <PriceCalculator products={products} onSaveProduct={onSaveProduct} />}
           {active === 'team' && <TeamManager currentEmail={user?.email} />}
           {active === 'errors' && <ErrorsManager />}
         </div>

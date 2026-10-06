@@ -89,6 +89,7 @@ for (const mobile of [false, true]) {
   await ir('Personalizados'); await axe(page, `painel: personalizados (${tag})`);
   await ir('Página inicial'); await axe(page, `painel: página inicial (${tag})`);
   await ir('Pedidos e carrinho'); await axe(page, `painel: pedidos e carrinho (${tag})`);
+  await ir('Calculadora de preço'); await axe(page, `painel: calculadora de preço (${tag})`); if (mobile) await alvos(page, 'painel: calculadora (celular)');
   await ctx.close();
 }
 
