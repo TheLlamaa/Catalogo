@@ -114,8 +114,8 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (10)', cur.fetchone()[0]=='10')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='10')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (11)', cur.fetchone()[0]=='11')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='11')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
 cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
@@ -157,6 +157,16 @@ cur.execute("set session_replication_role = origin")
 sql10=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '10-data-do-servidor.sql'),encoding='utf-8').read(); ok,m=att(sql10)
 cur.execute("select (select count(*) from public.orders where created_at > now() + interval '1 day') + (select count(*) from public.error_log where created_at > now() + interval '1 day')"); check('o 10 apaga registros já gravados com data no futuro', ok and cur.fetchone()[0]==0, m)
 cur.execute("select count(*) from public.orders"); check('...e mantém os pedidos normais', cur.fetchone()[0]==3)
+
+# --- foto do pedido personalizado só embutida (11) ---
+def custom(img, tel):
+    role('anon'); return att("insert into public.custom_orders (client_name, client_phone, description, image_url) values ('Cliente',%s,'quero uma peça',%s)",(tel,img))
+ok,m=custom('data:image/jpeg;base64,/9j/4AAQSkZJRg==','(48) 99555-0001'); check('foto embutida (jpeg) é aceita', ok, m)
+ok,m=custom(None,'(48) 99555-0002'); check('pedido sem foto é aceito', ok, m)
+ok,m=custom('','(48) 99555-0003'); check('foto vazia é aceita', ok, m)
+ok,m=custom('https://atacante.example/pixel.png','(48) 99555-0004'); check('link externo no lugar da foto é recusado', not ok, m)
+ok,m=custom('data:image/svg+xml;base64,PHN2Zz4=','(48) 99555-0005'); check('SVG embutido é recusado', not ok, m)
+ok,m=custom('data:image/jpeg;base64,AAAA" onerror="x','(48) 99555-0006'); check('foto com lixo depois do base64 é recusada', not ok, m)
 
 
 # --- migração de um banco antigo (e-mails dentro da função is_admin) ---

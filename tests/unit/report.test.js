@@ -27,6 +27,12 @@ describe('buildReportHtml', () => {
     expect(html).toContain('03/10/2026');
     expect(html).toContain('Imprimir / Salvar PDF');
   });
+  it('não tem script nem onclick dentro do HTML (o CSP do site bloquearia)', () => {
+    const html = buildReportHtml({ ...base, orders: [order()] });
+    expect(html).not.toMatch(/\son[a-z]+\s*=/i);
+    expect(html).not.toMatch(/<script/i);
+    expect(html).toContain('id="imprimir"');
+  });
   it('NÃO deixa texto do cliente virar HTML (nome, endereço, observação, produto)', () => {
     const evil = '<img src=x onerror=alert(1)>';
     const html = buildReportHtml({ ...base, orders: [order({ client_name: evil, delivery_address: evil, notes: evil, items: [{ id: 'p', title: evil, price: 1, quantity: 1, options: { [evil]: evil } }] })] });

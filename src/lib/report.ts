@@ -74,7 +74,7 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
       <p class="sub">${esc(storeName)} · ${esc(periodText)}</p>
       ${filterText ? `<p class="sub">Filtros: ${esc(filterText)}</p>` : ''}
     </div>
-    <button class="noprint" onclick="window.print()">Imprimir / Salvar PDF</button>
+    <button class="noprint" id="imprimir" type="button">Imprimir / Salvar PDF</button>
   </div>
   <div class="kpis">
     ${kpi('Pedidos', String(s.count), s.cancelled ? `${s.cancelled} cancelado(s)` : '')}
@@ -96,9 +96,25 @@ export function buildReportHtml({ storeName, periodText, filterText = '', orders
 }
 
 // Abre o relatório em uma aba nova. Devolve false se o navegador bloqueou a janela.
+// O botão de imprimir é ligado daqui (a aba do relatório herda o Content-Security-Policy do site,
+// que não deixa rodar onclick escrito dentro do HTML).
 export function openReport(html: string): boolean {
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
   const w = window.open(url, '_blank');
+  if (w) {
+    let wired = false;
+    const wire = () => {
+      const btn = w.document?.getElementById('imprimir');
+      if (wired || !btn) return false;
+      btn.addEventListener('click', () => w.print());
+      wired = true;
+      return true;
+    };
+    w.addEventListener('load', wire);
+    // garantia caso o "load" já tenha passado antes de ligarmos o ouvinte
+    const timer = setInterval(() => { try { if (wire() || w.closed) clearInterval(timer); } catch { clearInterval(timer); } }, 100);
+    setTimeout(() => clearInterval(timer), 10000);
+  }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
   return !!w;
 }

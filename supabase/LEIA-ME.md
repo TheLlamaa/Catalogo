@@ -24,6 +24,7 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 8 | `08-administradores.sql` | Admins em tabela (aba Equipe do painel) e versão do banco |
 | 9 | `09-log-de-erros.sql` | Log de erros do site (aba Erros do painel) |
 | 10 | `10-data-do-servidor.sql` | Correção de segurança: a data dos pedidos e do log de erros é sempre a do servidor (impede travar o limite anti-spam com pedidos datados no futuro) |
+| 11 | `11-foto-do-pedido.sql` | Correção de segurança: a foto de referência do pedido personalizado só é aceita embutida (nada de link externo) |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 
