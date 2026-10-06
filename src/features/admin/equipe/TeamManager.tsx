@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { UserPlus, Trash2, ShieldCheck, Users } from 'lucide-react';
+import { UserPlus, Trash2, ShieldCheck } from 'lucide-react';
+import { PageHeader } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { normalizeEmail, validateAdminEmail } from '../../../lib/admins';
 import { addAdmin, listAdmins, removeAdmin } from '../../../services/team';
@@ -59,11 +60,7 @@ export default function TeamManager({ currentEmail }: TeamManagerProps) {
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-2 mb-1">
-        <Users className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-medium text-gray-900">Equipe</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-6">Quem pode entrar neste painel. Crie antes o usuário com o mesmo e-mail no Supabase (Authentication → Users).</p>
+      <PageHeader title="Equipe" description="Quem pode entrar neste painel. Crie antes o usuário com o mesmo e-mail no Supabase (Authentication → Users)." />
 
       {loadError && (
         <div role="alert" className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-900">

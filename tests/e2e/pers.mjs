@@ -154,10 +154,10 @@ const baseRows = [
 // ============ ADMIN ============
 {
   const { p, writes, state } = await newPage({ rows: baseRows, admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
-  await p.waitForSelector('[role=tablist]');
-  const tabs = await p.locator('[role=tab]').allInnerTexts();
-  check('abas do painel Site', tabs.join('|') === 'Aparência|Textos|Sobre e perguntas|Menus e páginas|Vitrine|Recursos|Redes e rodapé|Google e compartilhamento', tabs.join('|'));
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
+  await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
+  const tabs = (await p.locator('[data-nav-section="Site"] button').allInnerTexts()).map(t => t.trim());
+  check('áreas do Site no menu do painel', tabs.join('|') === 'Página inicial|Aparência|Dados da loja|Pedidos e carrinho|Peça personalizada|Páginas e menus|Recursos', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
@@ -175,9 +175,9 @@ const baseRows = [
   check('cor inválida bloqueia a publicação', writes.length === 0 && await p.getByText(/Cor inválida/).count() >= 1);
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
   // troca de aba mantém o rascunho
-  await p.getByRole('tab', { name: 'Redes e rodapé' }).click();
+  await p.getByRole('button', { name: 'Dados da loja', exact: true }).click();
   await p.getByLabel('Instagram').fill('@novaloja');
-  await p.getByRole('tab', { name: 'Aparência' }).click();
+  await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   check('rascunho mantido ao trocar de aba', (await p.getByLabel('Cor principal (código)').inputValue()) === '#dc2626');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
@@ -207,7 +207,7 @@ const baseRows = [
   await p.getByRole('button', { name: 'Restaurar seção' }).first().click();
   check('restaurar seção limpa os campos', (await p.getByLabel('Cor principal (código)').inputValue()) === '');
   // FAQ editor
-  await p.getByRole('tab', { name: 'Sobre e perguntas' }).click();
+  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
   check('FAQ carregado no editor', (await p.getByLabel('Pergunta 1', { exact: true }).inputValue()) === 'Quanto demora?');
   await p.getByRole('button', { name: 'Adicionar pergunta' }).click();
   await p.getByLabel('Pergunta 3', { exact: true }).fill('Aceitam Pix?');
@@ -220,7 +220,7 @@ const baseRows = [
 // tamanho da logo no admin
 {
   const { p, writes } = await newPage({ rows: [{ key: 'logoUrl', value: 'https://img.test/logo.png' }], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Site/ }).click();
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   const slider = p.getByLabel('Tamanho da logo');
   check('slider começa no padrão (36)', (await slider.inputValue()) === '36');
   await slider.fill('64');
@@ -246,7 +246,7 @@ const baseRows = [
 {
   const { p, writes, state } = await newPage({ rows: [], admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
-  const names = async () => (await p.locator('tbody tr td:nth-child(2) span.text-gray-900').allInnerTexts()).map(s => s.trim());
+  const names = async () => (await p.locator('tbody tr td:nth-child(2) button.text-gray-900').allInnerTexts()).map(s => s.trim());
   const first = await names();
   check('lista admin na ordem manual', first.join('|') === 'Vaso Cubo|Chaveiro Cão|Chaveiro Gato|Vaso Onda|Item Geral', first.join('|'));
   check('seta de subir do primeiro desabilitada', await p.getByRole('button', { name: 'Subir Vaso Cubo' }).isDisabled());
@@ -271,7 +271,7 @@ const baseRows = [
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
   await p.getByRole('button', { name: 'Editar Chaveiro Cão' }).click();
   await p.getByLabel(/Selo no card/).fill('Novo');
-  await p.getByLabel(/Seção na vitrine/).selectOption('destaque');
+  await p.getByRole('radio', { name: 'Destaques', exact: true }).check();
   await p.getByRole('button', { name: 'Salvar Alterações' }).click(); await p.waitForTimeout(600);
   const up = writes.find(w => w.method === 'POST' && w.path.endsWith('products'));
   const row = up ? [].concat(up.body)[0] : {};

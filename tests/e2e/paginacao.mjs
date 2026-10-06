@@ -96,7 +96,7 @@ await page.getByRole('button', { name: 'Cards' }).click();
 check('voltar para cards', await cards() === 10 && await page.getByTestId('lista-pedidos').count() === 0);
 
 // pedidos personalizados
-await page.getByRole('button', { name: /^Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 await page.getByText('Custom 01').waitFor();
 check('custom: usa as mesmas escolhas (10 por página, cards)', await cards() === 10);
 await page.getByRole('navigation', { name: 'Paginação' }).getByRole('button', { name: 'Página 2' }).click();

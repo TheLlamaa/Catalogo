@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquare, Truck, Store, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import Pagination from './Pagination';
 import ViewToggle from './ViewToggle';
 import { useViewMode } from '../../../hooks/useViewMode';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { usePagination } from '../../../hooks/usePagination';
 import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
@@ -70,6 +72,7 @@ interface CatalogOrdersManagerProps {
 
 export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, onUpdateStatus }: CatalogOrdersManagerProps) {
   const { confirm, toast } = useUI();
+  const wide = useMediaQuery('(min-width: 640px)');
   const { storeName } = useSettings();
   const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
   const [status, setStatus] = useState('all');
@@ -98,20 +101,32 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
-        <h2 className="text-lg font-medium text-gray-900">Vendas do Catálogo ({orders.length})</h2>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Pedidos"
+        description="Orçamentos enviados pelo carrinho da vitrine. Responda pelo WhatsApp e acompanhe o status."
+        actions={orders.length > 0 && <>
           <ActionButton icon={FileBarChart} onClick={report} disabled={visible.length === 0} primary>Relatório</ActionButton>
-          <ActionButton icon={Download} onClick={exportOrders} disabled={visible.length === 0}>Planilha de pedidos</ActionButton>
-          <ActionButton icon={Download} onClick={exportItems} disabled={visible.length === 0}>Planilha de itens</ActionButton>
-        </div>
-      </div>
+          {wide ? <>
+            <ActionButton icon={Download} onClick={exportOrders} disabled={visible.length === 0}>Planilha de pedidos</ActionButton>
+            <ActionButton icon={Download} onClick={exportItems} disabled={visible.length === 0}>Planilha de itens</ActionButton>
+          </> : (
+            /* No celular as planilhas (uso raro) ficam juntas em "Exportar" */
+            <details className="relative">
+              <summary className="list-none cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-gray-300 bg-white text-gray-700"><Download className="w-4 h-4" /> Exportar</summary>
+              <div className="absolute right-0 mt-1 z-20 w-56 bg-white border border-gray-200 rounded-md shadow-lg p-1">
+                <button type="button" onClick={exportOrders} disabled={visible.length === 0} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50">Planilha de pedidos</button>
+                <button type="button" onClick={exportItems} disabled={visible.length === 0} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50">Planilha de itens</button>
+              </div>
+            </details>
+          )}
+        </>}
+      />
 
       {orders.length === 0 ? (
         <div className="py-12 text-center border border-gray-200 rounded-lg border-dashed">
           <ShoppingBag className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-4 text-base font-medium text-gray-900">Nenhum pedido realizado</h3>
-          <p className="mt-1 text-sm text-gray-500">Os pedidos feitos no carrinho da vitrine aparecem aqui.</p>
+          <h3 className="mt-4 text-base font-medium text-gray-900">Nenhum pedido ainda</h3>
+          <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">Quando um cliente enviar o carrinho da vitrine, o pedido aparece aqui (e no Telegram, se estiver configurado). Novos pedidos ganham um selo vermelho no menu.</p>
         </div>
       ) : (
         <>

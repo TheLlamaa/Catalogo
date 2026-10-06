@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bug, Trash2, RefreshCw } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
+import { PageHeader } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import { clearErrors, listErrors } from '../../../services/errors';
 
@@ -41,11 +42,7 @@ export default function ErrorsManager() {
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-2 mb-1">
-        <Bug className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-bold text-gray-900">Erros do site</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-4">Erros ocorridos no navegador dos visitantes. Lista vazia = tudo certo.</p>
+      <PageHeader title="Erros do site" description="Erros que aconteceram no navegador dos visitantes. Lista vazia = tudo certo." />
 
       {loadError && (
         <p role="alert" className="mb-4 p-3 text-sm bg-amber-50 text-amber-800 border border-amber-200 rounded-md">

@@ -89,8 +89,7 @@ const browser = await launch();
 { // painel Site > Recursos
   const { page, ctx, upserts } = await abrir(browser, [], { logged: true });
   await page.goto(BASE + '/admin');
-  await page.getByRole('button', { name: /^Site/ }).click();
-  await page.getByRole('tab', { name: 'Recursos' }).click();
+  await page.getByRole('button', { name: 'Recursos', exact: true }).click();
   const labels = ['Controlar estoque', 'Aceitar pedidos personalizados', 'Prazo de produção nos produtos', 'Efeito de aura (brilho) nos cards', 'Link do modelo 3D no cadastro'];
   const found = await Promise.all(labels.map(l => page.getByLabel(l).count()));
   check('aba Recursos lista os 5 recursos', found.every(n => n === 1), found.join());

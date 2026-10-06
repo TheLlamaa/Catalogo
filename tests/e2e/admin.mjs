@@ -96,7 +96,7 @@ await dlg.waitFor({ state: 'detached' });
 check('segundo Esc fecha o modal do pedido', true);
 
 // CSV injection (pedidos personalizados)
-await page.getByRole('button', { name: /^Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 const [dl2] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV' }).click()]);
 const csv2 = fs.readFileSync(await dl2.path(), 'utf8');
 check('CSV neutraliza fórmulas digitadas por clientes (=…)', csv2.includes(`"'=cmd|calc"`) && csv2.includes(`"'=HYPERLINK`));
@@ -140,7 +140,7 @@ check('salvar envia opções (sem repetidos), prazo e fotos reordenadas', saved.
 const priv = privReqs.find(r => r.method === 'POST');
 check('salvar novo link grava em product_private', priv?.body?.product_id === 'p1' && priv?.body?.model_url === 'https://drive.google.com/file/d/abc', JSON.stringify(priv));
 check('o link NÃO vai junto com os dados públicos do produto', !JSON.stringify(saved).includes('drive.google'));
-check('formulário fecha depois de salvar com sucesso', await page.getByRole('heading', { name: /Produtos Cadastrados/ }).isVisible());
+check('formulário fecha depois de salvar com sucesso', await page.getByRole('heading', { name: 'Produtos', exact: true }).isVisible());
 
 // limpar link => DELETE
 await page.getByRole('button', { name: 'Editar Vaso Ondulado' }).click();
@@ -152,7 +152,7 @@ check('limpar o link faz DELETE em product_private do produto certo', privReqs.s
 
 // edição rápida (ativo/inativo) não mexe no link
 privReqs.length = 0;
-await page.getByRole('button', { name: /^Ativo$/ }).click();
+await page.getByRole('switch', { name: /na vitrine/ }).first().click();
 await page.waitForTimeout(400);
 check('edição rápida não escreve em product_private', !privReqs.some(r => r.method !== 'GET'), JSON.stringify(privReqs));
 

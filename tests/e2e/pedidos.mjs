@@ -114,7 +114,7 @@ const csv2 = fs.readFileSync(await d2.path(), 'utf8');
 check('planilha de pedidos: cabeçalho e 4 linhas', csv2.startsWith('﻿"Código";"Data"') && csv2.trim().split('\r\n').length === 5);
 
 // pedidos personalizados também têm busca e filtros
-await page.getByRole('button', { name: /Pedidos Custom/ }).click();
+await page.getByRole('button', { name: /^Personalizados/ }).click();
 await page.getByLabel('Buscar pedidos').waitFor();
 check('custom: lista os 2', await cards() === 2);
 await page.getByLabel('Buscar pedidos').fill('controle');

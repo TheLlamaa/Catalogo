@@ -101,29 +101,34 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart 
 }
 
 // Cabeçalho do painel administrativo
-export function AdminHeader({ onLogout }: { onLogout: () => void }) {
+export function AdminHeader({ onLogout, storeName }: { onLogout: () => void; storeName?: string }) {
   return (
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link to="/admin" className="flex items-center gap-3">
-          <Settings className="w-6 h-6 text-blue-500" strokeWidth={2.5} />
-          <span className="text-lg font-bold tracking-tight">Sistema Admin</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <Link to="/admin" className="flex items-center gap-3 min-w-0">
+          <Settings className="w-6 h-6 text-blue-500 flex-shrink-0" strokeWidth={2.5} />
+          <span className="min-w-0">
+            <span className="block text-base font-bold tracking-tight truncate">{storeName || 'Minha loja'}</span>
+            <span className="block text-[11px] uppercase tracking-wider text-slate-400 -mt-0.5">Painel de gestão</span>
+          </span>
         </Link>
         <nav className="flex items-center gap-4">
           <button
             onClick={() => window.open('/', '_blank')}
-            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors p-2 -m-2"
+            aria-label="Ver loja (abre em nova aba)"
           >
             <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline">Ver Loja</span>
+            <span className="hidden sm:inline">Ver loja</span>
           </button>
           <div className="w-px h-5 bg-slate-700"></div>
           <button
             onClick={onLogout}
-            className="text-sm font-medium text-red-400 hover:text-red-300 flex items-center gap-2 transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-colors p-2 -m-2"
+            aria-label="Sair do painel"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair do Sistema</span>
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </nav>
       </div>

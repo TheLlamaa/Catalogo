@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Trash2, ExternalLink, FileText, Download, Image as ImageIcon } from 'lucide-react';
+import { PageHeader } from '../../../components/ui';
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
@@ -58,10 +59,11 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Solicitações de Peças Personalizadas ({customOrders.length})</h2>
-        <ExportButton onClick={exportCsv} disabled={visible.length === 0} />
-      </div>
+      <PageHeader
+        title="Pedidos personalizados"
+        description="Pedidos de peças sob medida, feitos pela página de peça personalizada."
+        actions={customOrders.length > 0 && <ExportButton onClick={exportCsv} disabled={visible.length === 0} />}
+      />
 
       {customOrders.length > 0 && (
         <>

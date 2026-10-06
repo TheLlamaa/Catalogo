@@ -166,10 +166,10 @@ function MainLayout() {
 
       {/* HEADER 2: ADMIN */}
       {isAdminRoute && (
-        <AdminHeader onLogout={handleLogout} />
+        <AdminHeader onLogout={handleLogout} storeName={settings.storeName} />
       )}
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+      <main className={`flex-1 mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full ${isAdminRoute ? 'max-w-7xl' : 'max-w-6xl'}`}>
         <Suspense fallback={<p role="status" className="py-16 text-center text-sm text-gray-500">Carregando...</p>}>
         <Routes>
           <Route path="/" element={catalogElement} />

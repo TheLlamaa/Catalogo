@@ -49,7 +49,7 @@ export interface ToggleField extends SettingFieldBase { type: 'toggle'; default:
 // União discriminada por "type": cada tipo traz só os campos que usa
 export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | MenuField | SelectField | RangeField | ToggleField;
 
-export interface SettingsGroup { id: string; label: string }
+export interface SettingsGroup { id: string; label: string; description: string; sections: string[] }
 
 export interface SettingsSection {
   group: string;
@@ -93,16 +93,22 @@ export interface Settings {
 
 // Tudo que o admin pode editar na aba "Site". O padrão é o texto original do site:
 // campo vazio/igual ao padrão = nada fica salvo no banco.
-// "group" decide em qual aba do painel a seção aparece.
+// O grupo de cada seção vem de GROUPS (lista "sections"), que também define a ordem na tela.
 export const GROUPS: SettingsGroup[] = [
-  { id: 'aparencia', label: 'Aparência' },
-  { id: 'textos', label: 'Textos' },
-  { id: 'conteudo', label: 'Sobre e perguntas' },
-  { id: 'menus', label: 'Menus e páginas' },
-  { id: 'vitrine', label: 'Vitrine' },
-  { id: 'recursos', label: 'Recursos' },
-  { id: 'contato', label: 'Redes e rodapé' },
-  { id: 'busca', label: 'Google e compartilhamento' }
+  { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: capa, título, faixa de aviso e as seções Destaques, Mais pedidos e Novidades.',
+    sections: ['Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
+  { id: 'aparencia', label: 'Aparência', description: 'Cores, fonte, logo e o formato dos cards. Vale para o site inteiro.',
+    sections: ['Cores e fonte', 'Logo', 'Estilo dos cards'] },
+  { id: 'loja', label: 'Dados da loja', description: 'Nome, WhatsApp, e-mail, redes sociais, rodapé e como o site aparece no Google e no WhatsApp.',
+    sections: ['Identidade e contato', 'Redes sociais', 'Rodapé', 'Google e compartilhamento'] },
+  { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, a janela do produto e os textos do carrinho.',
+    sections: ['Pedidos', 'Janela do produto', 'Carrinho e pedido'] },
+  { id: 'personalizados', label: 'Peça personalizada', description: 'O card de destaque na vitrine e a página onde o cliente pede uma peça sob medida.',
+    sections: ['Card de destaque (peça personalizada)', 'Página de peça personalizada'] },
+  { id: 'paginas', label: 'Páginas e menus', description: 'Página Sobre, perguntas frequentes, páginas extras, menu do topo, rodapé e política de privacidade.',
+    sections: ['Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Páginas', 'Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Política de privacidade'] },
+  { id: 'recursos', label: 'Recursos', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
+    sections: ['Recursos da loja'] }
 ];
 
 export const SETTINGS_SCHEMA: SettingsSection[] = [
@@ -122,7 +128,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'aparencia', title: 'Capa da vitrine',
+    group: 'inicio', title: 'Capa da vitrine',
     fields: [
       { key: 'heroImage', label: 'Imagem de capa (opcional)', type: 'image', default: '', max: 700, hint: 'Aparece no topo da página inicial, com o título e o texto por cima. Use uma imagem larga.' },
     ]
@@ -137,7 +143,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'aparencia', title: 'Faixa de aviso no topo',
+    group: 'inicio', title: 'Faixa de aviso no topo',
     fields: [
       { key: 'bannerEnabled', label: 'Faixa ligada', type: 'toggle', default: true },
       { key: 'bannerText', label: 'Texto da faixa', type: 'text', max: 160, default: '', hint: 'Ex: Pedidos de Natal até 10/12. Vazio = sem faixa.' },
@@ -147,7 +153,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'textos', title: 'Identidade e contato',
+    group: 'loja', title: 'Identidade e contato',
     fields: [
       { key: 'storeName', label: 'Nome da loja', type: 'text', max: 60, default: STORE_NAME },
       { key: 'whatsapp', label: 'WhatsApp da loja', type: 'phone', default: STORE_WHATSAPP, hint: 'Recebe os pedidos. Ex: (48) 99999-9999' },
@@ -155,14 +161,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'textos', title: 'Página inicial (vitrine)',
+    group: 'inicio', title: 'Página inicial (vitrine)',
     fields: [
       { key: 'catalogTitle', label: 'Título', type: 'text', max: 80, default: 'Catálogo Completo' },
       { key: 'catalogSubtitle', label: 'Texto de apresentação', type: 'textarea', max: 300, default: NICHE.catalogSubtitle },
     ]
   },
   {
-    group: 'textos', title: 'Card de destaque (peça personalizada)',
+    group: 'personalizados', title: 'Card de destaque (peça personalizada)',
     fields: [
       { key: 'cardBadge', label: 'Etiqueta', type: 'text', max: 40, default: 'Destaque Especial' },
       { key: 'cardTitle', label: 'Título', type: 'text', max: 60, default: NICHE.customTitle },
@@ -171,7 +177,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'textos', title: 'Página de peça personalizada',
+    group: 'personalizados', title: 'Página de peça personalizada',
     fields: [
       { key: 'customTitle', label: 'Título', type: 'text', max: 80, default: 'Solicitar Peça Personalizada' },
       { key: 'customIntro', label: 'Texto de apresentação', type: 'textarea', max: 300, default: 'Tem um modelo em mente ou uma foto de referência? Preencha os campos abaixo e entraremos em contato com um orçamento sob medida.' },
@@ -179,15 +185,15 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'menus', title: 'Páginas',
+    group: 'paginas', title: 'Páginas',
     fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página ${i + 1}`, type: 'page', default: '' }))
   },
   {
-    group: 'menus', title: 'Menu do topo',
+    group: 'paginas', title: 'Menu do topo',
     fields: [{ key: 'menuTop', label: 'Menu do topo', type: 'menu', default: '', hint: 'Ordem e itens do menu no alto da loja. Vitrine, Sobre e Personalizado podem mudar de lugar, mas não saem.' }]
   },
   {
-    group: 'menus', title: 'Nomes dos botões do menu',
+    group: 'paginas', title: 'Nomes dos botões do menu',
     fields: [
       { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
       { key: 'menuAbout', label: 'Nome do botão “Sobre”', type: 'text', max: 24, default: 'Sobre' },
@@ -195,17 +201,17 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'menus', title: 'Links do rodapé',
+    group: 'paginas', title: 'Links do rodapé',
     fields: [{ key: 'menuFoot', label: 'Links extras do rodapé', type: 'menu', default: '', hint: 'Páginas, categorias e links externos que aparecem no rodapé, além de Sobre, redes sociais, WhatsApp e privacidade.' }]
   },
   {
-    group: 'conteudo', title: 'Política de privacidade',
+    group: 'paginas', title: 'Política de privacidade',
     fields: [
       { key: 'privacyText', label: 'Texto próprio da política', type: 'textarea', rows: 10, max: 4000, default: '', hint: 'Vazio = usa o texto padrão do site. Linha em branco = novo parágrafo.' },
     ]
   },
   {
-    group: 'recursos', title: 'Pedidos',
+    group: 'pedidos', title: 'Pedidos',
     fields: [
       { key: 'ordersPaused', label: 'Pausar pedidos', type: 'toggle', default: false, hint: 'Ótimo para férias ou fila cheia: o site continua no ar, mas não aceita novos pedidos.' },
       { key: 'pausedMessage', label: 'Aviso enquanto pausado', type: 'textarea', rows: 2, max: 200, default: 'Estamos sem receber pedidos no momento. Volte em breve!' },
@@ -216,7 +222,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'textos', title: 'Carrinho e pedido',
+    group: 'pedidos', title: 'Carrinho e pedido',
     fields: [
       { key: 'addToCartLabel', label: 'Botão de adicionar ao carrinho', type: 'text', max: 40, default: 'Adicionar ao Orçamento' },
       { key: 'cartTitle', label: 'Título do carrinho', type: 'text', max: 40, default: 'Seu Orçamento' },
@@ -230,22 +236,22 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'conteudo', title: 'Página "Sobre / Como funciona"',
+    group: 'paginas', title: 'Página "Sobre / Como funciona"',
     fields: [
       { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
-      { key: 'aboutTitle', label: 'Título da página', type: 'text', max: 80, default: 'Como funciona' },
+      { key: 'aboutTitle', label: 'Título', type: 'text', max: 80, default: 'Como funciona' },
       { key: 'aboutText', label: 'Texto', type: 'textarea', rows: 10, max: 3500, default: '', hint: 'Quem você é, materiais, prazos e entrega. Linha em branco = novo parágrafo.' },
       { key: 'aboutImage', label: 'Foto (opcional)', type: 'image', default: '', max: 700 },
     ]
   },
   {
-    group: 'conteudo', title: 'Perguntas frequentes',
+    group: 'paginas', title: 'Perguntas frequentes',
     fields: [
       { key: 'faqItems', label: 'Perguntas e respostas', type: 'faq', default: '', hint: 'Até 20 perguntas, na página Sobre.' },
     ]
   },
   {
-    group: 'vitrine', title: 'Seções no topo da vitrine',
+    group: 'inicio', title: 'Seções no topo da vitrine',
     fields: [
       { key: 'showFeatured', label: 'Mostrar "Destaques"', type: 'toggle', default: true },
       { key: 'featuredTitle', label: 'Título de Destaques', type: 'text', max: 40, default: 'Destaques' },
@@ -266,7 +272,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'vitrine', title: 'Exibição da vitrine',
+    group: 'inicio', title: 'Exibição da vitrine',
     fields: [
       { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', display: 'sort', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
       { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
@@ -274,17 +280,17 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'vitrine', title: 'Janela do produto',
+    group: 'pedidos', title: 'Janela do produto',
     fields: [
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
       { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
-      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão.' },
+      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão (#f59e0b).' },
       { key: 'relatedEnabled', label: 'Mostrar “Você também pode gostar” (produtos relacionados)', type: 'toggle', default: true, hint: 'Na janela do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },
     ]
   },
   {
-    group: 'busca', title: 'Google e compartilhamento',
+    group: 'loja', title: 'Google e compartilhamento',
     fields: [
       { key: 'seoTitle', label: 'Título do site', type: 'text', max: 70, default: '', hint: 'Aparece na aba do navegador e nos resultados do Google. Vazio = título padrão.' },
       { key: 'seoDescription', label: 'Descrição', type: 'textarea', rows: 3, max: 160, default: '', hint: 'Resumo da loja para o Google (até 160 caracteres).' },
@@ -292,7 +298,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'contato', title: 'Redes sociais',
+    group: 'loja', title: 'Redes sociais',
     fields: [
       { key: 'socialInstagram', label: 'Instagram', type: 'social', max: 200, default: '' },
       { key: 'socialTiktok', label: 'TikTok', type: 'social', max: 200, default: '' },
@@ -301,7 +307,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'contato', title: 'Rodapé',
+    group: 'loja', title: 'Rodapé',
     fields: [
       { key: 'footerText', label: 'Linha extra no rodapé', type: 'text', max: 160, default: '', hint: 'Ex: Atendimento de segunda a sexta, das 9h às 18h. Vazio = sem linha.' },
     ]

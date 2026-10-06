@@ -37,13 +37,12 @@ await page.route('https://mock.supabase.co/**', async (route) => {
 await page.goto(BASE + '/admin');
 await page.getByTestId('resumo-pedidos').waitFor();
 
-const tabs = ['Pedidos', 'Pedidos Custom', 'Produtos', 'Categorias', 'Auras', 'Site', 'Equipe', 'Erros'];
 const xs = {};
 // Navegador com barra de rolagem de verdade (como no Windows); o modo "overlay" esconderia o problema
-const btns = page.locator('div.overflow-x-auto button');
+const btns = page.locator('nav[aria-label="Seções do painel"] button');
 const n = await btns.count();
 for (let i = 0; i < n; i++) {
-  const name = (await btns.nth(i).innerText()).split('\n')[0].trim();
+  const name = (await btns.nth(i).getAttribute('aria-label')) || String(i);
   await btns.nth(i).click();
   await page.waitForTimeout(400);
   xs[name] = await page.evaluate(() => ({ x: Math.round(document.querySelector('main > div').getBoundingClientRect().x), sb: window.innerWidth - document.documentElement.clientWidth, h: document.documentElement.scrollHeight }));

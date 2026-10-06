@@ -34,7 +34,7 @@ export function useAdminActions({
   // -------------------------------------------------------------------------
   // Produtos e categorias (admin)
   // -------------------------------------------------------------------------
-  const saveProduct = async (product: Partial<StoredProduct>) => {
+  const saveProduct = async (product: Partial<StoredProduct>, successMessage = 'Produto salvo.') => {
     const payload: Record<string, unknown> = {
       title: product.title,
       description: product.description,
@@ -73,7 +73,7 @@ export function useAdminActions({
         return true;
       }
     }
-    toast.success('Produto salvo.');
+    toast.success(successMessage);
     await fetchData();
     return true;
   };

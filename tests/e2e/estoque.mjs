@@ -27,7 +27,7 @@ const browser = await launch();
 
 { // padrão: controla estoque
   const page = await abrir(browser, null);
-  check('padrão: mostra a quantidade em estoque', await page.getByText('2 unidade(s) disponível(is)').count() === 1);
+  check('padrão: avisa quando restam poucas unidades', await page.getByText('Restam 2 unidades').count() === 1);
   check('padrão: produto sem estoque mostra "Esgotado"', await page.getByText('Esgotado', { exact: true }).count() === 1);
   await page.getByRole('button', { name: 'Adicionar' }).first().click();
   await page.getByRole('button', { name: /Abrir orçamento \(1 item/ }).waitFor();
@@ -36,7 +36,7 @@ const browser = await launch();
 
 { // desligado: tudo disponível, sem números
   const page = await abrir(browser, 'false');
-  check('desligado: não mostra quantidade em estoque', await page.getByText(/unidade\(s\) disponível/).count() === 0);
+  check('desligado: não mostra quantidade em estoque', await page.getByText(/Restam? \d+ unidade/).count() === 0);
   check('desligado: não mostra "Esgotado"', await page.getByText('Esgotado', { exact: true }).count() === 0);
   check('desligado: nenhum botão desabilitado', await page.getByRole('button', { name: 'Indisponível' }).count() === 0);
   const add = async (nth) => {
