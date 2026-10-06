@@ -5,10 +5,10 @@ import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import type { Category, Product } from '../../types';
-import { brl } from '../../lib/format';
 import { badgeStyle } from '../../lib/theme';
 import { badgeFor, relatedProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
+import Price from './Price';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -95,7 +95,7 @@ export default function ProductDetailModal({ product, products = [], categories,
           <h2 className="text-2xl font-bold text-gray-900 leading-snug mb-2">{product.title}</h2>
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            {!settings.hidePrices && <span className="text-2xl font-extrabold text-blue-600">{brl(product.price)}</span>}
+            {!settings.hidePrices && <Price product={product} className="text-2xl font-extrabold text-blue-600" />}
             {settings.stockControl && (
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                 {isOutOfStock ? 'Esgotado' : `${product.stock} em estoque`}
@@ -142,7 +142,7 @@ export default function ProductDetailModal({ product, products = [], categories,
                         {rp.imageUrls?.[0] ? <ProductImage thumb src={rp.imageUrls[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <ImageIcon className="w-6 h-6 text-gray-300" />}
                       </div>
                       <span className="block text-xs font-medium text-gray-800 mt-1.5 line-clamp-2 leading-tight">{rp.title}</span>
-                      {!settings.hidePrices && <span className="block text-xs font-bold text-blue-600">{brl(rp.price)}</span>}
+                      {!settings.hidePrices && <span className="block"><Price product={rp} showBadge={false} className="text-xs font-bold text-blue-600" /></span>}
                     </button>
                   </li>
                 ))}

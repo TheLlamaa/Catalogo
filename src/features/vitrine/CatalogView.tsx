@@ -8,10 +8,10 @@ import type { Category, Product } from '../../types';
 import ProductImage from './ProductImage';
 import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
-import { brl } from '../../lib/format';
 import { badgeStyle } from '../../lib/theme';
 import { badgeFor, newProducts, LOW_STOCK_MAX } from '../../lib/catalog';
 import { Button } from '../../components/ui';
+import Price from './Price';
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -60,8 +60,8 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   });
 
   filteredProducts.sort((a, b) => {
-    if (sortOrder === 'price_asc') return a.price - b.price;
-    if (sortOrder === 'price_desc') return b.price - a.price;
+    if (sortOrder === 'price_asc') return a.salePrice - b.salePrice;
+    if (sortOrder === 'price_desc') return b.salePrice - a.salePrice;
     return 0; // 'recent': mantém a ordem do banco (created_at desc)
   });
 
@@ -328,7 +328,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
         )}
         <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p>
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 mt-auto pt-2 sm:pt-4 border-t border-gray-100">
-          {!settings.hidePrices && <span className="text-base sm:text-lg font-bold text-gray-900">{brl(product.price)}</span>}
+          {!settings.hidePrices && <Price product={product} className="text-base sm:text-lg font-bold text-gray-900" />}
           <button
             disabled={isOutOfStock}
             onClick={(e) => { e.stopPropagation(); if (hasOptions) onClick(); else onAddToCart(); }}

@@ -8,7 +8,8 @@ import { useUI } from '../../../components/UIContext';
 import { uploadProductImage } from '../../../services/storage';
 import { optionsFor } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
-import { isHttpUrl } from '../../../lib/format';
+import { brl, isHttpUrl } from '../../../lib/format';
+import { MAX_DISCOUNT, clampDiscount, discountedPrice } from '../../../lib/discount';
 import type { Category, Product, ProductOption, StoredProduct } from '../../../types';
 import { friendlyError } from '../../../lib/errorMessage';
 
@@ -44,11 +45,21 @@ const SECTION_CHOICES = [
 ];
 
 // Estado do formulário: preço e estoque ficam como texto (campos numéricos), opções com valores separados por vírgula
+// Dica abaixo do campo de desconto: mostra por quanto o produto sai
+function discountHint(priceRaw: string, discountRaw: string): string {
+  const price = parseFloat(priceRaw) || 0;
+  const d = clampDiscount(discountRaw);
+  if (!discountRaw.trim() || !d) return 'Ex: 15 para 15%. A vitrine mostra o preço antigo riscado.';
+  if (!price) return `${d}% de desconto.`;
+  return `Sai por ${brl(discountedPrice(price, d))} (de ${brl(price)}).`;
+}
+
 interface ProductFormState {
   id: string | undefined;
   title: string;
   description: string;
   price: string;
+  discount: string; // % de desconto, como digitado
   stock: string;
   categoryIds: string[];
   imageUrls: string[];
@@ -78,6 +89,7 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     title: initialData?.title || '',
     description: initialData?.description || '',
     price: initialData?.price ? String(initialData.price) : '',
+    discount: initialData?.discountPercent ? String(initialData.discountPercent) : '',
     stock: String(initialData?.stock ?? 1),
     categoryIds: defaultCategoryIds,
     imageUrls: initialData?.imageUrls?.length ? initialData.imageUrls : [],
@@ -157,9 +169,14 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     const modelUrl = formData.modelUrl.trim();
     if (modelUrl && !isHttpUrl(modelUrl)) return toast.error('O link do modelo precisa começar com http:// ou https://');
 
+    const discountRaw = formData.discount.trim();
+    if (discountRaw && (!/^\d{1,2}$/.test(discountRaw) || Number(discountRaw) > MAX_DISCOUNT)) return toast.error(`Desconto: use um número inteiro de 0 a ${MAX_DISCOUNT} (ex: 15 para 15%).`);
+
     setSaving(true);
+    const { discount: _discount, ...rest } = formData;
     await onSave({
-      ...formData,
+      ...rest,
+      discountPercent: clampDiscount(discountRaw),
       price: parseFloat(formData.price) || 0,
       stock: parseInt(formData.stock, 10) || 0,
       leadTime: formData.leadTime.trim(),
@@ -196,9 +213,23 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
             <label htmlFor="p-titulo" className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
             <input id="p-titulo" required type="text" value={formData.title} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))} className={inputCls} />
           </div>
-          <div className="sm:w-1/2">
-            <label htmlFor="p-preco" className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
-            <input id="p-preco" required type="number" inputMode="decimal" step="0.01" min="0" value={formData.price} onChange={e => setFormData(p => ({ ...p, price: e.target.value }))} className={inputCls} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="p-preco" className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
+              <input id="p-preco" required type="number" inputMode="decimal" step="0.01" min="0" value={formData.price} onChange={e => setFormData(p => ({ ...p, price: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label htmlFor="p-desconto" className="block text-sm font-medium text-gray-700 mb-1">Desconto <span className="text-gray-500 font-normal">(opcional)</span></label>
+              <div className="relative">
+                <input
+                  id="p-desconto" type="number" inputMode="numeric" step="1" min="0" max={MAX_DISCOUNT} placeholder="0"
+                  value={formData.discount} onChange={e => setFormData(p => ({ ...p, discount: e.target.value }))}
+                  aria-describedby="p-desconto-dica" className={`${inputCls} pr-8`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" aria-hidden="true">%</span>
+              </div>
+              <p id="p-desconto-dica" className="mt-1 text-xs text-gray-500" aria-live="polite">{discountHint(formData.price, formData.discount)}</p>
+            </div>
           </div>
           <div>
             <label htmlFor="p-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>

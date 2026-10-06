@@ -9,6 +9,7 @@ import { useSettings } from '../../components/SettingsContext';
 import type { CartItem, DeliveryMethod } from '../../types';
 import { minOrderValue } from '../../lib/settings';
 import { brl, formatOptions, formatPhoneBR, validateContact, buildOrderMessage, whatsappLink } from '../../lib/format';
+import Price from './Price';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
     const items = cart.map(l => ({
       id: l.id,
       title: l.product.title,
-      price: l.product.price,
+      price: l.product.salePrice, // o banco confere e aplica o desconto de novo (SQL 13)
       quantity: l.quantity,
       options: l.options,
       imageUrls: (l.product.imageUrls || []).slice(0, 1)
@@ -136,7 +137,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                       <div className="flex-1 flex flex-col">
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{line.product.title}</h3>
                         {opt && <span className="text-xs text-gray-500">{opt}</span>}
-                        {!settings.hidePrices && <span className="text-sm font-bold mt-1">{brl(line.product.price)}</span>}
+                        {!settings.hidePrices && <span className="mt-1"><Price product={line.product} className="text-sm font-bold" /></span>}
                         <div className="flex items-center justify-between mt-auto">
                           <div role="group" aria-label={`Quantidade de ${line.product.title}`} className="flex items-center border border-gray-200 rounded-md">
                             <button type="button" onClick={() => updateQuantity(line.key, -1)} aria-label={`Diminuir quantidade de ${line.product.title}`} className="p-1.5 text-gray-500 hover:bg-gray-50"><Minus className="w-3.5 h-3.5" aria-hidden="true" /></button>

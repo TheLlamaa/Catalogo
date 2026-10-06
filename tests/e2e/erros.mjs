@@ -20,7 +20,7 @@ async function abrir(browser, { logged = false } = {}) {
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
-    if (url.pathname === '/rest/v1/app_meta') return json([{ key: 'schema_version', value: '12' }]);
+    if (url.pathname === '/rest/v1/app_meta') return json([{ key: 'schema_version', value: '13' }]);
     if (url.pathname === '/rest/v1/error_log') {
       if (req.method() === 'POST') { state.inserts.push(JSON.parse(req.postData())); return route.fulfill({ status: 201, headers: cors, body: '' }); }
       if (req.method() === 'GET') return json(state.rows);

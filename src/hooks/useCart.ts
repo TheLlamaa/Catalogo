@@ -55,7 +55,7 @@ export function useCart({ products, loading, loadError }: { products: Product[];
 
   const removeFromCart = (key: string) => setCartLines(prev => prev.filter(l => l.key !== key));
   const clearCart = () => setCartLines([]);
-  const cartTotal = cart.reduce((acc, l) => acc + l.product.price * l.quantity, 0);
+  const cartTotal = cart.reduce((acc, l) => acc + l.product.salePrice * l.quantity, 0); // com desconto, igual à conta do banco
   const cartCount = cart.reduce((acc, l) => acc + l.quantity, 0);
 
   return {

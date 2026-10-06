@@ -9,6 +9,9 @@ export interface OrderItem {
   title: string;
   price: number;
   quantity: number;
+  /** Preço sem desconto e % aplicado, quando o produto estava em promoção (gravados pelo banco, SQL 13). */
+  fullPrice?: number;
+  discount?: number;
   options?: Record<string, string>;
   image?: string | null;
   /** Miniaturas gravadas junto do item no momento da compra (só a primeira é usada). */
@@ -45,6 +48,10 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  /** Desconto em % (0 a 90; 0 = sem desconto). Coluna discount_percent, SQL 13. */
+  discountPercent: number;
+  /** Preço com o desconto aplicado (calculado; é o que o cliente paga). */
+  salePrice: number;
   stock: number;
   /** Unidades disponíveis para venda; Infinity quando o controle de estoque está desligado. */
   available: number;
@@ -84,7 +91,7 @@ export type OrderLike = Partial<Omit<CatalogOrder, 'items'>> & { items?: Partial
 export interface CartLine { key: string; id: string; quantity: number; options: Record<string, string> }
 
 /** Produto sem o campo calculado `available` (é o que fica no estado do useCatalogData). */
-export type StoredProduct = Omit<Product, 'available'>;
+export type StoredProduct = Omit<Product, 'available' | 'salePrice'>;
 
 /** Item do carrinho já cruzado com o produto atual (preço e estoque vêm do produto). */
 export interface CartItem extends CartLine { product: Product }

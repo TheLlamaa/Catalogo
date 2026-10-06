@@ -253,6 +253,66 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await ctx.close();
 }
 
+{ // Desconto em %: preço riscado na vitrine, total do carrinho, pedido e campo no cadastro
+  const promo = [P('p1', 'Vaso Promo', { price: 39.9, discount_percent: 15 }), P('p2', 'Vaso Cheio', { price: 20, discount_percent: 0 })];
+  const abrirPromo = async (path, admin = false) => {
+    const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
+    if (admin) await ctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+    const page = await ctx.newPage();
+    const writes = [];
+    await ctx.route('https://mock.supabase.co/**', (route) => {
+      const req = route.request(); const url = new URL(req.url());
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+      if (req.method() !== 'GET') { writes.push({ path: url.pathname, body: req.postData() ? JSON.parse(req.postData()) : null }); return route.fulfill({ status: 201, headers: cors, body: '' }); }
+      const body = url.pathname === '/rest/v1/products' ? promo : url.pathname === '/rest/v1/categories' ? categories
+        : url.pathname === '/rest/v1/app_meta' ? [{ key: 'schema_version', value: '99' }] : [];
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+    });
+    await page.goto(BASE + path);
+    return { page, ctx, writes };
+  };
+  const txt = async (loc) => (await loc.innerText()).replace(/\s+/g, ' ');
+
+  let { page, ctx, writes } = await abrirPromo('/');
+  const card = page.locator('article').filter({ hasText: 'Vaso Promo' }).first();
+  await card.waitFor();
+  const t = await txt(card);
+  check('card mostra preço antigo, novo e o selo', t.includes('R$ 39,90') && t.includes('R$ 33,92') && t.includes('-15%'), t);
+  check('leitor de tela ouve "De ... por ..."', await card.getByText('De R$ 39,90 por R$ 33,92 (15% de desconto)').count() === 1);
+  check('produto sem desconto mostra só o preço', !(await txt(page.locator('article').filter({ hasText: 'Vaso Cheio' }).first())).includes('%'));
+  await card.getByRole('button', { name: /Adicionar/ }).click();
+  const gaveta = page.getByRole('dialog');
+  check('carrinho soma com desconto', (await txt(gaveta)).includes('Total R$ 33,92'), await txt(gaveta));
+  await gaveta.getByRole('button', { name: 'Avançar para Identificação' }).click();
+  await page.getByLabel('Seu nome').fill('Ana Souza');
+  await page.getByLabel('Seu WhatsApp').fill('48999990000');
+  await page.getByRole('button', { name: 'Finalizar pedido' }).click();
+  await page.waitForTimeout(500);
+  const pedido = writes.find(w => w.path === '/rest/v1/orders')?.body;
+  check('pedido vai com o preço com desconto', pedido?.total === 33.92 && pedido?.items?.[0]?.price === 33.92, JSON.stringify(pedido));
+  await ctx.close();
+
+  ({ page, ctx, writes } = await abrirPromo('/admin', true));
+  await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
+  await nav(page, 'Produtos (2)').click();
+  check('lista do painel mostra o desconto', (await txt(page.locator('tbody tr').filter({ hasText: 'Vaso Promo' }))).includes('-15%'));
+  await page.getByRole('button', { name: 'Editar Vaso Promo' }).click();
+  const campo = page.getByLabel(/^Desconto/);
+  check('cadastro abre com o desconto', await campo.inputValue() === '15' && (await txt(page.locator('#p-desconto-dica'))).includes('R$ 33,92'));
+  await campo.fill('20');
+  check('dica mostra por quanto sai', (await txt(page.locator('#p-desconto-dica'))).includes('Sai por R$ 31,92'));
+  await campo.fill('95');
+  await page.getByRole('button', { name: /Salvar/ }).first().click();
+  check('desconto acima de 90% é recusado', !(await campo.evaluate(el => el.validity.valid)) && !writes.some(w => w.path === '/rest/v1/products'));
+  await campo.fill('');
+  await page.getByRole('button', { name: /Salvar/ }).first().click();
+  await page.waitForTimeout(500);
+  const w = writes.filter(x => x.path === '/rest/v1/products').at(-1)?.body;
+  check('apagar o desconto grava 0 (tira a promoção)', w?.discount_percent === 0 && w?.id === 'p1', JSON.stringify(w));
+  await ctx.close();
+}
+
 await browser.close();
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificações passaram`);

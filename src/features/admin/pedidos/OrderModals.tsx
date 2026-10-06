@@ -175,7 +175,7 @@ export function CatalogOrderDetailModal({ order, products = [], onClose, onDelet
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
                     {opt && <span className="text-xs text-blue-700 block">{opt}</span>}
-                    <span className="text-xs text-gray-500">{item.quantity}x {brl(item.price)} cada</span>
+                    <span className="text-xs text-gray-500">{item.quantity}x {brl(item.price)} cada{item.discount ? ` (${item.discount}% de desconto sobre ${brl(Number(item.fullPrice) || 0)})` : ''}</span>
                     {modelUrl && (
                       <a href={modelUrl} target="_blank" rel="noreferrer noopener" className="mt-1 flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800">
                         <Box className="w-3 h-3" aria-hidden="true" /> Abrir modelo

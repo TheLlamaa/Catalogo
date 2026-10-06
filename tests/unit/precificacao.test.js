@@ -50,3 +50,20 @@ describe('modo escuro', () => {
     expect(resolveDark('dark', false)).toBe(true);
   });
 });
+
+import { clampDiscount, discountedPrice } from '../../src/lib/discount';
+describe('desconto em % do produto', () => {
+  it('mesma conta do banco (arredonda centavos, metade para cima)', () => {
+    expect(discountedPrice(60, 15)).toBe(51);
+    expect(discountedPrice(39.9, 15)).toBe(33.92); // 33,915 → 33,92
+    expect(discountedPrice(10, 33)).toBe(6.7);
+    expect(discountedPrice(25, 0)).toBe(25);
+  });
+  it('limita entre 0 e 90 e aceita texto', () => {
+    expect(clampDiscount('15')).toBe(15);
+    expect(clampDiscount('')).toBe(0);
+    expect(clampDiscount(-3)).toBe(0);
+    expect(clampDiscount(150)).toBe(90);
+    expect(clampDiscount(undefined)).toBe(0);
+  });
+});
