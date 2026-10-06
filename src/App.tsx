@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, Suspense } from 'react';
 import { lazyWithReload } from './lib/staleChunk';
 import { useColorMode } from './lib/colorMode';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navig
 import { signOut } from './services/auth';
 import { ENV_LABEL } from './lib/config';
 import { applySeo } from './lib/seo';
-import { applyTheme, isBannerActive, bannerStyle } from './lib/theme';
+import { applyTheme, cacheTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { mergeSettings } from './lib/settings';
 import { IS_PREVIEW, usePreviewRows } from './lib/preview';
 import { useCart } from './hooks/useCart';
@@ -123,7 +123,13 @@ function MainLayout() {
   };
 
   // Cor, fonte, logo/ícone da aba: acompanham o que o admin publicou
-  useEffect(() => { applyTheme(settings); }, [settings]);
+  // useLayoutEffect: aplica antes de a tela ser desenhada (sem piscar a cor padrão antes da cor da loja)
+  // Enquanto carrega, fica a aparência guardada da última visita (main.tsx), não a padrão
+  useLayoutEffect(() => {
+    if (loading) return;
+    applyTheme(settings);
+    if (!IS_PREVIEW) cacheTheme(settings);
+  }, [settings, loading]);
   const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';
   useEffect(() => { applySeo(settings, !ownTitle); }, [settings, ownTitle]);
 

@@ -116,7 +116,7 @@ export function AdminHeader({ onLogout, storeName, colorMode }: { onLogout: () =
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link to="/admin" className="flex items-center gap-3 min-w-0">
-          <Settings className="w-6 h-6 text-blue-500 flex-shrink-0" strokeWidth={2.5} />
+          <Settings className="w-6 h-6 text-[rgb(var(--accent-on-dark))] flex-shrink-0" strokeWidth={2.5} />
           <span className="min-w-0">
             <span className="block text-base font-bold tracking-tight truncate">{storeName || 'Minha loja'}</span>
             <span className="block text-[11px] uppercase tracking-wider text-slate-400 -mt-0.5">Painel de gestão</span>

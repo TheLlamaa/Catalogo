@@ -30,7 +30,8 @@ for (const hue of HUES) for (const s of STEPS) {
 }
 // Cor principal: claras viram tons escuros da própria cor; textos escuros viram claros
 const P_DARK = { 50: 900, 100: 800, 200: 700, 300: 600, 400: 400, 500: 500, 600: 600, 700: 300, 800: 200, 900: 100 };
-for (const s of STEPS.filter(x => x !== 950)) { lightVars[`--p-${s}`] = `var(--c-blue-${s})`; darkVars[`--p-${s}`] = `var(--c-blue-${P_DARK[s]})`; }
+// --d-blue-*: versão clareada da cor principal para o modo escuro, quando ela é escura demais (lib/theme.ts → darkModeBase)
+for (const s of STEPS.filter(x => x !== 950)) { lightVars[`--p-${s}`] = `var(--c-blue-${s})`; darkVars[`--p-${s}`] = `var(--d-blue-${P_DARK[s]}, var(--c-blue-${P_DARK[s]}))`; }
 lightVars['--white'] = '255 255 255'; darkVars['--white'] = rgb('#151c27');
 
 // Texto colorido médio (links, preços, "Excluir"): no escuro fica no tom 400, para ter contraste.
@@ -38,7 +39,7 @@ lightVars['--white'] = '255 255 255'; darkVars['--white'] = rgb('#151c27');
 const darkText = {};
 for (const hue of [...HUES.filter(h => h !== 'gray'), 'blue']) for (const s of [500, 600, 700]) {
   // cor principal: tom 300 (lê bem tanto na superfície escura quanto sobre o fundo bg-blue-50 escurecido)
-  const to = hue === 'blue' ? 'var(--c-blue-300)' : rgb(colors[hue][s === 700 ? 300 : 400]);
+  const to = hue === 'blue' ? 'var(--d-blue-300, var(--c-blue-300))' : rgb(colors[hue][s === 700 ? 300 : 400]);
   darkText[`:root.dark .text-${hue}-${s}, :root.dark .hover\\:text-${hue}-${s}:hover`] = { color: `rgb(${to})` };
 }
 

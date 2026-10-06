@@ -13,7 +13,7 @@ import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isVal
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import type { Category, Product } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isBannerActive, isHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, applyTheme, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
@@ -422,7 +422,7 @@ function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorF
   return (
     <div className="flex items-center gap-3">
       <input id={id} type="color" value={shown} onChange={e => onChange(e.target.value)} aria-label={f.label} className="h-10 w-14 rounded border border-gray-300 bg-white p-1 cursor-pointer" />
-      <input type="text" value={value} placeholder={`Padrão (${fallback})`} maxLength={7} onChange={e => onChange(e.target.value)} aria-label={`${f.label} (código)`} className={`${inputCls} sm:w-48 font-mono`} />
+      <input type="text" value={value} placeholder={`Padrão (${fallback})`} maxLength={7} onChange={e => onChange(e.target.value)} onBlur={e => { const n = normalizeHex(e.target.value); if (n !== e.target.value) onChange(n); }} aria-label={`${f.label} (código)`} className={`${inputCls} sm:w-48 font-mono`} />
     </div>
   );
 }

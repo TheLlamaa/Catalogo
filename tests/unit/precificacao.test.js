@@ -67,3 +67,19 @@ describe('desconto em % do produto', () => {
     expect(clampDiscount(undefined)).toBe(0);
   });
 });
+
+import { darkModeBase, normalizeHex, contrastRatio, DARK_SURFACE } from '../../src/lib/theme';
+describe('cor do tema', () => {
+  it('modo escuro: cor principal muito escura é clareada até aparecer, sem estragar o texto branco', () => {
+    const c = darkModeBase('#1e293b'); // tema Clássico
+    expect(c).not.toBe('#1e293b');
+    expect(contrastRatio(c, DARK_SURFACE)).toBeGreaterThanOrEqual(2.4);
+    expect(contrastRatio(c, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(darkModeBase('#2563eb')).toBe('#2563eb'); // azul padrão já funciona
+  });
+  it('código de cor digitado à mão', () => {
+    expect(normalizeHex('BE185D')).toBe('#be185d');
+    expect(normalizeHex('#f0a')).toBe('#ff00aa');
+    expect(normalizeHex('azul')).toBe('azul');
+  });
+});

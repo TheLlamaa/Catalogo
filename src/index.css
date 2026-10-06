@@ -14,6 +14,7 @@
   --c-blue-50: 239 246 255; --c-blue-100: 219 234 254; --c-blue-200: 191 219 254;
   --c-blue-300: 147 197 253; --c-blue-400: 96 165 250; --c-blue-500: 59 130 246;
   --c-blue-600: 37 99 235; --c-blue-700: 29 78 216; --c-blue-800: 30 64 175; --c-blue-900: 30 58 138;
+  --accent-on-dark: 96 165 250; /* destaque sobre fundo sempre escuro (cabeçalho do painel); o tema troca */
   --page-bg: #f8fafc; /* fundo escolhido no painel (Fundo da loja) */
   --page: var(--page-bg); /* fundo em uso: no modo escuro ignora o tom claro escolhido */
   --radius-xl: 0.75rem;

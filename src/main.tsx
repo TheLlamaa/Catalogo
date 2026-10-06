@@ -5,8 +5,10 @@ import './index.css'
 import { installErrorLogging } from './services/errors'
 import { installStaleChunkReload } from './lib/staleChunk'
 import { applyInitialColorMode } from './lib/colorMode'
+import { applyCachedTheme } from './lib/theme'
 
 applyInitialColorMode()
+applyCachedTheme()
 installStaleChunkReload()
 installErrorLogging()
 
