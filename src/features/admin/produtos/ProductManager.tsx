@@ -3,6 +3,8 @@ import { Plus, Edit2, Trash2, Copy, Eye, EyeOff, Layers, Box, Image as ImageIcon
 import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import ProductForm from './ProductForm';
+import Pagination from '../pedidos/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { brl, isHttpUrl } from '../../../lib/format';
@@ -21,6 +23,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
   const { auraLib, stockControl, aurasEnabled } = useSettings();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const pager = usePagination(products, 'produtos');
 
   const handleAddNew = () => { setEditingProduct(null); setIsFormOpen(true); };
 
@@ -59,6 +62,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
             </button>
           </div>
           <p className="text-xs text-gray-500 -mt-3 mb-4">Ordem da vitrine; produto novo entra no topo.</p>
+          <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="produtos" position="top" />
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
@@ -75,7 +79,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                 {products.length === 0 ? (
                   <tr><td colSpan={4 + (stockControl ? 1 : 0) + (aurasEnabled ? 1 : 0)} className="px-6 py-12 text-center text-sm text-gray-500">Nenhum produto cadastrado.</td></tr>
                 ) : (
-                  products.map((product, index) => {
+                  pager.items.map((product, i) => {
+                    const index = pager.from - 1 + i; // posição na lista inteira (a ordem vale para toda a vitrine)
                     const displayImage = product.imageUrls?.length > 0 ? product.imageUrls[0] : null;
                     const isActive = product.active !== false;
 
@@ -165,6 +170,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
               </tbody>
             </table>
           </div>
+          <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="produtos" />
         </>
       )}
     </div>
