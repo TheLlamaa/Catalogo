@@ -68,6 +68,9 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 export interface Settings {
   [key: string]: unknown;
   primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string; homeLayout: string; showCategoryTiles: boolean;
+  showCustomBand: boolean; customBandRows: string; showCardBadge: boolean; showHeroCategories: boolean; showHeroMosaic: boolean; showCategoryTabs: boolean;
+  showHowItWorks: boolean; showHowCustom: boolean; howTitle: string; howCustomText: string;
+  stepOneTitle: string; stepOneText: string; stepTwoTitle: string; stepTwoText: string; stepThreeTitle: string; stepThreeText: string;
   faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
@@ -99,15 +102,15 @@ export interface Settings {
 // O grupo de cada seção vem de GROUPS (lista "sections"), que também define a ordem na tela.
 export const GROUPS: SettingsGroup[] = [
   { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: capa, título, faixa de aviso e as seções Destaques, Mais pedidos e Novidades.',
-    sections: ['Modelo da página inicial', 'Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
+    sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Passo a passo do pedido', 'Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
   { id: 'aparencia', label: 'Aparência', description: 'Cores, fonte, logo e o formato dos cards. Vale para o site inteiro.',
     sections: ['Cores e fonte', 'Logo', 'Estilo dos cards'] },
   { id: 'loja', label: 'Dados da loja', description: 'Nome, WhatsApp, e-mail, redes sociais, rodapé e como o site aparece no Google e no WhatsApp.',
     sections: ['Identidade e contato', 'Redes sociais', 'Rodapé', 'Google e compartilhamento'] },
   { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, a janela do produto e os textos do carrinho.',
     sections: ['Pedidos', 'Janela do produto', 'Carrinho e pedido'] },
-  { id: 'personalizados', label: 'Peça personalizada', description: 'O card de destaque na vitrine e a página onde o cliente pede uma peça sob medida.',
-    sections: ['Card de destaque (peça personalizada)', 'Página de peça personalizada'] },
+  { id: 'personalizados', label: 'Peça personalizada', description: 'A faixa de destaque na vitrine e a página onde o cliente pede uma peça sob medida.',
+    sections: ['Faixa de destaque (peça personalizada)', 'Página de peça personalizada'] },
   { id: 'paginas', label: 'Páginas e menus', description: 'Página Sobre, perguntas frequentes, páginas extras, menu do topo, rodapé e política de privacidade.',
     sections: ['Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Páginas', 'Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Política de privacidade'] },
   { id: 'recursos', label: 'Recursos', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
@@ -144,7 +147,32 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'homeLayout', label: 'Modelo', type: 'select', display: 'layout', default: 'classico', options: HOME_LAYOUTS.map(l => ({ value: l.id, label: l.name })),
         hint: 'Clássico: categorias na lateral e as seções Destaques, Mais pedidos e Novidades. Vitrine: as fotos dos Destaques abrem a página e as categorias viram abas. Bancada: busca grande, atalhos de categoria e o passo a passo do pedido. Vitrine + Bancada: a capa e o passo a passo da Bancada com a grade de fotos e as abas da Vitrine.' },
-      { key: 'showCategoryTiles', label: 'Mostrar "Por categoria" com fotos', type: 'toggle', default: false, hint: 'Nos modelos Bancada e Vitrine + Bancada: uma linha com a foto de cada categoria, abaixo da capa.' },
+    ]
+  },
+  {
+    group: 'inicio', title: 'Blocos da página inicial',
+    fields: [
+      { key: 'showCustomBand', label: 'Faixa "Peça personalizada"', type: 'toggle', default: true, hint: 'Todos os modelos. Fica no meio da lista de produtos; os textos estão em Peça personalizada. Só aparece com pedidos personalizados ligados em Recursos.' },
+      { key: 'customBandRows', label: 'Posição da faixa', type: 'select', default: '2', options: [{ value: '1', label: 'Depois da 1ª linha de produtos' }, { value: '2', label: 'Depois da 2ª linha' }, { value: '3', label: 'Depois da 3ª linha' }, { value: 'inicio', label: 'Antes dos produtos' }, { value: 'fim', label: 'Depois de todos os produtos' }] },
+      { key: 'showHeroMosaic', label: 'Fotos dos Destaques na capa', type: 'toggle', default: true, hint: 'Modelo Vitrine. Desligado, a capa fica só com o texto (ou com a imagem de capa, se houver).' },
+      { key: 'showHeroCategories', label: 'Atalhos de categoria na capa', type: 'toggle', default: true, hint: 'Modelos Bancada e Vitrine + Bancada.' },
+      { key: 'showCategoryTiles', label: '"Por categoria" com fotos', type: 'toggle', default: false, hint: 'Modelos Bancada e Vitrine + Bancada: uma linha com a foto de cada categoria, abaixo da capa.' },
+      { key: 'showHowItWorks', label: 'Passo a passo do pedido', type: 'toggle', default: true, hint: 'Modelos Bancada e Vitrine + Bancada. Os textos estão logo abaixo, em Passo a passo do pedido.' },
+      { key: 'showHowCustom', label: 'Pedido personalizado ao lado do passo a passo', type: 'toggle', default: true },
+      { key: 'showCategoryTabs', label: 'Abas de categoria acima dos produtos', type: 'toggle', default: true, hint: 'Modelos Vitrine e Vitrine + Bancada.' },
+    ]
+  },
+  {
+    group: 'inicio', title: 'Passo a passo do pedido',
+    fields: [
+      { key: 'howTitle', label: 'Título', type: 'text', max: 60, default: 'Como funciona o pedido' },
+      { key: 'stepOneTitle', label: 'Passo 1: título', type: 'text', max: 40, default: 'Escolha os produtos' },
+      { key: 'stepOneText', label: 'Passo 1: texto', type: 'textarea', max: 160, default: 'Adicione ao orçamento o que gostou e escolha as opções, como cor ou tamanho.' },
+      { key: 'stepTwoTitle', label: 'Passo 2: título', type: 'text', max: 40, default: 'Envie o pedido' },
+      { key: 'stepTwoText', label: 'Passo 2: texto', type: 'textarea', max: 160, default: 'Ele chega pra gente com tudo anotado, sem pagamento na hora.' },
+      { key: 'stepThreeTitle', label: 'Passo 3: título', type: 'text', max: 40, default: 'Combine pelo WhatsApp' },
+      { key: 'stepThreeText', label: 'Passo 3: texto', type: 'textarea', max: 160, default: 'Confirmamos valor, prazo e forma de entrega com você.' },
+      { key: 'howCustomText', label: 'Texto ao lado (pedido personalizado)', type: 'text', max: 120, default: 'Mande uma foto ou a ideia e a gente faz para você.' },
     ]
   },
   {
@@ -188,8 +216,9 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'personalizados', title: 'Card de destaque (peça personalizada)',
+    group: 'personalizados', title: 'Faixa de destaque (peça personalizada)',
     fields: [
+      { key: 'showCardBadge', label: 'Mostrar a etiqueta na faixa', type: 'toggle', default: false },
       { key: 'cardBadge', label: 'Etiqueta', type: 'text', max: 40, default: 'Destaque Especial' },
       { key: 'cardTitle', label: 'Título', type: 'text', max: 60, default: NICHE.customTitle },
       { key: 'cardText', label: 'Texto', type: 'textarea', max: 220, default: 'Precisa de um projeto exclusivo ou tem uma foto de referência? Envie sua ideia e criaremos um orçamento sob medida.' },
@@ -285,7 +314,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'recursos', title: 'Recursos da loja',
     fields: [
       { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: tudo fica sempre disponível e o estoque some do site e do cadastro.' },
-      { key: 'customEnabled', label: 'Aceitar pedidos personalizados', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, o card de destaque e a página /custom.' },
+      { key: 'customEnabled', label: 'Aceitar pedidos personalizados', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, a faixa de destaque e a página /custom.' },
       { key: 'leadTimeEnabled', label: 'Prazo de produção nos produtos', type: 'toggle', default: NICHE.features.leadTimeEnabled, hint: 'Mostra o campo “Prazo de produção” no cadastro e no site. Desligado, o que foi escrito fica guardado.' },
       { key: 'aurasEnabled', label: 'Efeito de aura (brilho) nos cards', type: 'toggle', default: NICHE.features.aurasEnabled, hint: 'Ativa a aba Auras e o brilho nos cards e categorias. Desligado, as escolhas ficam guardadas.' },
       { key: 'modelLinkEnabled', label: 'Link do modelo 3D no cadastro', type: 'toggle', default: NICHE.features.modelLinkEnabled, hint: 'Campo só seu para guardar o link do arquivo 3D. O cliente não vê.' },

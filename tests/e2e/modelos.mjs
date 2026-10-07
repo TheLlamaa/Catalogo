@@ -113,6 +113,40 @@ for (const layout of ['bancada', 'mista']) {
   check('mista: aba da categoria marcada', (await page.locator('nav[aria-label="Categorias"] [aria-current="page"]').textContent()).includes('Vasos'));
   await ctx.close();
 }
+// Faixa "Peça personalizada": em todos os modelos, liga/desliga e muda de lugar
+const band = (page) => page.getByRole('heading', { level: 2, name: 'Peça Personalizada' });
+for (const layout of ['classico', 'vitrine', 'bancada', 'mista']) {
+  const on = await open(layout);
+  check(`${layout}: faixa "Peça personalizada" aparece por padrão`, await band(on.page).count() === 1);
+  await on.ctx.close();
+  const off = await open(layout, { extra: { showCustomBand: 'false' } });
+  check(`${layout}: faixa some quando desligada`, await band(off.page).count() === 0);
+  await off.ctx.close();
+}
+{
+  const { page, ctx } = await open('vitrine', { extra: { customBandRows: 'inicio' } });
+  const first = await page.locator('#pecas .grid > *').first().textContent();
+  check('faixa antes dos produtos quando escolhido', first.includes('Peça Personalizada'), first.slice(0, 60));
+  await ctx.close();
+}
+// Blocos da capa e textos do passo a passo editáveis
+{
+  const { page, ctx } = await open('mista', { extra: { showHeroCategories: 'false', showCategoryTabs: 'false', stepOneTitle: 'Monte seu pedido', howTitle: 'Do jeito que funciona' } });
+  check('mista: atalhos da capa desligados', await page.getByRole('navigation', { name: 'Atalhos de categoria' }).count() === 0);
+  check('mista: abas desligadas', await page.getByRole('navigation', { name: 'Categorias' }).count() === 0);
+  check('mista: título e passo editados', await page.getByRole('heading', { name: 'Do jeito que funciona' }).count() === 1 && await page.getByText('Monte seu pedido').count() === 1);
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open('bancada', { extra: { showHowItWorks: 'false' } });
+  check('bancada: passo a passo desligado', await page.locator('#como-pedir').count() === 0);
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open('vitrine', { extra: { showHeroMosaic: 'false' } });
+  check('vitrine: capa sem o mosaico', await page.locator('section[aria-labelledby="titulo-loja"] img').count() === 0);
+  await ctx.close();
+}
 // Imagem de capa do painel substitui o mosaico da Vitrine
 {
   const { page, ctx } = await open('vitrine', { extra: { heroImage: `${STORAGE}/capa.png` } });
