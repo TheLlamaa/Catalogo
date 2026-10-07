@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import { Trash2, ExternalLink, FileText, Download, Image as ImageIcon } from 'lucide-react';
 import { PageHeader } from '../../../components/ui';
 import ProductImage from '../../vitrine/ProductImage';
@@ -6,12 +5,10 @@ import { useUI } from '../../../components/UIContext';
 import { StatusSelect } from './StatusSelect';
 import Pagination from './Pagination';
 import ViewToggle from './ViewToggle';
-import { useViewMode } from '../../../hooks/useViewMode';
-import { usePagination } from '../../../hooks/usePagination';
-import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
-import type { OrderFiltersValue } from './OrderFilters';
+import { useOrderInbox } from '../../../hooks/useOrderInbox';
+import { OrderFilters, StatusChips } from './OrderFilters';
 import { downloadCsv, statusInfo } from '../../../lib/format';
-import { ageInfo, filterOrders, orderCode, summarize } from '../../../lib/orders';
+import { ageInfo, orderCode } from '../../../lib/orders';
 import type { CustomOrder, OrderStatusId } from '../../../types';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -38,13 +35,7 @@ interface CustomOrdersManagerProps {
 
 export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onUpdateStatus }: CustomOrdersManagerProps) {
   const { confirm } = useUI();
-  const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
-  const [filter, setFilter] = useState('all');
-  const scoped = useMemo(() => filterOrders(customOrders, { ...filters, status: 'all' }), [customOrders, filters]);
-  const visible = useMemo(() => (filter === 'all' ? scoped : filterOrders(scoped, { status: filter, sort: filters.sort })), [scoped, filter, filters.sort]);
-  const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(x => [x.id, x.count])), [scoped]);
-  const pager = usePagination(visible, JSON.stringify([filters, filter]));
-  const [view, setView] = useViewMode();
+  const { filters, setFilters, status: filter, setStatus: setFilter, scoped, visible, counts, pager, view, setView } = useOrderInbox(customOrders);
 
   const handleDelete = async (order: CustomOrder) => {
     const ok = await confirm({ title: 'Excluir solicitação?', message: `A solicitação de ${order.client_name} será apagada. Isso não pode ser desfeito.`, confirmLabel: 'Excluir solicitação' });

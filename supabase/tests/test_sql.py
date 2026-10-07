@@ -88,6 +88,8 @@ ok,m=pedido([{"id":"nao-e-uuid","quantity":1}],tel='(48) 99999-8888'); check('id
 ok,m=pedido([{"id":pid,"quantity":-1}],tel='(48) 99999-1212'); check('quantidade negativa recusada',not ok,m)
 ok,m=pedido("texto",tel='(48) 99999-1313'); check('items que não é lista recusado',not ok,m)
 ok,m=pedido([{"id":pid,"quantity":1},{"id":pid,"quantity":2}],tel='(48) 99999-1414'); t,_=ultimo(); check('linhas repetidas somam: 180', ok and float(t)==180.0, f"{t}")
+ok,m=pedido([{"id":pid,"quantity":3,"options":{"Cor":"Azul"}},{"id":pid,"quantity":3,"options":{"Cor":"Vermelho"}}],tel='(48) 99999-1818'); check('linhas do mesmo produto somam contra o estoque (3+3 > 5) e são recusadas',not ok,m)
+ok,m=pedido([{"id":pid,"quantity":3,"options":{"Cor":"Azul"}},{"id":pid,"quantity":2,"options":{"Cor":"Vermelho"}}],tel='(48) 99999-1919'); check('3+2 com estoque 5 é aceito',ok,m)
 role('anon'); ok,m=att("select public.precificar_pedido()"); check('função não chamável pela API', not ok, m)
 # --- opções do item com tamanho limitado (12) ---
 ok,m=pedido([{"id":pid,"quantity":1,"options":{"Cor":"Azul","Tamanho":"G"}}],tel='(48) 99999-1515'); check('opções normais são aceitas', ok, m)

@@ -28,7 +28,7 @@ async function abrir({ mobile = false, rows = [] } = {}) {
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     if (req.method() !== 'GET') {
       const body = req.postData() ? JSON.parse(req.postData()) : null;
-      writes.push({ method: req.method(), path: url.pathname, body });
+      writes.push({ method: req.method(), path: url.pathname, body, id: url.searchParams.get('id')?.replace(/^eq\./, '') ?? body?.id });
       if (url.pathname === '/rest/v1/products') return json({ id: body?.id || 'novo' }, 201);
       return route.fulfill({ status: 204, headers: cors, body: '' });
     }
@@ -63,13 +63,13 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await page.getByRole('button', { name: 'Destacar Vaso Cubo' }).click();
   await page.waitForTimeout(400);
   const up1 = writes.filter(w => w.path === '/rest/v1/products').at(-1);
-  check('estrela coloca o produto nos Destaques', up1?.body?.section === 'destaque' && up1?.body?.id === 'p1', JSON.stringify(up1?.body));
+  check('estrela coloca o produto nos Destaques', up1?.body?.section === 'destaque' && up1?.id === 'p1', JSON.stringify(up1?.body));
   check('ação rápida confirma o que aconteceu', await page.getByText('“Vaso Cubo” agora está nos Destaques.').isVisible());
 
   await page.getByRole('switch', { name: 'Mostrar Chaveiro Gato na vitrine' }).click();
   await page.waitForTimeout(400);
   const up2 = writes.filter(w => w.path === '/rest/v1/products').at(-1);
-  check('interruptor tira o produto da vitrine', up2?.body?.active === false && up2?.body?.id === 'p2', JSON.stringify(up2?.body));
+  check('interruptor tira o produto da vitrine', up2?.body?.active === false && up2?.id === 'p2', JSON.stringify(up2?.body));
   check('estado do interruptor escrito (Na vitrine)', (await page.getByRole('switch', { name: 'Mostrar Vaso Cubo na vitrine' }).innerText()).includes('Na vitrine'));
 
   // categorias: contagem e atalho para a lista filtrada

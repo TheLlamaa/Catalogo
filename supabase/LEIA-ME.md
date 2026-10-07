@@ -27,6 +27,7 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 11 | `11-foto-do-pedido.sql` | Correção de segurança: a foto de referência do pedido personalizado só é aceita embutida (nada de link externo) |
 | 12 | `12-categoria-oculta-e-opcoes.sql` | Esconder categoria do menu da vitrine sem excluir; limite no tamanho das opções dos itens do pedido |
 | 13 | `13-desconto.sql` | Desconto em % no produto: a vitrine mostra o preço riscado e o banco aplica o desconto no pedido |
+| 14 | `14-estoque-por-produto.sql` | O estoque do pedido é somado por produto (duas linhas do mesmo produto não passam do estoque) |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 

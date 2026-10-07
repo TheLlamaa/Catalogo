@@ -112,6 +112,15 @@ export const filterOrders = <T extends OrderLike>(orders: T[], opts: OrderFilter
 const isActive = (o: OrderLike) => statusInfo(o.status).id !== 'cancelado';
 const unitsOf = (o: OrderLike) => (o.items || []).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
 
+// Visão da caixa de entrada de pedidos: "scoped" ignora o status (para os números dos chips), "visible" é o que
+// aparece na lista, "counts" são os pedidos de cada status dentro de "scoped" e "summary" resume o que está visível.
+export const orderInbox = <T extends OrderLike>(orders: T[], filters: OrderFilters, status: string) => {
+  const scoped = filterOrders(orders, { ...filters, status: 'all' });
+  const visible = status === 'all' ? scoped : filterOrders(scoped, { status, sort: filters.sort });
+  const counts: Record<string, number> = Object.fromEntries(summarize(scoped).byStatus.map(s => [s.id, s.count]));
+  return { scoped, visible, counts, summary: summarize(visible) };
+};
+
 export const summarize = (orders: OrderLike[]) => {
   const valid = orders.filter(isActive);
   const revenue = valid.reduce((s, o) => s + (Number(o.total) || 0), 0);

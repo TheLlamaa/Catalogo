@@ -80,10 +80,10 @@ const SECTIONS: SectionDef[] = [
 
 interface PriceCalculatorProps {
   products: Product[];
-  onSaveProduct: (product: Product, successMessage?: string) => unknown;
+  onPatchProduct: (id: string, patch: { price: number }, successMessage?: string) => unknown;
 }
 
-export default function PriceCalculator({ products, onSaveProduct }: PriceCalculatorProps) {
+export default function PriceCalculator({ products, onPatchProduct }: PriceCalculatorProps) {
   const { toast, confirm } = useUI();
   const [form, setForm] = useState<Form>(loadForm);
   const [target, setTarget] = useState('');
@@ -119,7 +119,7 @@ export default function PriceCalculator({ products, onSaveProduct }: PriceCalcul
       message: `“${product.title}” passa de ${brl(product.price)} para ${brl(unitPrice)}. Os clientes veem o preço novo na hora.`,
       confirmLabel: 'Atualizar preço',
     });
-    if (ok) onSaveProduct({ ...product, price: unitPrice }, `Preço de “${product.title}” atualizado para ${brl(unitPrice)}.`);
+    if (ok) onPatchProduct(product.id, { price: unitPrice }, `Preço de “${product.title}” atualizado para ${brl(unitPrice)}.`);
   };
 
   return (

@@ -1,28 +1,15 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { fetchCatalog } from '../services/catalog';
+import { gateway, NO_CAPABILITIES } from '../services/gateway';
+import type { Capabilities } from '../services/gateway';
 import { getSession, onSessionChange } from '../services/auth';
 import type { AuthUser, Session } from '../services/auth';
 import { watchAdminChanges } from '../services/realtime';
 import { mergeSettings } from '../lib/settings';
-import { clampDiscount, discountedPrice } from '../lib/discount';
-import { statusInfo } from '../lib/format';
+import { discountedPrice } from '../lib/discount';
 import { useUI } from '../components/UIContext';
-import type { Category, CatalogOrder, CustomOrder, DbResult, ProductOption, SettingRow, StoredProduct, Toast } from '../types';
+import type { Category, CatalogOrder, CustomOrder, SettingRow, StoredProduct, Toast } from '../types';
 
 type OrderKey = 'orders' | 'custom';
-
-// Linhas como vêm do banco (snake_case); o supabase-js sem tipos gerados devolve any, então descrevemos o que usamos.
-type ProductRow = Omit<StoredProduct, 'sortOrder' | 'categoryIds' | 'imageUrls' | 'auraColor' | 'leadTime' | 'modelUrl' | 'discountPercent'> & {
-  discount_percent?: number | null;
-  sort_order?: number | null; category_ids?: string[] | null; image_urls?: string[] | null;
-  aura_color?: string | null; lead_time?: string | null; options?: ProductOption[] | unknown;
-};
-type CategoryRow = Omit<Category, 'sortOrder' | 'auraColor'> & { sort_order?: number | null; aura_color?: string | null };
-interface CatalogFetch {
-  products: DbResult<ProductRow[]>; categories: DbResult<CategoryRow[]>;
-  customOrders: DbResult<CustomOrder[]>; orders: DbResult<CatalogOrder[]>;
-  modelUrls: DbResult<{ product_id: string; model_url: string | null }[]>; settings: DbResult<SettingRow[]>;
-}
 
 const ADMIN_REFRESH_MS = 30000; // reserva caso o tempo real do Supabase não esteja ativo
 
@@ -46,7 +33,7 @@ export function useCatalogData() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lastFetchRef = useRef(0);
-  const schemaRef = useRef(false); // true quando o banco já tem as colunas de selo, vitrine e ordem (SQL 06)
+  const capabilitiesRef = useRef<Capabilities>(NO_CAPABILITIES); // o que o banco já suporta (SQLs 06, 12 e 13)
   const knownOrdersRef = useRef<Record<OrderKey, Set<string> | null>>({ orders: null, custom: null }); // ids já vistos (null = ainda não carregou)
 
   // Avisa quando chega pedido novo (não avisa na primeira carga)
@@ -64,51 +51,18 @@ export function useCatalogData() {
     lastFetchRef.current = Date.now();
     try {
       const isAdmin = !!userRef.current;
-      // Cast único: o retorno de fetchCatalog mistura resultados do supabase-js (any) com DbResult<unknown> do `none()`
-      const { products: productsRes, categories: categoriesRes, customOrders: customOrdersRes, orders: catalogOrdersRes, modelUrls: privateRes, settings: settingsRes } = await fetchCatalog({ isAdmin }) as unknown as CatalogFetch;
-
-      if (productsRes.error || categoriesRes.error) throw (productsRes.error || categoriesRes.error);
-      const productRows = productsRes.data ?? [];
-      const categoryRows = categoriesRes.data ?? [];
-
-      if (settingsRes.error) console.error('Erro ao carregar configurações do site:', settingsRes.error);
-      else setRawSettings(settingsRes.data || []);
-
-      if (privateRes.error) console.error('Erro ao carregar links dos modelos:', privateRes.error);
-      const modelUrls: Record<string, string> = {};
-      (privateRes.data || []).forEach(r => { if (r.model_url) modelUrls[r.product_id] = r.model_url; });
-
-      schemaRef.current = [...productRows, ...categoryRows].some(row => 'sort_order' in row);
-
-      // Ordem da vitrine: a que o admin definiu; empatou (ou nunca definiu), o mais novo primeiro
-      const byManual = (a: StoredProduct, b: StoredProduct) => (a.sortOrder - b.sortOrder) || (new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
-      setProducts(productRows.map((p): StoredProduct => ({
-        ...p,
-        sortOrder: p.sort_order ?? 0,
-        badge: p.badge || '',
-        section: p.section || '',
-        categoryIds: p.category_ids || [],
-        imageUrls: p.image_urls || [],
-        active: p.active ?? true,
-        stock: p.stock ?? 0,
-        auraColor: p.aura_color || 'inherit',
-        options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
-        leadTime: p.lead_time || '',
-        discountPercent: clampDiscount(p.discount_percent),
-        modelUrl: modelUrls[p.id] || ''
-      })).sort(byManual));
-      setCategories(categoryRows.map((c): Category => ({ ...c, sortOrder: c.sort_order ?? 0, auraColor: c.aura_color || 'none' }))
-        .sort((a: Category, b: Category) => (a.sortOrder - b.sortOrder) || a.name.localeCompare(b.name, 'pt-BR')));
-
-      if (customOrdersRes.error) console.error('Erro ao carregar pedidos personalizados:', customOrdersRes.error);
-      else if (customOrdersRes.data) {
-        announceNew('custom', customOrdersRes.data, 'Nova solicitação personalizada de', 'novas solicitações personalizadas');
-        setCustomOrders(customOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      const snapshot = await gateway().load({ isAdmin });
+      capabilitiesRef.current = snapshot.capabilities;
+      setProducts(snapshot.products);
+      setCategories(snapshot.categories);
+      if (snapshot.settings) setRawSettings(snapshot.settings);
+      if (snapshot.customOrders) {
+        announceNew('custom', snapshot.customOrders, 'Nova solicitação personalizada de', 'novas solicitações personalizadas');
+        setCustomOrders(snapshot.customOrders);
       }
-      if (catalogOrdersRes.error) console.error('Erro ao carregar pedidos:', catalogOrdersRes.error);
-      else if (catalogOrdersRes.data) {
-        announceNew('orders', catalogOrdersRes.data, 'Novo pedido de', 'novos pedidos');
-        setCatalogOrders(catalogOrdersRes.data.map(o => ({ ...o, status: statusInfo(o.status).id })));
+      if (snapshot.catalogOrders) {
+        announceNew('orders', snapshot.catalogOrders, 'Novo pedido de', 'novos pedidos');
+        setCatalogOrders(snapshot.catalogOrders);
       }
 
       setLoadError(null);
@@ -171,6 +125,6 @@ export function useCatalogData() {
   return {
     products, setProducts, categories, setCategories,
     customOrders, setCustomOrders, catalogOrders, setCatalogOrders,
-    user, userRef, rawSettings, settings, loading, loadError, schemaRef, fetchData, retryLoad,
+    user, userRef, rawSettings, settings, loading, loadError, capabilitiesRef, fetchData, retryLoad,
   };
 }

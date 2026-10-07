@@ -9,7 +9,7 @@ import ProductImage from './ProductImage';
 import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
 import { badgeStyle } from '../../lib/theme';
-import { badgeFor, newProducts, LOW_STOCK_MAX } from '../../lib/catalog';
+import { availability, badgeFor, effectiveAura, newProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
 
@@ -264,16 +264,11 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
   const badge = badgeFor(product, settings);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
-  const isOutOfStock = product.available <= 0;
+  const stock = availability(product, settings.stockControl);
+  const isOutOfStock = stock === 'out';
   const hasOptions = (product.options || []).length > 0;
 
-  // Herança de Aura: se o produto for 'inherit', usa a da categoria
-  let effectiveAuraKey = product.auraColor && product.auraColor !== 'inherit' ? product.auraColor : 'none';
-  if ((!product.auraColor || product.auraColor === 'inherit') && product.categoryIds?.length > 0) {
-    const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
-    if (matchedCategory?.auraColor) effectiveAuraKey = matchedCategory.auraColor;
-  }
-  if (!settings.aurasEnabled) effectiveAuraKey = 'none';
+  const effectiveAuraKey = effectiveAura(product, categories, settings.aurasEnabled);
   const aura = auraProps(effectiveAuraKey, auraLib);
 
   const nextImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % images.length); };
@@ -318,7 +313,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
       <div className="p-3 sm:p-5 flex flex-col flex-1">
         <h3 className="text-sm sm:text-base font-semibold text-gray-900 leading-tight mb-1 line-clamp-2">{product.title}</h3>
         {/* Estoque só aparece quando ajuda a decidir: poucas unidades (o "Esgotado" já está na foto) */}
-        {settings.stockControl && !isOutOfStock && product.stock <= LOW_STOCK_MAX && (
+        {stock === 'low' && (
           <span className="text-xs text-amber-700 mb-1 font-medium">
             {product.stock === 1 ? 'Resta 1 unidade' : `Restam ${product.stock} unidades`}
           </span>

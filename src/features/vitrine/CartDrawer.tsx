@@ -7,8 +7,8 @@ import ProductImage from './ProductImage';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import type { CartItem, DeliveryMethod } from '../../types';
-import { minOrderValue } from '../../lib/settings';
-import { brl, formatOptions, formatPhoneBR, validateContact, buildOrderMessage, whatsappLink } from '../../lib/format';
+import { buildOrderPayload, canProceed, minOrderStatus, validateOrder } from '../../lib/checkout';
+import { brl, formatOptions, formatPhoneBR, buildOrderMessage, whatsappLink } from '../../lib/format';
 import Price from './Price';
 
 interface CartDrawerProps {
@@ -53,37 +53,17 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
   }, [step]);
 
   if (!isOpen) return null;
-  const minOrder = minOrderValue(settings.minOrder);
-  const belowMin = minOrder > 0 && total < minOrder;
+  const { minOrder, belowMin, shortfall } = minOrderStatus(settings, total);
 
   const handleFinishOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (settings.ordersPaused) return toast.error(settings.pausedMessage);
-    if (!clientName || !clientPhone) return toast.error('Preencha nome e WhatsApp.');
-    const contactError = validateContact(clientName, clientPhone);
-    if (contactError) return toast.error(contactError);
-    if (settings.deliveryEnabled && deliveryMethod === 'entrega' && deliveryAddress.trim().length < 5) {
-      return toast.error('Informe o endereço, ou ao menos bairro e cidade, para combinarmos a entrega.');
+    const form = { name: clientName, phone: clientPhone, deliveryMethod, deliveryAddress, notes, trap };
+    const check = validateOrder(form, settings);
+    if (!check.ok) {
+      if ('bot' in check) { setStep('success'); return; } // campo-isca preenchido: é robô
+      return toast.error(check.error);
     }
-    if (trap) { setStep('success'); return; } // campo-isca preenchido: é robô
-
-    const items = cart.map(l => ({
-      id: l.id,
-      title: l.product.title,
-      price: l.product.salePrice, // o banco confere e aplica o desconto de novo (SQL 13)
-      quantity: l.quantity,
-      options: l.options,
-      imageUrls: (l.product.imageUrls || []).slice(0, 1)
-    }));
-    const order = {
-      client_name: clientName.trim(),
-      client_phone: clientPhone,
-      notes: notes.trim() || null,
-      delivery_method: deliveryMethod,
-      delivery_address: deliveryMethod === 'entrega' ? deliveryAddress.trim() : null,
-      items,
-      total
-    };
+    const { items, order } = buildOrderPayload(cart, total, form);
 
     setIsSubmitting(true);
     const success = await onCheckout(order);
@@ -157,8 +137,8 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             <div className="border-t border-gray-200 p-6 bg-gray-50 mt-auto">
               {!settings.hidePrices && <div className="flex justify-between mb-5"><span className="text-sm font-medium">Total</span><span className="text-xl font-bold">{brl(total)}</span></div>}
               {settings.ordersPaused && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">{settings.pausedMessage}</p>}
-              {!settings.ordersPaused && belowMin && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">Pedido mínimo: {brl(minOrder)}. Faltam {brl(minOrder - total)}.</p>}
-              <Button variant="primary" size="lg" className="w-full" onClick={() => setStep('checkout')} disabled={settings.ordersPaused || belowMin}>
+              {!settings.ordersPaused && belowMin && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">Pedido mínimo: {brl(minOrder)}. Faltam {brl(shortfall)}.</p>}
+              <Button variant="primary" size="lg" className="w-full" onClick={() => setStep('checkout')} disabled={!canProceed(settings, total)}>
                 Avançar para Identificação
               </Button>
             </div>

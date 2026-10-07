@@ -10,13 +10,12 @@ import { applyPublishedTheme, cacheTheme, isBannerActive, bannerStyle } from './
 import { mergeSettings } from './lib/settings';
 import { IS_PREVIEW, usePreviewRows } from './lib/preview';
 import { useCart } from './hooks/useCart';
-import { useCatalogData } from './hooks/useCatalogData';
-import { useAdminActions } from './hooks/useAdminActions';
+import { useCatalogStore } from './hooks/useCatalogStore';
 
 import UIProvider from './components/UIProvider';
 import { useUI } from './components/UIContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import type { Product } from './types';
+import type { OrderTable, Product } from './types';
 import { SettingsContext } from './components/SettingsContext';
 import ProductDetailModal from './features/vitrine/ProductDetailModal';
 import CartDrawer from './features/vitrine/CartDrawer';
@@ -62,10 +61,9 @@ function MainLayout() {
   const { toast } = useUI();
 
   const {
-    products, setProducts, categories, setCategories,
-    customOrders, setCustomOrders, catalogOrders, setCatalogOrders,
-    user, userRef, rawSettings, settings: publishedSettings, loading, loadError, schemaRef, fetchData, retryLoad,
-  } = useCatalogData();
+    products, categories, customOrders, catalogOrders, user, settings: publishedSettings, loading, loadError, retryLoad,
+    saveCustomOrder, saveCatalogOrder, admin,
+  } = useCatalogStore();
   // Na prévia do painel, a vitrine mostra o rascunho das configurações (ainda não publicado)
   const previewRows = usePreviewRows();
   const settings = useMemo(() => (previewRows ? mergeSettings(previewRows) : publishedSettings), [previewRows, publishedSettings]);
@@ -81,16 +79,14 @@ function MainLayout() {
   const productMatch = useMatch('/produto/:id');
   const routeProductId = productMatch?.params.id ?? null;
 
-  const {
-    saveProduct, deleteProduct, saveCategory, deleteCategory, reorderProducts, reorderCategories,
-    saveSettings, undoSettings, saveCustomOrder, saveCatalogOrder, deleteOrder, updateOrderStatus,
-  } = useAdminActions({
-    toast, fetchData, schemaRef, userRef, products, setProducts, categories, setCategories,
-    rawSettings, settings, setCustomOrders, setCatalogOrders, clearCart,
-  });
   // Na prévia nada é enviado de verdade
   const previewBlock = async () => { toast.info('Isto é só a prévia: pedidos não são enviados daqui.'); return false; };
-  const onCatalogCheckout = IS_PREVIEW ? previewBlock : saveCatalogOrder;
+  const checkoutCatalog = async (order: Record<string, unknown>) => {
+    const ok = await saveCatalogOrder(order);
+    if (ok) clearCart();
+    return ok;
+  };
+  const onCatalogCheckout = IS_PREVIEW ? previewBlock : checkoutCatalog;
   const onCustomOrder = IS_PREVIEW ? previewBlock : saveCustomOrder;
 
   // -------------------------------------------------------------------------
@@ -152,6 +148,13 @@ function MainLayout() {
   if (IS_PREVIEW && (isAdminRoute || isLoginRoute)) return <Navigate to="/?preview=1" replace />; // a prévia fica só na vitrine
   const isStoreRoute = !isAdminRoute && !isLoginRoute;
 
+  const selectOrder = (table: OrderTable, id: string) => (table === 'orders' ? setSelectedCatalogOrderId(id) : setSelectedCustomOrderId(id));
+  const removeOrder = async (table: OrderTable, id: string) => {
+    const ok = await admin.deleteOrder(table, id);
+    if (ok) (table === 'orders' ? setSelectedCatalogOrderId : setSelectedCustomOrderId)(current => (current === id ? null : current));
+    return ok;
+  };
+
   const selectedCustomOrder = customOrders.find(o => o.id === selectedCustomOrderId) || null;
   const selectedCatalogOrder = catalogOrders.find(o => o.id === selectedCatalogOrderId) || null;
 
@@ -209,16 +212,7 @@ function MainLayout() {
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={
             user ? (
-              <AdminView
-                products={products} categories={categories} customOrders={customOrders} catalogOrders={catalogOrders}
-                onSaveProduct={saveProduct} onDeleteProduct={deleteProduct} onReorderProducts={reorderProducts}
-                onSaveCategory={saveCategory} onDeleteCategory={deleteCategory} onReorderCategories={reorderCategories}
-                onDeleteCustomOrder={deleteOrder('custom_orders', setCustomOrders, selectedCustomOrderId, () => setSelectedCustomOrderId(null))}
-                onDeleteCatalogOrder={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
-                onSelectCustomOrder={setSelectedCustomOrderId} onSelectCatalogOrder={setSelectedCatalogOrderId}
-                onUpdateOrderStatus={updateOrderStatus}
-                settings={settings} onSaveSettings={saveSettings} onUndoSettings={undoSettings} user={user}
-              />
+              <AdminView admin={admin} onSelectOrder={selectOrder} onDeleteOrder={removeOrder} />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -249,8 +243,8 @@ function MainLayout() {
         <CustomOrderDetailModal
           order={selectedCustomOrder}
           onClose={() => setSelectedCustomOrderId(null)}
-          onDelete={deleteOrder('custom_orders', setCustomOrders, selectedCustomOrderId, () => setSelectedCustomOrderId(null))}
-          onUpdateStatus={(id, status) => updateOrderStatus('custom_orders', id, status)}
+          onDelete={(id) => removeOrder('custom_orders', id)}
+          onUpdateStatus={(id, status) => admin.updateOrderStatus('custom_orders', id, status)}
         />
       )}
 
@@ -259,8 +253,8 @@ function MainLayout() {
           order={selectedCatalogOrder}
           products={products}
           onClose={() => setSelectedCatalogOrderId(null)}
-          onDelete={deleteOrder('orders', setCatalogOrders, selectedCatalogOrderId, () => setSelectedCatalogOrderId(null))}
-          onUpdateStatus={(id, status) => updateOrderStatus('orders', id, status)}
+          onDelete={(id) => removeOrder('orders', id)}
+          onUpdateStatus={(id, status) => admin.updateOrderStatus('orders', id, status)}
         />
       )}
       </Suspense>

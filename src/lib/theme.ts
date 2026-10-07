@@ -1,3 +1,4 @@
+import { dayKey } from './orders';
 // Aparência editável pelo admin: cor principal, fonte, logo/favicon e faixa de aviso.
 // A cor principal troca toda a paleta "blue" do Tailwind (ver tailwind.config.js) por variáveis CSS.
 
@@ -188,7 +189,7 @@ export const badgeStyle = (color: unknown): Record<string, string> => (
 
 // Faixa de aviso: aparece se está ligada, tem texto e a data final (se houver) não passou.
 // "bannerUntil" é um dia (AAAA-MM-DD) e vale até o fim desse dia, no horário do visitante.
-export const localDay = (d = new Date()): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const localDay = dayKey;
 // Campos da faixa de aviso lidos das configurações do site
 export interface BannerSettings { bannerEnabled?: boolean; bannerText?: string; bannerUntil?: string; bannerColor?: string; bannerImage?: string }
 
