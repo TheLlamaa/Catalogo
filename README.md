@@ -55,9 +55,10 @@ src/
     admin/      painel do dono, uma pasta por área: pedidos, produtos, categorias, auras, site, equipe, erros
     auth/       login do painel
   components/   peças compartilhadas (cabeçalho, diálogos, contexto)
-  hooks/        carga de dados (useCatalogData), ações do painel (useAdminActions) e carrinho (useCart)
+  hooks/        useCatalogStore (dados + ações do painel, usado pelo App), useCart e useOrderInbox (listas de pedidos)
   lib/          regras puras e testadas (pedidos, relatório, tema, configurações…); não conhece o banco
-  services/     ÚNICO lugar que fala com o Supabase (catálogo, pedidos, config, equipe, login, fotos, erros)
+  services/     ÚNICO lugar que fala com o Supabase. gateway.ts é a interface de catálogo, config e pedidos
+                (adapters: supabaseGateway.ts e memoryGateway.ts para testes); login, equipe, fotos e erros têm arquivo próprio
   views/        páginas da vitrine
 supabase/       SQL do banco, testes do banco e função de aviso no Telegram
 tests/          testes unitários e de navegador

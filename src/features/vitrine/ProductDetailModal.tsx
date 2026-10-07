@@ -6,7 +6,7 @@ import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import type { Category, Product } from '../../types';
 import { badgeStyle } from '../../lib/theme';
-import { badgeFor, relatedProducts } from '../../lib/catalog';
+import { availability, badgeFor, relatedProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
 
@@ -28,7 +28,7 @@ export default function ProductDetailModal({ product, products = [], categories,
   const [selected, setSelected] = useState<Record<string, string>>({});
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const productCategories = categories.filter(c => product.categoryIds?.includes(c.id));
-  const isOutOfStock = product.available <= 0;
+  const isOutOfStock = availability(product, settings.stockControl) === 'out';
   const options = product.options || [];
   const missing = options.filter(o => !selected[o.name]).map(o => o.name);
 

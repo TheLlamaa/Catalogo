@@ -1,4 +1,5 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
+import { normalizeWhatsapp } from './whatsapp';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
 import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
@@ -320,11 +321,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
 export const SETTING_FIELDS: SettingField[] = SETTINGS_SCHEMA.flatMap(s => s.fields);
 export const DEFAULT_SETTINGS: Record<string, string | boolean> = Object.fromEntries(SETTING_FIELDS.map(f => [f.key, f.default]));
 
-// WhatsApp: aceita com ou sem 55; devolve só dígitos com 55 (ou '' se vazio)
-export const normalizeWhatsapp = (value: unknown): string => {
-  const d = String(value || '').replace(/\D/g, '');
-  return d.length === 10 || d.length === 11 ? `55${d}` : d;
-};
+export { normalizeWhatsapp };
 // Pedido mínimo em reais ("30" ou "30,50"); 0 = sem mínimo ou valor inválido
 export const minOrderValue = (value: unknown): number => {
   const n = Number(String(value ?? '').trim().replace(',', '.'));

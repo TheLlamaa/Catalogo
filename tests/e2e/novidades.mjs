@@ -34,7 +34,7 @@ async function abrir({ admin = true, path = '/admin', viewport = { width: 1300, 
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     if (req.method() !== 'GET') {
       const body = req.postData() ? JSON.parse(req.postData()) : null;
-      writes.push({ method: req.method(), path: url.pathname, query: url.search, body });
+      writes.push({ method: req.method(), path: url.pathname, query: url.search, body, id: url.searchParams.get('id')?.replace(/^eq\./, '') ?? body?.id });
       return route.fulfill({ status: 204, headers: cors, body: '' });
     }
     if (url.pathname === '/rest/v1/products') return json(products);
@@ -58,7 +58,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await estoque.press('Enter');
   await page.waitForTimeout(400);
   const w1 = writes.filter(w => w.path === '/rest/v1/products').at(-1);
-  check('Enter salva o estoque novo', w1?.body?.stock === 0 && w1?.body?.id === 'p1', JSON.stringify(w1?.body));
+  check('Enter salva o estoque novo', w1?.body?.stock === 0 && w1?.id === 'p1', JSON.stringify(w1?.body));
   check('confirma que esgotou', await page.getByText('“Vaso Cubo” agora está esgotado.').isVisible());
 
   const antes = writes.length;
@@ -189,7 +189,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await page.getByRole('dialog').getByRole('button', { name: 'Atualizar preço' }).click();
   await page.waitForTimeout(400);
   const w = writes.filter(x => x.path === '/rest/v1/products').at(-1);
-  check('"Aplicar" grava o preço sugerido no produto', w?.body?.id === 'p2' && w?.body?.price === 47.67, JSON.stringify(w?.body));
+  check('"Aplicar" grava o preço sugerido no produto', w?.id === 'p2' && w?.body?.price === 47.67, JSON.stringify(w?.body));
   await ctx.close();
 }
 

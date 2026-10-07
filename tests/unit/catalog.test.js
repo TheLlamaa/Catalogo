@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { badgeFor, newProducts, relatedProducts, NEW_MAX } from '../../src/lib/catalog';
+import { availability, badgeFor, effectiveAura, newProducts, relatedProducts, shownAura, stockLevel, NEW_MAX } from '../../src/lib/catalog';
 
 const DAY = 86400000;
 const NOW = new Date('2026-10-02T12:00:00Z').getTime();
@@ -59,4 +59,37 @@ describe('relacionados', () => {
   });
   it('respeita o limite', () => expect(relatedProducts(base, todos, 1)).toHaveLength(1));
   it('sem categoria, sem relacionados', () => expect(relatedProducts(prod('x'), todos)).toEqual([]));
+});
+
+describe('estoque exibido', () => {
+  const p = (stock, available = stock) => ({ stock, available });
+  it('níveis do número guardado', () => {
+    expect([0, 1, 3, 4].map(stockLevel)).toEqual(['out', 'low', 'low', 'ok']);
+  });
+  it('esgotado vem de available; "acabando" só com controle de estoque', () => {
+    expect(availability(p(0), true)).toBe('out');
+    expect(availability(p(2), true)).toBe('low');
+    expect(availability(p(2, Infinity), false)).toBe('ok');
+    expect(availability(p(0, Infinity), false)).toBe('ok');
+    expect(availability(p(9), true)).toBe('ok');
+  });
+});
+
+describe('aura do produto', () => {
+  const cats = [{ id: 'c1', auraColor: 'none' }, { id: 'c2', auraColor: 'ouro' }, { id: 'c3', auraColor: 'prata' }];
+  it('a do produto vence a da categoria', () => expect(effectiveAura({ auraColor: 'neon', categoryIds: ['c2'] }, cats)).toBe('neon'));
+  it('herda a primeira categoria com aura', () => {
+    expect(effectiveAura({ auraColor: 'inherit', categoryIds: ['c1', 'c3', 'c2'] }, cats)).toBe('ouro');
+    expect(effectiveAura({ auraColor: '', categoryIds: ['c2'] }, cats)).toBe('ouro');
+  });
+  it('"nenhuma" escolhida no produto não herda', () => expect(effectiveAura({ auraColor: 'none', categoryIds: ['c2'] }, cats)).toBe('none'));
+  it('sem aura em lugar nenhum, ou auras desligadas: none', () => {
+    expect(effectiveAura({ auraColor: 'inherit', categoryIds: ['c1'] }, cats)).toBe('none');
+    expect(effectiveAura({ auraColor: 'neon', categoryIds: [] }, cats, false)).toBe('none');
+  });
+  it('o seletor do painel mantém "inherit" quando nada é herdado', () => {
+    expect(shownAura({ auraColor: 'inherit', categoryIds: ['c1'] }, cats)).toBe('inherit');
+    expect(shownAura({ auraColor: 'inherit', categoryIds: ['c3'] }, cats)).toBe('prata');
+    expect(shownAura({ auraColor: 'neon', categoryIds: ['c3'] }, cats)).toBe('neon');
+  });
 });

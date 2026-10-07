@@ -6,7 +6,7 @@ import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
-import { brl, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
+import { brl, formatOptions, customerWhatsapp, whatsappLink } from '../../../lib/format';
 import { ageInfo, itemModelUrl, orderCode } from '../../../lib/orders';
 import type { CatalogOrder, CustomOrder, OrderStatusId, Product } from '../../../types';
 
@@ -64,7 +64,7 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
 function WhatsappButton({ order, label, message }: { order: Pick<CatalogOrder, 'client_phone'>; label: string; message: string }) {
   return (
     <a
-      href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, message)}
+      href={whatsappLink(customerWhatsapp(order.client_phone), message)}
       target="_blank" rel="noreferrer"
       className={whatsappButtonClass}
     >

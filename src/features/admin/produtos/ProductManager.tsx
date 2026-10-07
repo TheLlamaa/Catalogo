@@ -15,11 +15,14 @@ import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { isHttpUrl } from '../../../lib/format';
 import type { Category, Product, StoredProduct } from '../../../types';
+import type { ProductPatch } from '../../../services/gateway';
+import { shownAura, stockLevel } from '../../../lib/catalog';
 
 interface ProductManagerProps {
   products: Product[];
   categories: Category[];
   onSave: (product: Partial<StoredProduct>, successMessage?: string) => Promise<boolean>;
+  onPatch: (id: string, patch: ProductPatch, successMessage?: string) => Promise<boolean>;
   onDelete: (id: string) => unknown;
   onReorder: (orderedIds: string[]) => unknown;
   initialFilter?: string; // 'destaque', 'popular' ou 'cat:<id>' (atalho vindo de outras telas)
@@ -31,7 +34,7 @@ type StatusFilter = '' | 'visible' | 'hidden' | 'destaque' | 'popular' | 'nostoc
 const normalize = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const SECTION_LABEL: Record<string, string> = { destaque: 'Destaque', popular: 'Mais pedido' };
 
-export default function ProductManager({ products, categories, onSave, onDelete, onReorder, initialFilter = '', onOpenSettings }: ProductManagerProps) {
+export default function ProductManager({ products, categories, onSave, onPatch, onDelete, onReorder, initialFilter = '', onOpenSettings }: ProductManagerProps) {
   const { confirm } = useUI();
   const settings = useSettings();
   const { stockControl, aurasEnabled } = settings;
@@ -47,7 +50,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
     hidden: p => !isVisible(p),
     destaque: p => p.section === 'destaque',
     popular: p => p.section === 'popular',
-    nostock: p => (Number(p.stock) || 0) <= 0,
+    nostock: p => stockLevel(Number(p.stock) || 0) === 'out',
     nophoto: p => !(p.imageUrls?.length > 0),
   };
   const chips: { id: StatusFilter; label: string; hide?: boolean }[] = [
@@ -89,11 +92,11 @@ export default function ProductManager({ products, categories, onSave, onDelete,
   };
 
   // Ações rápidas, sem abrir o cadastro (cada uma confirma o que aconteceu)
-  const toggleVisible = (p: Product) => onSave({ ...p, active: !isVisible(p) }, isVisible(p) ? `“${p.title}” saiu da vitrine (oculto).` : `“${p.title}” voltou para a vitrine.`);
+  const toggleVisible = (p: Product) => onPatch(p.id, { active: !isVisible(p) }, isVisible(p) ? `“${p.title}” saiu da vitrine (oculto).` : `“${p.title}” voltou para a vitrine.`);
   const toggleFeatured = (p: Product) => {
     const on = p.section === 'destaque';
     const msg = on ? `“${p.title}” saiu dos Destaques.` : `“${p.title}” agora está nos Destaques.${settings.showFeatured ? '' : ' A seção Destaques está desligada na Página inicial.'}`;
-    return onSave({ ...p, section: on ? '' : 'destaque' }, msg);
+    return onPatch(p.id, { section: on ? '' : 'destaque' }, msg);
   };
   // Cópia oculta (rascunho): o admin ajusta e mostra na vitrine quando estiver pronta
   const handleDuplicate = (product: Product) => onSave({ ...product, id: undefined, title: `${product.title} (cópia)`, active: false }, `Cópia criada como oculta: “${product.title} (cópia)”.`);
@@ -201,8 +204,8 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                             </td>
                           )}
                           <td className="px-3 py-3"><ProductSummary product={product} onEdit={handleEdit} /></td>
-                          {stockControl && <td className="px-3 py-3"><StockEditor product={product} onSave={onSave} /></td>}
-                          {aurasEnabled && <td className="px-3 py-3"><AuraQuickEdit product={product} categories={categories} onSave={onSave} /></td>}
+                          {stockControl && <td className="px-3 py-3"><StockEditor product={product} onPatch={onPatch} /></td>}
+                          {aurasEnabled && <td className="px-3 py-3"><AuraQuickEdit product={product} categories={categories} onPatch={onPatch} /></td>}
                           <td className="px-3 py-3"><VisibilityToggle product={product} onToggle={toggleVisible} /></td>
                           <td className="px-3 py-3">
                             <RowActions product={product} onFeatured={toggleFeatured} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete} />
@@ -233,7 +236,7 @@ export default function ProductManager({ products, categories, onSave, onDelete,
                       <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-3">
                           <VisibilityToggle product={product} onToggle={toggleVisible} />
-                          {stockControl && <StockEditor product={product} onSave={onSave} />}
+                          {stockControl && <StockEditor product={product} onPatch={onPatch} />}
                         </div>
                         <RowActions product={product} onFeatured={toggleFeatured} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete} />
                       </div>
@@ -279,7 +282,7 @@ function ProductSummary({ product, onEdit }: { product: Product; onEdit: (p: Pro
 }
 
 // Estoque editável direto na lista: digita e sai do campo (ou Enter) para salvar; Esc desfaz
-function StockEditor({ product, onSave }: { product: Product; onSave: ProductManagerProps['onSave'] }) {
+function StockEditor({ product, onPatch }: { product: Product; onPatch: ProductManagerProps['onPatch'] }) {
   const n = Number(product.stock) || 0;
   const [value, setValue] = useState(String(n));
   const [shown, setShown] = useState(n); // estoque mudou por fora (outra aba, edição): atualiza o campo
@@ -287,9 +290,10 @@ function StockEditor({ product, onSave }: { product: Product; onSave: ProductMan
   const commit = () => {
     const next = Number.parseInt(value, 10);
     if (!Number.isFinite(next) || next < 0) { setValue(String(n)); return; }
-    if (next !== n) onSave({ ...product, stock: next }, next === 0 ? `“${product.title}” agora está esgotado.` : `Estoque de “${product.title}”: ${next} un.`);
+    if (next !== n) onPatch(product.id, { stock: next }, next === 0 ? `“${product.title}” agora está esgotado.` : `Estoque de “${product.title}”: ${next} un.`);
   };
-  const tone = n <= 0 ? 'border-red-300 bg-red-50 text-red-800' : n <= 3 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-300 bg-white text-gray-800';
+  const level = stockLevel(n);
+  const tone = level === 'out' ? 'border-red-300 bg-red-50 text-red-800' : level === 'low' ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-300 bg-white text-gray-800';
   return (
     <div className="flex items-center gap-1.5">
       <input
@@ -298,7 +302,7 @@ function StockEditor({ product, onSave }: { product: Product; onSave: ProductMan
         onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setValue(String(n)); setTimeout(() => (e.target as HTMLInputElement).blur()); } }}
         className={`w-16 rounded-md border px-2 py-1.5 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 ${tone}`}
       />
-      <span className={`text-xs font-semibold ${n <= 0 ? 'text-red-700' : n <= 3 ? 'text-amber-800' : 'text-gray-500'}`}>{n <= 0 ? 'Esgotado' : 'un.'}</span>
+      <span className={`text-xs font-semibold ${level === 'out' ? 'text-red-700' : level === 'low' ? 'text-amber-800' : 'text-gray-500'}`}>{level === 'out' ? 'Esgotado' : 'un.'}</span>
     </div>
   );
 }
@@ -340,14 +344,10 @@ function RowActions({ product, onFeatured, onDuplicate, onEdit, onDelete }: RowA
   );
 }
 
-function AuraQuickEdit({ product, categories, onSave }: { product: Product; categories: Category[]; onSave: ProductManagerProps['onSave'] }) {
+function AuraQuickEdit({ product, categories, onPatch }: { product: Product; categories: Category[]; onPatch: ProductManagerProps['onPatch'] }) {
   const { auraLib } = useSettings();
   // Cor da aura atual, para mostrar o brilho do seletor
-  let displayAura = product.auraColor || 'inherit';
-  if (displayAura === 'inherit' && product.categoryIds?.length > 0) {
-    const matchedCategory = categories.find(c => product.categoryIds.includes(c.id) && c.auraColor && c.auraColor !== 'none');
-    if (matchedCategory?.auraColor) displayAura = matchedCategory.auraColor;
-  }
+  const displayAura = shownAura(product, categories);
   return (
     <div className="flex items-center gap-2">
       {displayAura !== 'none' && displayAura !== 'inherit' ? (
@@ -358,7 +358,7 @@ function AuraQuickEdit({ product, categories, onSave }: { product: Product; cate
       <select
         aria-label={`Aura de ${product.title}`}
         value={product.auraColor || 'inherit'}
-        onChange={(e) => onSave({ ...product, auraColor: e.target.value }, `Aura de “${product.title}” atualizada.`)}
+        onChange={(e) => onPatch(product.id, { auraColor: e.target.value }, `Aura de “${product.title}” atualizada.`)}
         className="bg-white text-xs font-medium px-2 py-1.5 rounded outline-none border border-gray-200 focus:border-blue-500 cursor-pointer text-gray-700 hover:bg-gray-50 transition-colors w-28 xl:w-36"
       >
         {optionsFor(auraLib, product.auraColor || 'inherit').map(aura => (

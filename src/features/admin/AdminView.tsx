@@ -12,54 +12,29 @@ import PriceCalculator from './calculadora/PriceCalculator';
 import AdminNav, { buildNav, type NavId } from './AdminNav';
 import { useUI } from '../../components/UIContext';
 import { Button } from '../../components/ui';
-import { fetchSchemaVersion } from '../../services/team';
-import { schemaMessage, schemaStatus } from '../../lib/schema';
+import { gateway } from '../../services/gateway';
+import { schemaMessage } from '../../lib/schema';
 import type { SchemaStatus } from '../../lib/schema';
 import { statusInfo } from '../../lib/format';
 import type { AuraLib } from '../../lib/auras';
-import type { Settings } from '../../lib/settings';
-import type { useAdminActions } from '../../hooks/useAdminActions';
-import type { AuthUser } from '../../services/auth';
-import type { CatalogOrder, Category, CustomOrder, OrderStatusId, OrderTable, Product } from '../../types';
-
-type AdminActions = ReturnType<typeof useAdminActions>;
+import type { AdminApi } from '../../hooks/useCatalogStore';
+import type { OrderTable } from '../../types';
 
 interface AdminViewProps {
-  products: Product[];
-  categories: Category[];
-  customOrders: CustomOrder[];
-  catalogOrders: CatalogOrder[];
-  onSaveProduct: AdminActions['saveProduct'];
-  onDeleteProduct: AdminActions['deleteProduct'];
-  onReorderProducts: AdminActions['reorderProducts'];
-  onSaveCategory: AdminActions['saveCategory'];
-  onDeleteCategory: AdminActions['deleteCategory'];
-  onReorderCategories: AdminActions['reorderCategories'];
-  onDeleteCustomOrder: (id: string) => unknown;
-  onDeleteCatalogOrder: (id: string) => unknown;
-  onSelectCustomOrder: (id: string) => void;
-  onSelectCatalogOrder: (id: string) => void;
-  onUpdateOrderStatus: (table: OrderTable, id: string, status: OrderStatusId) => unknown;
-  settings: Settings;
-  onSaveSettings: AdminActions['saveSettings'];
-  onUndoSettings: AdminActions['undoSettings'];
-  user: AuthUser | null;
+  admin: AdminApi;
+  onSelectOrder: (table: OrderTable, id: string) => void;
+  onDeleteOrder: (table: OrderTable, id: string) => unknown;
 }
 
-export default function AdminView({
-  products, categories, customOrders, catalogOrders,
-  onSaveProduct, onDeleteProduct, onReorderProducts, onSaveCategory, onDeleteCategory, onReorderCategories,
-  onDeleteCustomOrder, onDeleteCatalogOrder,
-  onSelectCustomOrder, onSelectCatalogOrder, onUpdateOrderStatus,
-  settings, onSaveSettings, onUndoSettings, user
-}: AdminViewProps) {
+export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: AdminViewProps) {
+  const { products, categories, customOrders, catalogOrders, settings, user } = admin;
   const { confirm } = useUI();
   const [active, setActive] = useState<NavId>('orders');
   const [productFilter, setProductFilter] = useState<{ key: number; value: string }>({ key: 0, value: '' });
   const [schema, setSchema] = useState<SchemaStatus | null>(null);
   useEffect(() => {
     let alive = true;
-    fetchSchemaVersion().then(({ data, error }) => { if (alive) setSchema(schemaStatus(data, error)); });
+    gateway().loadSchemaStatus().then(status => { if (alive) setSchema(status); });
     return () => { alive = false; };
   }, []);
 
@@ -104,36 +79,36 @@ export default function AdminView({
           {active === 'orders' && (
             <CatalogOrdersManager
               orders={catalogOrders}
-              onDelete={onDeleteCatalogOrder}
-              onSelectOrder={onSelectCatalogOrder}
-              onUpdateStatus={(id, status) => onUpdateOrderStatus('orders', id, status)}
+              onDelete={(id) => onDeleteOrder('orders', id)}
+              onSelectOrder={(id) => onSelectOrder('orders', id)}
+              onUpdateStatus={(id, status) => admin.updateOrderStatus('orders', id, status)}
             />
           )}
           {active === 'custom_orders' && (
             <CustomOrdersManager
               customOrders={customOrders}
-              onDelete={onDeleteCustomOrder}
-              onSelectOrder={onSelectCustomOrder}
-              onUpdateStatus={(id, status) => onUpdateOrderStatus('custom_orders', id, status)}
+              onDelete={(id) => onDeleteOrder('custom_orders', id)}
+              onSelectOrder={(id) => onSelectOrder('custom_orders', id)}
+              onUpdateStatus={(id, status) => admin.updateOrderStatus('custom_orders', id, status)}
             />
           )}
           {active === 'products' && (
             <ProductManager
               key={productFilter.key} initialFilter={productFilter.value}
-              products={products} categories={categories} onSave={onSaveProduct} onDelete={onDeleteProduct} onReorder={onReorderProducts}
+              products={products} categories={categories} onSave={admin.saveProduct} onPatch={admin.patchProduct} onDelete={admin.deleteProduct} onReorder={admin.reorderProducts}
               onOpenSettings={(group) => go(`site:${group}`)}
             />
           )}
           {active === 'categories' && (
             <CategoryManager
-              categories={categories} products={products} onSave={onSaveCategory} onDelete={onDeleteCategory} onReorder={onReorderCategories}
+              categories={categories} products={products} onSave={admin.saveCategory} onDelete={admin.deleteCategory} onReorder={admin.reorderCategories}
               onShowProducts={(categoryId) => showProducts(`cat:${categoryId}`)}
             />
           )}
           {active === 'auras' && settings.aurasEnabled && (
             <AuraManager
               lib={settings.auraLib} products={products} categories={categories}
-              onSave={({ custom, overrides }: AuraLib) => onSaveSettings({
+              onSave={({ custom, overrides }: AuraLib) => admin.saveSettings({
                 customAuras: custom.length ? JSON.stringify(custom) : null,
                 auraOverrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null
               }, 'Auras atualizadas.')}
@@ -143,10 +118,10 @@ export default function AdminView({
             <SiteSettings
               settings={settings} categories={categories} products={products}
               group={siteGroup} onGroupChange={(g) => go(`site:${g}`)} onDirtyChange={onSiteDirty} onShowProducts={showProducts}
-              onSave={onSaveSettings} onUndo={onUndoSettings}
+              onSave={admin.saveSettings} onUndo={admin.undoSettings}
             />
           )}
-          {active === 'calculator' && <PriceCalculator products={products} onSaveProduct={onSaveProduct} />}
+          {active === 'calculator' && <PriceCalculator products={products} onPatchProduct={admin.patchProduct} />}
           {active === 'team' && <TeamManager currentEmail={user?.email} />}
           {active === 'errors' && <ErrorsManager />}
         </div>

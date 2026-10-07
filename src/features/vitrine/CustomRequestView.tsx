@@ -6,7 +6,10 @@ import { Sparkles, Trash2, Upload, Send, CheckCircle2, MessageSquare } from 'luc
 import { Button, inputClass, whatsappButtonClass } from '../../components/ui';
 import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
-import { formatPhoneBR, validateContact, whatsappLink, fillName } from '../../lib/format';
+import { formatPhoneBR, whatsappLink, fillName } from '../../lib/format';
+import { validateCustomRequest } from '../../lib/checkout';
+import { IMAGE_PRESETS } from '../../lib/images';
+import { resizeToDataUrl } from '../../lib/imageResize';
 
 interface CustomFormData { clientName: string; clientPhone: string; description: string; imageUrl: string; website: string }
 
@@ -15,25 +18,6 @@ interface CustomRequestViewProps {
 }
 
 const EMPTY_FORM: CustomFormData = { clientName: '', clientPhone: '', description: '', imageUrl: '', website: '' };
-
-const compressImage = (file: File) => new Promise<string>((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX = 800;
-      let { width, height } = img;
-      if (width > height && width > MAX) { height *= MAX / width; width = MAX; }
-      else if (height > MAX) { width *= MAX / height; height = MAX; }
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
-    };
-    img.onerror = reject; img.src = reader.result as string; // readAsDataURL sempre devolve string
-  };
-  reader.onerror = reject; reader.readAsDataURL(file);
-});
 
 export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProps) {
   const settings = useSettings();
@@ -50,7 +34,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
     if (!file || !file.type.startsWith('image/')) return;
     setIsCompressing(true);
     try {
-      const compressed = await compressImage(file);
+      const compressed = await resizeToDataUrl(file, IMAGE_PRESETS.reference);
       setFormData(prev => ({ ...prev, imageUrl: compressed }));
     } catch (err) {
       console.error(err);
@@ -62,14 +46,11 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (settings.ordersPaused) return toast.error(settings.pausedMessage);
-    if (!formData.clientName || !formData.clientPhone || !formData.description) {
-      return toast.error('Preencha nome, WhatsApp e a descrição do pedido.');
+    const check = validateCustomRequest({ name: formData.clientName, phone: formData.clientPhone, description: formData.description, trap: formData.website }, settings);
+    if (!check.ok) {
+      if ('bot' in check) { setSentSuccess(true); return; } // campo-isca preenchido: é robô
+      return toast.error(check.error);
     }
-    const contactError = validateContact(formData.clientName, formData.clientPhone);
-    if (contactError) return toast.error(contactError);
-    if (formData.description.length > 2000) return toast.error('A descrição pode ter no máximo 2000 caracteres.');
-    if (formData.website) { setSentSuccess(true); return; } // campo-isca preenchido: é robô
 
     setIsSubmitting(true);
     const success = await onSaveOrder({

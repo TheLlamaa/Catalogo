@@ -7,18 +7,19 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { Switch, PageHeader, Button, inputClass } from '../../../components/ui';
-import { GROUPS, SETTINGS_SCHEMA, SETTING_FIELDS, DEFAULT_SETTINGS, isValidWhatsapp, normalizeWhatsapp, isValidMinOrder } from '../../../lib/settings';
+import { GROUPS, SETTINGS_SCHEMA, DEFAULT_SETTINGS } from '../../../lib/settings';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
-import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from '../../../lib/pages';
-import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from '../../../lib/menus';
+import { MAX_TOP, MAX_FOOT } from '../../../lib/menus';
 import ImageGuideText from '../../../components/ImageGuideText';
 import { IMAGE_GUIDES, type ImageGuideKey } from '../../../lib/imageGuides';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import type { Category, Product } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, normalizeSocial, parseFaq, MAX_FAQ } from '../../../lib/theme';
+import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
+import { defaultForm, diffSettings, draftRows, formFrom, toForm, toStored, validateSettingsForm } from '../../../lib/settingsWrite';
+import type { FaqDraft, FormValues, SettingChanges } from '../../../lib/settingsWrite';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import VitrinePreview from './VitrinePreview';
 
@@ -39,37 +40,9 @@ const fieldMatches = (f: SettingField, q: string): boolean => {
 };
 
 const inputCls = inputClass;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DB_VALUE_MAX = 5000;
-
-// WhatsApp mostrado com máscara (guardado só com dígitos)
-// Valores do formulário: texto ou interruptor, indexados pela chave da configuração
-type FormValues = Record<string, string | boolean>;
-// Mudanças enviadas ao salvar: chave -> novo valor (null volta ao padrão)
-type SettingChanges = Record<string, string | null>;
-// Item de pergunta frequente como digitado (campos podem estar vazios)
-interface FaqDraft { q?: string; a?: string }
 
 // Texto de um valor do formulário (interruptores não têm texto)
 const str = (v: string | boolean | undefined): string => (typeof v === 'string' ? v : '');
-
-const toForm = (key: string, value: unknown): string | boolean => (key === 'whatsapp' ? formatPhoneBR(value) : value as string | boolean); // valores já validados por mergeSettings
-const formFrom = (settings: Settings): FormValues => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, settings[k])]));
-
-// Valor que iria para o banco (null = volta ao padrão, nada guardado)
-const toStored = (key: string, value: unknown): string | null => {
-  const def = DEFAULT_SETTINGS[key];
-  if (typeof def === 'boolean') return value === def ? null : String(value);
-  let v = String(value ?? '').trim();
-  if (key === 'whatsapp') v = v ? normalizeWhatsapp(v) : '';
-  else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
-  else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
-  else if (/^page[A-T]$/.test(key)) v = pageToStored(v);
-  else if (key === 'menuTop') v = menuToStored(v, MAX_TOP, true);
-  else if (key === 'menuFoot') v = menuToStored(v, MAX_FOOT, false);
-  else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
-  return !v || v === def ? null : v;
-};
 
 interface SiteSettingsProps {
   settings: Settings;
@@ -123,59 +96,15 @@ export default function SiteSettings({ settings, categories, products, group, on
   const set = (key: string, value: string | boolean) => setForm(p => ({ ...p, [key]: value }));
 
   // Rascunho no formato da tabela site_settings, para a prévia ao vivo da vitrine
-  const draftRows = useMemo(() => Object.keys(DEFAULT_SETTINGS)
-    .map(key => ({ key, value: toStored(key, form[key]) }))
-    .filter((r): r is { key: string; value: string } => r.value !== null), [form]);
-
-  const validate = () => {
-    if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
-    if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return 'E-mail inválido.';
-    if (!str(form.storeName).trim()) return 'O nome da loja não pode ficar vazio.';
-    for (const k of ['primaryColor', 'bannerColor', 'badgeColor']) {
-      if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
-    }
-    for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
-      if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
-    }
-    if (!isValidMinOrder(form.minOrder)) return 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.';
-    const slugs = new Set<string>();
-    for (const k of PAGE_KEYS) {
-      const raw = str(form[k]);
-      const stored = pageToStored(raw);
-      if (!stored) continue;
-      const d = parsePageDraft(raw);
-      const name = (d.t || '').trim() || 'Página sem título';
-      if (!isCompletePage(raw)) return `Página “${name}”: preencha o título e o texto (ou apague a página).`;
-      if (stored.length > DB_VALUE_MAX) return `Página “${name}”: o texto ficou grande demais. Encurte um pouco.`;
-      const slug = slugify(d.s || '') || slugify(d.t || '');
-      if (!isValidSlug(slug)) return `Página “${name}”: o endereço precisa ter letras ou números.`;
-      if (slugs.has(slug)) return `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`;
-      slugs.add(slug);
-    }
-    const menuError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo') || menuProblem(form.menuFoot, MAX_FOOT, false, 'Links do rodapé');
-    if (menuError) return menuError;
-    try {
-      const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
-      if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
-      if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return 'Toda resposta precisa de uma pergunta.';
-    } catch { /* texto vazio */ }
-    const privacy = toStored('privacyText', form.privacyText) || '';
-    if (privacy.length > DB_VALUE_MAX) return 'O texto da política ficou grande demais.';
-    if ((toStored('faqItems', form.faqItems) || '').length > DB_VALUE_MAX) return 'As perguntas frequentes ficaram grandes demais. Encurte algumas respostas.';
-    return null;
-  };
+  const draft = useMemo(() => draftRows(form), [form]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const problem = validate();
+    const problem = validateSettingsForm(form);
     if (problem) return toast.error(problem);
 
     // Só vai para o banco o que mudou; o que voltou ao padrão é apagado
-    const changes: SettingChanges = {};
-    for (const key of Object.keys(DEFAULT_SETTINGS)) {
-      const next = toStored(key, form[key]);
-      if (next !== toStored(key, base[key])) changes[key] = next;
-    }
+    const changes = diffSettings(form, base);
     if (!Object.keys(changes).length) return toast.info('Nenhuma alteração para publicar.');
     setSaving(true);
     const ok = await onSave(changes, 'Alterações publicadas.');
@@ -192,7 +121,7 @@ export default function SiteSettings({ settings, categories, products, group, on
   const resetSection = (section: SettingsSection) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
   const resetAll = async () => {
     if (!(await confirm({ title: 'Voltar tudo ao padrão?', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar alterações.', confirmLabel: 'Voltar ao padrão' }))) return;
-    setForm(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, DEFAULT_SETTINGS[k])])));
+    setForm(defaultForm());
   };
 
   const handleUndo = async () => {
@@ -320,7 +249,7 @@ export default function SiteSettings({ settings, categories, products, group, on
         </div>
       </div>
     </form>
-    {previewOpen && <VitrinePreview rows={draftRows} docked={docked} onClose={() => setPreviewOpen(false)} />}
+    {previewOpen && <VitrinePreview rows={draft} docked={docked} onClose={() => setPreviewOpen(false)} />}
     </div>
   );
 }

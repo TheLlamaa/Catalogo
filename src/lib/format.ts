@@ -1,3 +1,4 @@
+import { toWhatsappDigits, customerWhatsapp } from './whatsapp';
 import type { OrderStatusId } from '../types';
 
 export const brl = (v: unknown): string => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
@@ -34,11 +35,7 @@ export const validateContact = (name: unknown, phone: unknown): string | null =>
   return null;
 };
 
-// Remove o 55 do início, se houver, para montar o link do WhatsApp
-export const toWhatsappDigits = (phone: unknown): string => {
-  const digits = String(phone || '').replace(/\D/g, '');
-  return digits.length > 11 && digits.startsWith('55') ? digits.slice(2) : digits;
-};
+export { toWhatsappDigits, customerWhatsapp };
 
 export const whatsappLink = (number: string, text?: string): string => `https://wa.me/${number}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 

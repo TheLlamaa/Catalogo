@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { lineKey, loadCart, saveCart } from '../lib/cart';
+import { addCheck, cartSummary, fitToStock, increaseCheck } from '../lib/checkout';
 import { useUI } from '../components/UIContext';
 import type { CartItem, CartLine, Product, Toast } from '../types';
 
@@ -9,11 +10,7 @@ export function useCart({ products, loading, loadError }: { products: Product[];
   const [cartLines, setCartLines] = useState<CartLine[]>(loadCart);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const cart = useMemo(() => cartLines.map((line): CartItem | null => {
-    const product = products.find(p => String(p.id) === String(line.id));
-    if (!product || product.active === false || product.available <= 0) return null;
-    return { ...line, quantity: Math.min(line.quantity, product.available), product };
-  }).filter((l): l is CartItem => l !== null), [cartLines, products]);
+  const cart = useMemo((): CartItem[] => fitToStock(cartLines, products), [cartLines, products]);
 
   // Depois do primeiro carregamento, tira do carrinho o que saiu de linha ou ficou sem estoque
   useEffect(() => {
@@ -25,15 +22,9 @@ export function useCart({ products, loading, loadError }: { products: Product[];
 
   useEffect(() => { saveCart(cartLines); }, [cartLines]);
 
-  const unitsInCart = (productId: string) =>
-    cartLines.filter(l => String(l.id) === String(productId)).reduce((sum, l) => sum + l.quantity, 0);
-
   const addToCart = (product: Product, options: Record<string, string> = {}) => {
-    if (product.available <= 0) { toast.error('Produto esgotado no momento.'); return false; }
-    if (unitsInCart(product.id) >= product.available) {
-      toast.error(`Temos apenas ${product.stock} unidade(s) em estoque.`);
-      return false;
-    }
+    const blocked = addCheck(cartLines, product);
+    if (blocked) { toast.error(blocked); return false; }
     const key = lineKey(product.id, options);
     setCartLines(prev => (prev.some(l => l.key === key)
       ? prev.map(l => (l.key === key ? { ...l, quantity: l.quantity + 1 } : l))
@@ -46,17 +37,15 @@ export function useCart({ products, loading, loadError }: { products: Product[];
     const line = cartLines.find(l => l.key === key);
     const product = line && products.find(p => String(p.id) === String(line.id));
     if (!line || !product) return;
-    if (delta > 0 && unitsInCart(product.id) + delta > product.available) {
-      return toast.error(`Quantidade máxima em estoque atingida (${product.stock} unidades).`);
-    }
+    const blocked = increaseCheck(cartLines, product, delta);
+    if (blocked) return toast.error(blocked);
     if (line.quantity + delta < 1) return;
     setCartLines(prev => prev.map(l => (l.key === key ? { ...l, quantity: l.quantity + delta } : l)));
   };
 
   const removeFromCart = (key: string) => setCartLines(prev => prev.filter(l => l.key !== key));
   const clearCart = () => setCartLines([]);
-  const cartTotal = cart.reduce((acc, l) => acc + l.product.salePrice * l.quantity, 0); // com desconto, igual à conta do banco
-  const cartCount = cart.reduce((acc, l) => acc + l.quantity, 0);
+  const { total: cartTotal, count: cartCount } = cartSummary(cart);
 
   return {
     cart, cartTotal, cartCount,

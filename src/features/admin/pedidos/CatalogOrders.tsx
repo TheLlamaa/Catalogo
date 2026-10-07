@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { Trash2, ExternalLink, ShoppingBag, Download, FileBarChart, MessageSquare, Truck, Store, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -8,13 +7,12 @@ import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import Pagination from './Pagination';
 import ViewToggle from './ViewToggle';
-import { useViewMode } from '../../../hooks/useViewMode';
+import { useOrderInbox } from '../../../hooks/useOrderInbox';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { usePagination } from '../../../hooks/usePagination';
-import { OrderFilters, StatusChips, DEFAULT_FILTERS } from './OrderFilters';
+import { OrderFilters, StatusChips } from './OrderFilters';
 import type { OrderFiltersValue } from './OrderFilters';
-import { brl, downloadCsv, formatOptions, toWhatsappDigits, whatsappLink } from '../../../lib/format';
-import { ageInfo, filterOrders, itemsCsv, orderCode, ordersCsv, periodLabel, summarize } from '../../../lib/orders';
+import { brl, downloadCsv, formatOptions, customerWhatsapp, whatsappLink } from '../../../lib/format';
+import { ageInfo, itemsCsv, orderCode, ordersCsv, periodLabel } from '../../../lib/orders';
 import { buildReportHtml, openReport } from '../../../lib/report';
 import type { CatalogOrder, OrderStatusId } from '../../../types';
 
@@ -68,16 +66,7 @@ export default function CatalogOrdersManager({ orders, onDelete, onSelectOrder, 
   const { confirm, toast } = useUI();
   const wide = useMediaQuery('(min-width: 640px)');
   const { storeName } = useSettings();
-  const [filters, setFilters] = useState<OrderFiltersValue>(DEFAULT_FILTERS);
-  const [status, setStatus] = useState('all');
-
-  // "scoped" ignora o status (para os números dos chips); "visible" é o que aparece na lista
-  const scoped = useMemo(() => filterOrders(orders, { ...filters, status: 'all' }), [orders, filters]);
-  const visible = useMemo(() => (status === 'all' ? scoped : filterOrders(scoped, { status, sort: filters.sort })), [scoped, status, filters.sort]);
-  const counts = useMemo(() => Object.fromEntries(summarize(scoped).byStatus.map(s => [s.id, s.count])), [scoped]);
-  const sum = useMemo(() => summarize(visible), [visible]);
-  const pager = usePagination(visible, JSON.stringify([filters, status]));
-  const [view, setView] = useViewMode();
+  const { filters, setFilters, status, setStatus, scoped, visible, counts, summary: sum, pager, view, setView } = useOrderInbox(orders);
 
   const handleDelete = async (order: CatalogOrder) => {
     const ok = await confirm({ title: 'Excluir pedido?', message: `O pedido de ${order.client_name} será apagado e sai dos relatórios. Isso não pode ser desfeito.`, confirmLabel: 'Excluir pedido' });
@@ -196,7 +185,7 @@ function OrderCard({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps
         </h2>
         <div className="relative z-10 flex items-center gap-0.5 flex-shrink-0 -mt-1 -mr-1">
           <a
-            href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
+            href={whatsappLink(customerWhatsapp(order.client_phone), `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
             className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           >
@@ -273,7 +262,7 @@ function OrderRow({ order, onSelect, onDelete, onUpdateStatus }: OrderCardProps)
       <td className="px-3 py-2.5 align-top">
         <div className="flex items-center justify-end gap-0.5">
           <a
-            href={whatsappLink(`55${toWhatsappDigits(order.client_phone)}`, `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
+            href={whatsappLink(customerWhatsapp(order.client_phone), `Olá ${order.client_name}! Recebi seu pedido pelo site.`)}
             target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
             className={`p-1.5 ${whatsappIconClass} hover:bg-green-50 rounded transition-colors`} title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp"
           ><MessageSquare className="w-4 h-4" /></a>

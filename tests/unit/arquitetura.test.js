@@ -14,6 +14,16 @@ describe('arquitetura', () => {
       .filter(f => /@supabase\/supabase-js|services\/client/.test(readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });
+  it('só src/services conhece tabelas e colunas do banco (nada de .from() fora)', () => {
+    const offenders = files.filter(f => !f.includes(join('src', 'services')))
+      .filter(f => /\.from\(['"`]/.test(readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+  it('catálogo, configurações e pedidos passam pelo gateway (hooks e telas não importam os adapters)', () => {
+    const offenders = files.filter(f => !f.includes(join('src', 'services')))
+      .filter(f => /services\/(supabaseGateway|memoryGateway|mapping)/.test(readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
   it('lib/ não depende de services/ nem de telas', () => {
     const offenders = files.filter(f => f.includes(join('src', 'lib')))
       .filter(f => /from '\.\.\/(services|admin|views|components|hooks)/.test(readFileSync(f, 'utf8')));
