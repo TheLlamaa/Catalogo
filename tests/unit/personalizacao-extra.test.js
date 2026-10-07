@@ -131,6 +131,12 @@ describe('temas prontos', () => {
     expect(s.bgTone).toBe('padrao');
     expect(s.gridCols).toBe('3');
   });
+  it('modelo da página inicial: clássico por padrão, aceita vitrine e bancada, valor inválido volta ao clássico', () => {
+    expect(DEFAULT_SETTINGS.homeLayout).toBe('classico');
+    expect(mergeSettings([{ key: 'homeLayout', value: 'vitrine' }]).homeLayout).toBe('vitrine');
+    expect(mergeSettings([{ key: 'homeLayout', value: 'bancada' }]).homeLayout).toBe('bancada');
+    expect(mergeSettings([{ key: 'homeLayout', value: 'prateleiras' }]).homeLayout).toBe('classico');
+  });
 });
 
 import { minOrderValue, isValidMinOrder } from '../../src/lib/settings';

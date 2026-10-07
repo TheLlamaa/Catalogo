@@ -12,6 +12,11 @@ import { badgeStyle } from '../../lib/theme';
 import { availability, badgeFor, effectiveAura, newProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
+import HomeVitrine from './home/HomeVitrine';
+import HomeBancada from './home/HomeBancada';
+
+// Modelos da página inicial escolhidos em Site > Página inicial > Modelo ("classico" é o desta página)
+const LAYOUTS = { vitrine: HomeVitrine, bancada: HomeBancada } as const;
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -91,6 +96,9 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
       </div>
     );
   }
+
+  const Layout = LAYOUTS[settings.homeLayout as keyof typeof LAYOUTS];
+  if (Layout) return <Layout products={products} categories={categories} onAddToCart={onAddToCart} onOpenProduct={onOpenProduct} onOpenCustomRequest={onOpenCustomRequest} />;
 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-8">

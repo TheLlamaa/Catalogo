@@ -37,7 +37,7 @@ export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
   options: { value: string; label: string }[];
-  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort'; // mostra exemplos visuais em vez de lista
+  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort' | 'layout'; // mostra exemplos visuais em vez de lista
 }
 export interface RangeField extends SettingFieldBase {
   type: 'range';
@@ -67,7 +67,7 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 // A assinatura de índice cobre chaves dinâmicas (ex.: acesso por field.key).
 export interface Settings {
   [key: string]: unknown;
-  primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string;
+  primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string; homeLayout: string;
   faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
@@ -99,7 +99,7 @@ export interface Settings {
 // O grupo de cada seção vem de GROUPS (lista "sections"), que também define a ordem na tela.
 export const GROUPS: SettingsGroup[] = [
   { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: capa, título, faixa de aviso e as seções Destaques, Mais pedidos e Novidades.',
-    sections: ['Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
+    sections: ['Modelo da página inicial', 'Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
   { id: 'aparencia', label: 'Aparência', description: 'Cores, fonte, logo e o formato dos cards. Vale para o site inteiro.',
     sections: ['Cores e fonte', 'Logo', 'Estilo dos cards'] },
   { id: 'loja', label: 'Dados da loja', description: 'Nome, WhatsApp, e-mail, redes sociais, rodapé e como o site aparece no Google e no WhatsApp.',
@@ -112,6 +112,13 @@ export const GROUPS: SettingsGroup[] = [
     sections: ['Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Páginas', 'Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Política de privacidade'] },
   { id: 'recursos', label: 'Recursos', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
     sections: ['Recursos da loja'] }
+];
+
+// Modelos da página inicial (features/vitrine/home)
+export const HOME_LAYOUTS = [
+  { id: 'classico', name: 'Clássico' },
+  { id: 'vitrine', name: 'Vitrine' },
+  { id: 'bancada', name: 'Bancada' },
 ];
 
 export const SETTINGS_SCHEMA: SettingsSection[] = [
@@ -129,6 +136,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'cardStyle', label: 'Cantos', type: 'select', display: 'corners', default: 'arredondado', options: CARD_STYLES.map(c => ({ value: c.id, label: c.name })), hint: 'Vale para cards, caixas e janelas.' },
       { key: 'gridCols', label: 'Produtos por linha (computador)', type: 'select', display: 'columns', default: '3', options: GRID_COLUMNS.map(n => ({ value: n, label: `${n} colunas` })) },
+    ]
+  },
+  {
+    group: 'inicio', title: 'Modelo da página inicial',
+    fields: [
+      { key: 'homeLayout', label: 'Modelo', type: 'select', display: 'layout', default: 'classico', options: HOME_LAYOUTS.map(l => ({ value: l.id, label: l.name })),
+        hint: 'Clássico: categorias na lateral e as seções Destaques, Mais pedidos e Novidades. Vitrine: as fotos dos Destaques abrem a página e as categorias viram abas. Bancada: busca grande, categorias com foto e o passo a passo do pedido.' },
     ]
   },
   {
