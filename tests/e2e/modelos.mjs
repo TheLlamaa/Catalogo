@@ -46,19 +46,19 @@ async function open(layout, { width = 1280, extra = {} } = {}) {
 const noHorizontalScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 const cartCount = (page) => page.getByRole('button', { name: /Abrir orçamento/ }).textContent();
 
-for (const layout of ['vitrine', 'bancada']) {
+for (const layout of ['vitrine', 'bancada', 'mista']) {
   const { page, ctx } = await open(layout);
   check(`${layout}: título da loja na capa`, (await page.getByRole('heading', { level: 1 }).textContent()).includes('Título da loja'));
   check(`${layout}: categoria sem produto não aparece`, await page.getByRole('button', { name: /^Vazia/ }).count() === 0);
   check(`${layout}: mostra 12 e oferece "Ver mais"`, await page.getByRole('button', { name: /^Ver mais 5 peças/ }).count() === 1);
 
   // Adicionar direto (produto sem opções) e "Escolher opções" abre a janela do produto
-  const add = layout === 'vitrine' ? page.getByRole('button', { name: 'Adicionar ao orçamento: Porta-canetas' }) : page.getByRole('article', { name: 'Ver detalhes de Porta-canetas' }).getByRole('button', { name: /Adicionar/ });
+  const add = layout !== 'bancada' ? page.getByRole('button', { name: 'Adicionar ao orçamento: Porta-canetas' }) : page.getByRole('article', { name: 'Ver detalhes de Porta-canetas' }).getByRole('button', { name: /Adicionar/ });
   await add.click();
   await page.waitForTimeout(200);
   check(`${layout}: adiciona ao orçamento pelo card`, (await cartCount(page)).includes('1 item'), await cartCount(page));
   if (await page.locator('[role="presentation"].fixed').count()) { await page.keyboard.press('Escape'); await page.waitForTimeout(300); }
-  const opts = layout === 'vitrine' ? page.getByRole('button', { name: 'Escolher opções: Luminária Lua' }) : page.getByRole('article', { name: 'Ver detalhes de Luminária Lua' }).getByRole('button', { name: 'Escolher opções' });
+  const opts = layout !== 'bancada' ? page.getByRole('button', { name: 'Escolher opções: Luminária Lua' }) : page.getByRole('article', { name: 'Ver detalhes de Luminária Lua' }).getByRole('button', { name: 'Escolher opções' });
   await opts.first().click();
   await page.getByRole('dialog').waitFor({ timeout: 5000 }).catch(() => {});
   check(`${layout}: produto com opções abre a janela`, await page.getByRole('dialog').count() === 1);
@@ -90,6 +90,61 @@ for (const layout of ['vitrine', 'bancada']) {
   const { page, ctx } = await open('bancada');
   check('bancada: passo a passo com 3 etapas', await page.locator('#como-pedir + ol > li').count() === 3);
   check('bancada: com WhatsApp, o passo 3 cita WhatsApp', await page.getByText('Combine pelo WhatsApp').count() === 1);
+  await ctx.close();
+}
+// "Por categoria" com fotos: escondido por padrão, aparece quando ligado; atalhos da capa sem contagem
+for (const layout of ['bancada', 'mista']) {
+  const off = await open(layout);
+  check(`${layout}: "Por categoria" escondido por padrão`, await off.page.getByRole('heading', { name: 'Por categoria' }).count() === 0);
+  const chips = await off.page.getByRole('navigation', { name: 'Atalhos de categoria' }).getByRole('button').allTextContents();
+  check(`${layout}: atalhos da capa sem quantidade`, chips.length === 3 && chips.every(t => !/\d/.test(t)), JSON.stringify(chips));
+  check(`${layout}: uma busca só na capa (sem id repetido)`, await off.page.locator('#busca').count() === 1);
+  await off.ctx.close();
+  const on = await open(layout, { extra: { showCategoryTiles: 'true' } });
+  check(`${layout}: "Por categoria" aparece quando ligado`, await on.page.getByRole('heading', { name: 'Por categoria' }).count() === 1);
+  await on.ctx.close();
+}
+// Vitrine + Bancada com categoria escolhida: capa some e a busca vai para a barra das abas
+{
+  const { page, ctx } = await open('mista');
+  await page.goto(BASE + '/?categoria=vasos');
+  await page.getByRole('heading', { level: 1, name: /Vasos/ }).waitFor();
+  check('mista: com categoria, busca na barra das abas', await page.locator('#busca').count() === 1 && await page.locator('#titulo-loja').count() === 0);
+  check('mista: aba da categoria marcada', (await page.locator('nav[aria-label="Categorias"] [aria-current="page"]').textContent()).includes('Vasos'));
+  await ctx.close();
+}
+// Faixa "Peça personalizada": em todos os modelos, liga/desliga e muda de lugar
+const band = (page) => page.getByRole('heading', { level: 2, name: 'Peça Personalizada' });
+for (const layout of ['classico', 'vitrine', 'bancada', 'mista']) {
+  const on = await open(layout);
+  check(`${layout}: faixa "Peça personalizada" aparece por padrão`, await band(on.page).count() === 1);
+  await on.ctx.close();
+  const off = await open(layout, { extra: { showCustomBand: 'false' } });
+  check(`${layout}: faixa some quando desligada`, await band(off.page).count() === 0);
+  await off.ctx.close();
+}
+{
+  const { page, ctx } = await open('vitrine', { extra: { customBandRows: 'inicio' } });
+  const first = await page.locator('#pecas .grid > *').first().textContent();
+  check('faixa antes dos produtos quando escolhido', first.includes('Peça Personalizada'), first.slice(0, 60));
+  await ctx.close();
+}
+// Blocos da capa e textos do passo a passo editáveis
+{
+  const { page, ctx } = await open('mista', { extra: { showHeroCategories: 'false', showCategoryTabs: 'false', stepOneTitle: 'Monte seu pedido', howTitle: 'Do jeito que funciona' } });
+  check('mista: atalhos da capa desligados', await page.getByRole('navigation', { name: 'Atalhos de categoria' }).count() === 0);
+  check('mista: abas desligadas', await page.getByRole('navigation', { name: 'Categorias' }).count() === 0);
+  check('mista: título e passo editados', await page.getByRole('heading', { name: 'Do jeito que funciona' }).count() === 1 && await page.getByText('Monte seu pedido').count() === 1);
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open('bancada', { extra: { showHowItWorks: 'false' } });
+  check('bancada: passo a passo desligado', await page.locator('#como-pedir').count() === 0);
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open('vitrine', { extra: { showHeroMosaic: 'false' } });
+  check('vitrine: capa sem o mosaico', await page.locator('section[aria-labelledby="titulo-loja"] img').count() === 0);
   await ctx.close();
 }
 // Imagem de capa do painel substitui o mosaico da Vitrine

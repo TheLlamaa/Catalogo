@@ -137,6 +137,16 @@ describe('temas prontos', () => {
     expect(mergeSettings([{ key: 'homeLayout', value: 'bancada' }]).homeLayout).toBe('bancada');
     expect(mergeSettings([{ key: 'homeLayout', value: 'prateleiras' }]).homeLayout).toBe('classico');
   });
+  it('blocos da página inicial: tudo ligado por padrão, menos "Por categoria" com fotos e a etiqueta da faixa', () => {
+    const d = DEFAULT_SETTINGS;
+    expect([d.showCustomBand, d.showHeroMosaic, d.showHeroCategories, d.showHowItWorks, d.showHowCustom, d.showCategoryTabs]).toEqual([true, true, true, true, true, true]);
+    expect([d.showCategoryTiles, d.showCardBadge]).toEqual([false, false]);
+    expect(d.customBandRows).toBe('2');
+    const s = mergeSettings([{ key: 'showCustomBand', value: 'false' }, { key: 'stepOneTitle', value: 'Escolha' }, { key: 'customBandRows', value: '9' }]);
+    expect(s.showCustomBand).toBe(false);
+    expect(s.stepOneTitle).toBe('Escolha');
+    expect(s.customBandRows).toBe('2');
+  });
 });
 
 import { minOrderValue, isValidMinOrder } from '../../src/lib/settings';
@@ -191,5 +201,19 @@ describe('orientação de tamanho das imagens', () => {
     }
     expect(IMAGE_GUIDES.logo.text).toContain('transparente');
     expect(IMAGE_GUIDES.favicon.text).toContain('SVG');
+  });
+});
+
+import { bandIndex } from '../../src/features/vitrine/home/shared';
+describe('posição da faixa "Peça personalizada"', () => {
+  it('depois de N linhas completas, antes de tudo ou no fim', () => {
+    expect(bandIndex('2', '3', 20)).toBe(6);
+    expect(bandIndex('2', '4', 20)).toBe(8);
+    expect(bandIndex('1', '2', 20)).toBe(2);
+    expect(bandIndex('inicio', '3', 20)).toBe(0);
+    expect(bandIndex('fim', '3', 20)).toBe(20);
+  });
+  it('com poucos produtos vai para o fim da lista', () => {
+    expect(bandIndex('3', '4', 5)).toBe(5);
   });
 });

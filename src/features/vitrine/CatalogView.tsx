@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Search, SlidersHorizontal, Sparkles, ArrowRight, ShoppingCart,
+  Search, SlidersHorizontal, ShoppingCart,
   ChevronLeft, ChevronRight, Image as ImageIcon, Clock, AlertCircle
 } from 'lucide-react';
 import type { Category, Product } from '../../types';
@@ -14,9 +14,11 @@ import { Button } from '../../components/ui';
 import Price from './Price';
 import HomeVitrine from './home/HomeVitrine';
 import HomeBancada from './home/HomeBancada';
+import HomeMista from './home/HomeMista';
+import { withCustomBand } from './home/shared';
 
 // Modelos da página inicial escolhidos em Site > Página inicial > Modelo ("classico" é o desta página)
-const LAYOUTS = { vitrine: HomeVitrine, bancada: HomeBancada } as const;
+const LAYOUTS = { vitrine: HomeVitrine, bancada: HomeBancada, mista: HomeMista } as const;
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
@@ -203,39 +205,16 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">Todos os modelos</h2>}
 
         <div className={`grid grid-cols-2 ${GRID_CLASS[settings.gridCols] || GRID_CLASS['3']} gap-3 sm:gap-6`}>
-          {settings.customEnabled && <button
-            onClick={onOpenCustomRequest}
-            className="col-span-2 sm:col-span-1 text-left bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl p-4 sm:p-6 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-all border border-blue-500 group relative overflow-hidden"
-          >
-            <div className="absolute -right-6 -bottom-6 opacity-10 text-white pointer-events-none">
-              <Sparkles className="w-40 h-40" />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-blue-100 mb-4">
-                <Sparkles className="w-3.5 h-3.5" /> {settings.cardBadge}
-              </div>
-              <h3 className="text-xl font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors">{settings.cardTitle}</h3>
-              <p className="text-blue-100 text-sm leading-relaxed mb-4 sm:mb-6">
-                {settings.cardText}
-              </p>
-            </div>
-            <div className="mt-auto pt-4 border-t border-white/20 flex items-center justify-between font-semibold text-sm w-full">
-              <span>{settings.cardButton}</span>
-              <div className="w-8 h-8 rounded-full bg-white text-blue-700 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </button>}
 
-          {visibleProducts.map(product => (
+          {/* Faixa "Peça personalizada": a mesma dos outros modelos, depois de duas linhas de produtos */}
+          {withCustomBand(visibleProducts, product => (
             <ProductCard
-              key={product.id}
               product={product}
               categories={categories}
               onAddToCart={() => onAddToCart(product)}
               onClick={() => onOpenProduct(product)}
             />
-          ))}
+          ), product => product.id, { settings, hasItems: filteredProducts.length > 0, onOpen: onOpenCustomRequest })}
         </div>
 
         {remaining > 0 && (

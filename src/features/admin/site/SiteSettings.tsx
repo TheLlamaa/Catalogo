@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
@@ -27,7 +27,7 @@ import VitrinePreview from './VitrinePreview';
 const SECTION_ICONS: Record<string, LucideIcon> = {
   'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Modelo da página inicial': LayoutTemplate, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Nomes dos botões do menu': Type, 'Página inicial (vitrine)': LayoutGrid,
-  'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
+  'Faixa de destaque (peça personalizada)': Sparkles, 'Blocos da página inicial': ToggleRight, 'Passo a passo do pedido': ListOrdered, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
   'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
@@ -445,6 +445,16 @@ function LayoutIcon({ id }: { id: string }) {
           <rect x="5" y="18" width="10" height="3" rx="1.5" className={accent} />
           <rect x="29" y="4" width="17" height="21" rx="1.5" className={block} /><rect x="48" y="4" width="11" height="10" rx="1.5" className={block} /><rect x="48" y="15" width="11" height="10" rx="1.5" className={block} />
           {[5, 19, 33, 47].map(x => <rect key={x} x={x} y="30" width="12" height="10" rx="1.5" className={block} />)}
+        </>
+      ) : id === 'mista' ? (
+        <>
+          <rect x="4" y="4" width="56" height="15" rx="1.5" className={soft} />
+          {[11, 18, 25, 32, 39, 46, 53].map(x => <line key={x} x1={x} y1="4" x2={x} y2="19" className="stroke-blue-200" strokeWidth="0.6" />)}
+          <rect x="22" y="7" width="20" height="2.5" rx="1" className="fill-gray-500" /><rect x="20" y="12" width="24" height="3.5" rx="1.75" className="fill-white stroke-gray-300" strokeWidth="0.6" />
+          <rect x="4" y="22" width="56" height="5" rx="1" className="fill-white stroke-gray-300" strokeWidth="0.6" />
+          {[8, 24, 40].map(x => <circle key={x} cx={x} cy="24.5" r="1.2" className={accent} />)}
+          <rect x="4" y="29.5" width="6" height="1.2" rx="0.6" className="fill-gray-500" /><rect x="12" y="29.5" width="6" height="1.2" rx="0.6" className={block} />
+          {[4, 18.5, 33, 47.5].map(x => <rect key={x} x={x} y="32" width="12.5" height="9" rx="1.5" className={block} />)}
         </>
       ) : id === 'bancada' ? (
         <>

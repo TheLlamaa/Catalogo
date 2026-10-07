@@ -1,7 +1,8 @@
 // Peças comuns às versões novas da página inicial: filtros (no endereço), busca, ordem, card de produto e "Ver mais".
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Check, Clock, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Check, Clock, Sparkles, Image as ImageIcon } from 'lucide-react';
+import type { Settings } from '../../../lib/settings';
 import type { Category, Product } from '../../../types';
 import ProductImage from '../ProductImage';
 import Price from '../Price';
@@ -244,3 +245,39 @@ export const gridColsClass = (cols: string) => ({
   '3': 'grid-cols-2 sm:grid-cols-3',
   '4': 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
 } as Record<string, string>)[cols] || 'grid-cols-2 sm:grid-cols-3';
+
+// Faixa "Peça personalizada" na cor da loja, usada em todos os modelos da página inicial
+export function CustomBand({ onOpen }: { onOpen: () => void }) {
+  const { cardTitle, cardText, cardButton, cardBadge, showCardBadge } = useSettings();
+  return (
+    <div className="col-span-full flex flex-col gap-5 rounded-xl bg-blue-600 px-6 py-7 text-white sm:flex-row sm:items-center sm:justify-between sm:px-10 sm:py-9">
+      <div className="max-w-xl">
+        {showCardBadge && cardBadge.trim() && (
+          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" />{cardBadge}</span>
+        )}
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{cardTitle}</h2>
+        <p className="mt-2 text-sm sm:text-base leading-relaxed text-white">{cardText}</p>
+      </div>
+      <button onClick={onOpen} className="flex-shrink-0 self-start sm:self-auto rounded-full bg-white px-5 py-3 text-sm font-semibold text-gray-900 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600">{cardButton}</button>
+    </div>
+  );
+}
+
+// Onde a faixa entra na grade (Site > Página inicial > Blocos > Posição da faixa): antes dos produtos,
+// depois de 1, 2 ou 3 linhas completas (pelo número de colunas no computador) ou no fim.
+// Com menos produtos que a posição pedida, ela vai para o fim da lista.
+export const bandIndex = (rows: string, cols: string, total: number): number => {
+  if (rows === 'inicio') return 0;
+  if (rows === 'fim') return total;
+  const perRow = Number(cols) || 3;
+  return Math.min((Number(rows) || 2) * perRow, total);
+};
+
+// Grade com a faixa no lugar escolhido. "hasItems" evita a faixa sozinha numa busca sem resultado.
+export function withCustomBand<T>(items: T[], render: (item: T) => ReactNode, key: (item: T) => string, opts: { settings: Settings; hasItems: boolean; onOpen: () => void }): ReactNode[] {
+  const { settings } = opts;
+  const nodes = items.map(item => <Fragment key={key(item)}>{render(item)}</Fragment>);
+  if (!settings.customEnabled || !settings.showCustomBand || !opts.hasItems) return nodes;
+  nodes.splice(bandIndex(settings.customBandRows, settings.gridCols, items.length), 0, <CustomBand key="faixa-personalizada" onOpen={opts.onOpen} />);
+  return nodes;
+}
