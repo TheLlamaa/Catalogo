@@ -446,6 +446,16 @@ function LayoutIcon({ id }: { id: string }) {
           <rect x="29" y="4" width="17" height="21" rx="1.5" className={block} /><rect x="48" y="4" width="11" height="10" rx="1.5" className={block} /><rect x="48" y="15" width="11" height="10" rx="1.5" className={block} />
           {[5, 19, 33, 47].map(x => <rect key={x} x={x} y="30" width="12" height="10" rx="1.5" className={block} />)}
         </>
+      ) : id === 'mista' ? (
+        <>
+          <rect x="4" y="4" width="56" height="15" rx="1.5" className={soft} />
+          {[11, 18, 25, 32, 39, 46, 53].map(x => <line key={x} x1={x} y1="4" x2={x} y2="19" className="stroke-blue-200" strokeWidth="0.6" />)}
+          <rect x="22" y="7" width="20" height="2.5" rx="1" className="fill-gray-500" /><rect x="20" y="12" width="24" height="3.5" rx="1.75" className="fill-white stroke-gray-300" strokeWidth="0.6" />
+          <rect x="4" y="22" width="56" height="5" rx="1" className="fill-white stroke-gray-300" strokeWidth="0.6" />
+          {[8, 24, 40].map(x => <circle key={x} cx={x} cy="24.5" r="1.2" className={accent} />)}
+          <rect x="4" y="29.5" width="6" height="1.2" rx="0.6" className="fill-gray-500" /><rect x="12" y="29.5" width="6" height="1.2" rx="0.6" className={block} />
+          {[4, 18.5, 33, 47.5].map(x => <rect key={x} x={x} y="32" width="12.5" height="9" rx="1.5" className={block} />)}
+        </>
       ) : id === 'bancada' ? (
         <>
           <rect x="4" y="4" width="56" height="20" rx="1.5" className={soft} />

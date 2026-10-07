@@ -67,7 +67,7 @@ export interface SettingsBackup { t: string; v: Record<string, unknown> }
 // A assinatura de índice cobre chaves dinâmicas (ex.: acesso por field.key).
 export interface Settings {
   [key: string]: unknown;
-  primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string; homeLayout: string;
+  primaryColor: string; fontChoice: string; bgTone: string; darkMode: string; cardStyle: string; gridCols: string; heroImage: string; homeLayout: string; showCategoryTiles: boolean;
   faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
   logoUrl: string; logoSize: string; logoShowName: boolean;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
@@ -119,6 +119,7 @@ export const HOME_LAYOUTS = [
   { id: 'classico', name: 'Clássico' },
   { id: 'vitrine', name: 'Vitrine' },
   { id: 'bancada', name: 'Bancada' },
+  { id: 'mista', name: 'Vitrine + Bancada' },
 ];
 
 export const SETTINGS_SCHEMA: SettingsSection[] = [
@@ -142,7 +143,8 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'inicio', title: 'Modelo da página inicial',
     fields: [
       { key: 'homeLayout', label: 'Modelo', type: 'select', display: 'layout', default: 'classico', options: HOME_LAYOUTS.map(l => ({ value: l.id, label: l.name })),
-        hint: 'Clássico: categorias na lateral e as seções Destaques, Mais pedidos e Novidades. Vitrine: as fotos dos Destaques abrem a página e as categorias viram abas. Bancada: busca grande, categorias com foto e o passo a passo do pedido.' },
+        hint: 'Clássico: categorias na lateral e as seções Destaques, Mais pedidos e Novidades. Vitrine: as fotos dos Destaques abrem a página e as categorias viram abas. Bancada: busca grande, atalhos de categoria e o passo a passo do pedido. Vitrine + Bancada: a capa e o passo a passo da Bancada com a grade de fotos e as abas da Vitrine.' },
+      { key: 'showCategoryTiles', label: 'Mostrar "Por categoria" com fotos', type: 'toggle', default: false, hint: 'Nos modelos Bancada e Vitrine + Bancada: uma linha com a foto de cada categoria, abaixo da capa.' },
     ]
   },
   {

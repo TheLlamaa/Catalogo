@@ -14,9 +14,10 @@ import { Button } from '../../components/ui';
 import Price from './Price';
 import HomeVitrine from './home/HomeVitrine';
 import HomeBancada from './home/HomeBancada';
+import HomeMista from './home/HomeMista';
 
 // Modelos da página inicial escolhidos em Site > Página inicial > Modelo ("classico" é o desta página)
-const LAYOUTS = { vitrine: HomeVitrine, bancada: HomeBancada } as const;
+const LAYOUTS = { vitrine: HomeVitrine, bancada: HomeBancada, mista: HomeMista } as const;
 
 const PAGE_SIZE = 12; // quantos produtos aparecem por vez ("Ver mais" mostra +12)
 
