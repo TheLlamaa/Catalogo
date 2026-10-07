@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
@@ -25,7 +25,7 @@ import VitrinePreview from './VitrinePreview';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Modelo da página inicial': LayoutTemplate, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Nomes dos botões do menu': Type, 'Página inicial (vitrine)': LayoutGrid,
   'Card de destaque (peça personalizada)': Sparkles, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
@@ -392,6 +392,7 @@ function ImageField({ id, label, guide, value, onChange }: { id: string; label: 
 // Escolha com exemplo visual: cada opção mostra como ela fica (colunas, cantos, fonte, fundo ou ordem)
 function ChoicePreview({ display, value }: { display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string }) {
   if (display === 'columns') return <ColumnsIcon n={Number(value)} />;
+  if (display === 'layout') return <LayoutIcon id={value} />;
   if (display === 'corners') {
     const radius = CARD_STYLES.find(c => c.id === value)?.radius || '0.75rem';
     return (
@@ -430,6 +431,37 @@ function ChoiceGroup({ f, display, value, onChange }: { f: Extract<SettingField,
         );
       })}
     </div>
+  );
+}
+
+// Miniatura de cada modelo da página inicial
+function LayoutIcon({ id }: { id: string }) {
+  const block = 'fill-gray-300', accent = 'fill-blue-500', soft = 'fill-blue-100';
+  return (
+    <svg width="64" height="44" viewBox="0 0 64 44" aria-hidden="true" className="rounded border border-gray-300 bg-white">
+      {id === 'vitrine' ? (
+        <>
+          <rect x="5" y="7" width="20" height="3" rx="1" className="fill-gray-500" /><rect x="5" y="12" width="16" height="3" rx="1" className="fill-gray-500" />
+          <rect x="5" y="18" width="10" height="3" rx="1.5" className={accent} />
+          <rect x="29" y="4" width="17" height="21" rx="1.5" className={block} /><rect x="48" y="4" width="11" height="10" rx="1.5" className={block} /><rect x="48" y="15" width="11" height="10" rx="1.5" className={block} />
+          {[5, 19, 33, 47].map(x => <rect key={x} x={x} y="30" width="12" height="10" rx="1.5" className={block} />)}
+        </>
+      ) : id === 'bancada' ? (
+        <>
+          <rect x="4" y="4" width="56" height="20" rx="1.5" className={soft} />
+          {[11, 18, 25, 32, 39, 46, 53].map(x => <line key={x} x1={x} y1="4" x2={x} y2="24" className="stroke-blue-200" strokeWidth="0.6" />)}
+          <rect x="20" y="9" width="24" height="3" rx="1" className="fill-gray-500" /><rect x="18" y="15" width="28" height="4" rx="2" className="fill-white stroke-gray-300" strokeWidth="0.6" />
+          {[4, 18.5, 33, 47.5].map(x => <rect key={x} x={x} y="28" width="12.5" height="12" rx="1.5" className={block} />)}
+        </>
+      ) : (
+        <>
+          <rect x="4" y="4" width="12" height="2.5" rx="1" className={accent} />
+          {[9, 13, 17, 21].map(y => <rect key={y} x="4" y={y} width="10" height="2" rx="1" className={block} />)}
+          {[20, 34, 48].map(x => <rect key={x} x={x} y="4" width="12" height="17" rx="1.5" className={block} />)}
+          {[20, 34, 48].map(x => <rect key={x} x={x} y="23" width="12" height="17" rx="1.5" className={block} />)}
+        </>
+      )}
+    </svg>
   );
 }
 
