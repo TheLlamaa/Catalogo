@@ -9,7 +9,7 @@ import { ENV_LABEL } from './lib/config';
 import { applySeo } from './lib/seo';
 import { applyPublishedTheme, cacheTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { mergeSettings } from './lib/settings';
-import { IS_PREVIEW, usePreviewRows } from './lib/preview';
+import { IS_PREVIEW, usePreviewRows, usePreviewGoto } from './lib/preview';
 import { useCart } from './hooks/useCart';
 import { useCatalogStore } from './hooks/useCatalogStore';
 
@@ -113,6 +113,17 @@ function MainLayout() {
     document.title = `${productTitle} | ${settings.storeName}`;
     return () => { document.title = previous; };
   }, [productTitle, settings.storeName]);
+
+  // Prévia do painel: mostra a tela onde está o campo em edição (carrinho, produto, rodapé, pedido personalizado)
+  usePreviewGoto(target => {
+    const to = (pathname: string) => navigate({ pathname, search: location.search });
+    if (target === 'cart') { if (cart.length === 0 && products[0]) addToCart(products[0]); openCart(); return; }
+    closeCart();
+    if (target === 'product' && products[0]) to(`/produto/${products[0].id}`);
+    else if (target === 'custom') to('/custom');
+    else to('/');
+    if (target === 'footer') setTimeout(() => document.querySelector('footer')?.scrollIntoView({ behavior: 'smooth' }), 80);
+  });
 
   const openProduct = (product: Product) => navigate({ pathname: `/produto/${product.id}`, search: location.search });
   const closeProduct = () => navigate({ pathname: '/', search: location.search });

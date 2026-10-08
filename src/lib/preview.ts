@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SettingRow } from '../types';
 
 // Prévia ao vivo da vitrine dentro do painel (Site → "Ver prévia").
@@ -6,6 +6,11 @@ import type { SettingRow } from '../types';
 // Só vale dentro de um iframe da mesma origem; a prévia não grava nada (carrinho e pedidos ficam desligados).
 export const PREVIEW_MSG = 'catalogo-preview';
 export const PREVIEW_READY = 'catalogo-preview-ready';
+export const PREVIEW_GOTO = 'catalogo-preview-goto';
+
+// Onde a prévia deve estar para mostrar o campo que o dono está editando
+export type PreviewTarget = 'home' | 'cart' | 'product' | 'footer' | 'custom';
+const TARGETS: PreviewTarget[] = ['home', 'cart', 'product', 'footer', 'custom'];
 
 export const IS_PREVIEW = typeof window !== 'undefined'
   && window.parent !== window
@@ -15,6 +20,22 @@ export const IS_PREVIEW = typeof window !== 'undefined'
 export function cleanRows(data: unknown): SettingRow[] | null {
   if (!Array.isArray(data)) return null;
   return data.filter((r): r is SettingRow => !!r && typeof r.key === 'string' && typeof r.value === 'string').slice(0, 500);
+}
+
+// Dentro da prévia: o painel pede para abrir o carrinho, um produto, o rodapé… conforme o campo em edição
+export function usePreviewGoto(handler: (target: PreviewTarget) => void): void {
+  const ref = useRef(handler);
+  useEffect(() => { ref.current = handler; });
+  useEffect(() => {
+    if (!IS_PREVIEW) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      if (e.data?.type !== PREVIEW_GOTO || !TARGETS.includes(e.data.target)) return;
+      ref.current(e.data.target);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 }
 
 // Dentro da prévia: recebe o rascunho do painel (mesma origem e só da janela-mãe)

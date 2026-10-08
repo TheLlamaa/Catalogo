@@ -27,7 +27,8 @@ import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
 import { defaultForm, diffSettings, draftRows, findFormProblem, formFrom, toForm, toStored } from '../../../lib/settingsWrite';
 import type { FaqDraft, FormProblem, FormValues, SettingChanges } from '../../../lib/settingsWrite';
-import { changedFields, describeDefault, groupLabel as groupLabelOf, isChanged, norm, searchText } from '../../../lib/settingsMeta';
+import { changedFields, describeDefault, groupLabel as groupLabelOf, isChanged, norm, previewTargetFor, searchText } from '../../../lib/settingsMeta';
+import type { PreviewTarget } from '../../../lib/preview';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import VitrinePreview from './VitrinePreview';
 
@@ -74,6 +75,7 @@ export default function SiteSettings({ settings, categories, products, group, on
   const [previewOpen, setPreviewOpen] = useState(false);
   const [problem, setProblem] = useState<FormProblem | null>(null); // erro de validação, mostrado no próprio campo
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget>('home');
   const [flashKey, setFlashKey] = useState<string | null>(null); // campo recém-achado pela busca
   const docked = useMediaQuery('(min-width: 1280px)');
 
@@ -249,7 +251,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
         return (
-          <fieldset key={section.title} id={sectionDomId(section.title)} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
+          <fieldset key={section.title} id={sectionDomId(section.title)} onFocusCapture={() => setPreviewTarget(previewTargetFor(section.title))} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
             <legend className="sr-only">{section.title}</legend>
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
               <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
@@ -300,7 +302,7 @@ export default function SiteSettings({ settings, categories, products, group, on
         </div>
       </div>
     </form>
-    {previewOpen && <VitrinePreview rows={draft} docked={docked} onClose={() => setPreviewOpen(false)} />}
+    {previewOpen && <VitrinePreview rows={draft} target={previewTarget} docked={docked} onClose={() => setPreviewOpen(false)} />}
     {reviewOpen && (
       <Dialog label="Revisar alterações" onClose={() => setReviewOpen(false)} panelClassName="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="px-5 py-4 border-b border-gray-200">

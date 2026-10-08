@@ -23,6 +23,7 @@ await page.route('https://mock.supabase.co/**', async (route) => {
   if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
   if (url.pathname === '/rest/v1/rpc/is_admin') return json(true);
   if (url.pathname === '/rest/v1/app_meta') return json([{ key: 'schema_version', value: '99' }]);
+  if (url.pathname === '/rest/v1/products') return json([{ id: 'p1', title: 'Vaso Teste', description: 'd', price: 30, stock: 5, active: true, category_ids: [], image_urls: [], aura_color: 'inherit', created_at: '2026-09-01T10:00:00Z', options: [], sort_order: 1 }]);
   if (url.pathname === '/rest/v1/site_settings' && req.method() !== 'GET') {
     writes.push({ method: req.method(), body: req.postData() ? JSON.parse(req.postData()) : null });
     return route.fulfill({ status: 201, headers: cors, body: '' });
@@ -90,6 +91,19 @@ await page.getByRole('button', { name: 'Publicar alterações' }).click();
 await page.waitForTimeout(600);
 const grav = writes.find(w => w.method === 'POST')?.body ?? [];
 check('publica a ordem trocada e o bloco', grav.some(r => r.key === 'homeSections' && r.value.startsWith('passos,categorias,')) && grav.some(r => r.key === 'blockA' && r.value.includes('Meu aviso')), JSON.stringify(grav).slice(0, 300));
+
+// prévia acompanha o campo em edição
+await page.getByRole('button', { name: 'Pedidos e carrinho', exact: true }).first().click();
+await page.getByRole('button', { name: 'Prévia ao vivo' }).click();
+const frame = page.frameLocator('iframe[title^="Prévia da vitrine"]');
+await frame.locator('article').first().waitFor({ timeout: 10000 });
+await page.locator('#s-cartTitle').focus();
+await frame.getByRole('dialog', { name: /Seu Orçamento/ }).waitFor({ timeout: 8000 });
+check('editar o carrinho abre o carrinho na prévia', true);
+await page.getByRole('button', { name: 'Contato e redes', exact: true }).first().click();
+await page.locator('#s-footerText').focus();
+await page.waitForTimeout(800);
+check('editar o rodapé fecha o carrinho na prévia', await frame.getByRole('dialog', { name: /Seu Orçamento/ }).count() === 0);
 
 await browser.close();
 console.log(fails ? `\n${fails} falha(s)` : '\nTudo certo');

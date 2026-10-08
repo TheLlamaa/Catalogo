@@ -58,6 +58,15 @@ export const isChanged = (key: string, form: FormValues, base: FormValues): bool
 /** Campo está diferente do padrão? */
 export const isNotDefault = (key: string, form: FormValues): boolean => toStored(key, form[key]) !== null && key in DEFAULT_SETTINGS;
 
+/** Tela da vitrine que mostra a seção em edição (a prévia acompanha o campo que o dono está mexendo). */
+export const previewTargetFor = (sectionTitle: string): 'home' | 'cart' | 'product' | 'footer' | 'custom' => {
+  if (['Pedidos', 'Carrinho e pedido', 'Carrinho e formulários', 'Mensagem do WhatsApp (rótulos)'].includes(sectionTitle)) return 'cart';
+  if (['Janela do produto', 'Selos e estoque baixo', 'Janela do produto (textos)'].includes(sectionTitle)) return 'product';
+  if (['Página de peça personalizada', 'Pedido personalizado (formulário)'].includes(sectionTitle)) return 'custom';
+  if (['Rodapé', 'Redes sociais', 'Identidade e contato', 'Rodapé e links', 'Links do rodapé'].includes(sectionTitle)) return 'footer';
+  return 'home';
+};
+
 // ---------------------------------------------------------------------------
 // Busca
 // ---------------------------------------------------------------------------
