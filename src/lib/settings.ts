@@ -7,6 +7,7 @@ import { BRAND_FONTS, NAME_WEIGHTS, NAME_CASES, NAME_SPACINGS, NAME_COLORS, LOGO
 import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
 import type { ImageGuideKey } from './imageGuides';
 import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
+import { HINTS } from './settingsHints';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -130,7 +131,7 @@ export const HOME_LAYOUTS = [
   { id: 'mista', name: 'Vitrine + Bancada' },
 ];
 
-export const SETTINGS_SCHEMA: SettingsSection[] = [
+const RAW_SCHEMA: SettingsSection[] = [
   {
     group: 'aparencia', title: 'Cores e fonte',
     fields: [
@@ -387,6 +388,9 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   }
 ];
+
+// Campos sem explicação própria ganham a de settingsHints.ts
+export const SETTINGS_SCHEMA: SettingsSection[] = RAW_SCHEMA.map(s => ({ ...s, fields: s.fields.map(f => (f.hint || !HINTS[f.key] ? f : { ...f, hint: HINTS[f.key] })) }));
 
 export const SETTING_FIELDS: SettingField[] = SETTINGS_SCHEMA.flatMap(s => s.fields);
 export const DEFAULT_SETTINGS: Record<string, string | boolean> = Object.fromEntries(SETTING_FIELDS.map(f => [f.key, f.default]));

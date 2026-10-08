@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  AlertCircle, ListChecks, Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
+import Dialog from '../../../components/Dialog';
 import { Switch, PageHeader, Button, inputClass } from '../../../components/ui';
 import { GROUPS, SETTINGS_SCHEMA, DEFAULT_SETTINGS, mergeSettings } from '../../../lib/settings';
 import { brandFont, nearestWeight } from '../../../lib/brand';
@@ -21,8 +22,9 @@ import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBa
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
-import { defaultForm, diffSettings, draftRows, formFrom, toForm, toStored, validateSettingsForm } from '../../../lib/settingsWrite';
-import type { FaqDraft, FormValues, SettingChanges } from '../../../lib/settingsWrite';
+import { defaultForm, diffSettings, draftRows, findFormProblem, formFrom, toForm, toStored } from '../../../lib/settingsWrite';
+import type { FaqDraft, FormProblem, FormValues, SettingChanges } from '../../../lib/settingsWrite';
+import { changedFields, describeDefault, groupLabel as groupLabelOf, isChanged, norm, searchText } from '../../../lib/settingsMeta';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import VitrinePreview from './VitrinePreview';
 
@@ -35,12 +37,12 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
-// Sem acento e em minúsculas, para a busca achar "voce" em "Você"
-const normalizeText = (v: string): string => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const fieldMatches = (f: SettingField, q: string): boolean => {
-  const optionText = f.type === 'select' ? f.options.map(o => o.label).join(' ') : '';
-  return normalizeText(`${f.label} ${f.hint || ''} ${optionText}`).includes(q);
-};
+// Sem acento e em minúsculas, para a busca achar "voce" em "Você"; todas as palavras precisam aparecer (com sinônimos como "zap")
+const normalizeText = norm;
+const hasAll = (text: string, q: string): boolean => q.split(/\s+/).every(w => text.includes(w));
+const fieldMatches = (f: SettingField, q: string): boolean => hasAll(searchText(f), q);
+// Identificador da caixa de cada seção (para rolar até ela)
+const sectionDomId = (title: string): string => `sec-${norm(title).replace(/[^a-z0-9]+/g, '-')}`;
 
 const inputCls = inputClass;
 
@@ -57,15 +59,19 @@ interface SiteSettingsProps {
   onGroupChange: (group: string) => void;
   onDirtyChange?: (dirty: boolean) => void; // o painel avisa antes de sair com alterações não publicadas
   onShowProducts?: (filter: string) => void; // atalho para a lista de produtos já filtrada
+  focus?: { key: string; n: number } | null; // vindo da busca do painel: rola até o campo e o destaca
 }
 
-export default function SiteSettings({ settings, categories, products, group, onGroupChange, onDirtyChange, onShowProducts, onSave, onUndo }: SiteSettingsProps) {
+export default function SiteSettings({ settings, categories, products, group, onGroupChange, onDirtyChange, onShowProducts, onSave, onUndo, focus }: SiteSettingsProps) {
   const { toast, confirm } = useUI();
   const [form, setForm] = useState<FormValues>(() => formFrom(settings));
   const [base, setBase] = useState(form);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [problem, setProblem] = useState<FormProblem | null>(null); // erro de validação, mostrado no próprio campo
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [flashKey, setFlashKey] = useState<string | null>(null); // campo recém-achado pela busca
   const docked = useMediaQuery('(min-width: 1280px)');
 
   const dirty = Object.keys(DEFAULT_SETTINGS).some(k => toStored(k, form[k]) !== toStored(k, base[k]));
@@ -96,24 +102,53 @@ export default function SiteSettings({ settings, categories, products, group, on
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const set = (key: string, value: string | boolean) => setForm(p => ({ ...p, [key]: value }));
+  const set = (key: string, value: string | boolean) => { setForm(p => ({ ...p, [key]: value })); setProblem(p => (p?.key === key ? null : p)); };
+
+  const changes = useMemo(() => changedFields(form, base), [form, base]);
+
+  // Rola até um campo (erro de validação ou resultado da busca) e o destaca
+  const reveal = (key: string) => {
+    const el = document.getElementById(`s-${key}`) ?? document.getElementById(`campo-${key}`);
+    const section = SETTINGS_SCHEMA.find(s => s.fields.some(f => f.key === key));
+    const target = el ?? (section ? document.getElementById(sectionDomId(section.title)) : null);
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (el instanceof HTMLElement && el.matches('input,select,textarea,button')) el.focus({ preventScroll: true });
+  };
+  useEffect(() => {
+    if (!problem) return;
+    const g = SETTINGS_SCHEMA.find(s => s.fields.some(f => f.key === problem.key))?.group;
+    if (g && g !== group) onGroupChange(g);
+    const t = setTimeout(() => reveal(problem.key), 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando aparece um erro novo
+  }, [problem]);
+  useEffect(() => {
+    if (!focus) return;
+    setQuery('');
+    setFlashKey(focus.key);
+    const t = setTimeout(() => reveal(focus.key), 80);
+    const off = setTimeout(() => setFlashKey(null), 2600);
+    return () => { clearTimeout(t); clearTimeout(off); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a busca manda abrir outro campo
+  }, [focus]);
 
   // Rascunho no formato da tabela site_settings, para a prévia ao vivo da vitrine
   const draft = useMemo(() => draftRows(form), [form]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const problem = validateSettingsForm(form);
-    if (problem) return toast.error(problem);
+  const publishNow = async () => {
+    const found = findFormProblem(form);
+    if (found) { setProblem(found); return toast.error(found.message); }
+    setProblem(null);
 
     // Só vai para o banco o que mudou; o que voltou ao padrão é apagado
-    const changes = diffSettings(form, base);
-    if (!Object.keys(changes).length) return toast.info('Nenhuma alteração para publicar.');
+    const toSave = diffSettings(form, base);
+    if (!Object.keys(toSave).length) return toast.info('Nenhuma alteração para publicar.');
     setSaving(true);
-    const ok = await onSave(changes, 'Alterações publicadas.');
+    const ok = await onSave(toSave, 'Alterações publicadas.');
     setSaving(false);
     if (ok) setBase(form);
   };
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); return publishNow(); };
 
   const discard = async () => {
     if (!(await confirm({ title: 'Descartar alterações?', message: 'O que você mudou aqui e ainda não publicou volta a como está no site.', confirmLabel: 'Descartar' }))) return;
@@ -122,6 +157,13 @@ export default function SiteSettings({ settings, categories, products, group, on
 
   const resetField = (key: string) => set(key, toForm(key, DEFAULT_SETTINGS[key]));
   const resetSection = (section: SettingsSection) => setForm(p => ({ ...p, ...Object.fromEntries(section.fields.map(f => [f.key, toForm(f.key, DEFAULT_SETTINGS[f.key])])) }));
+  const resetGroup = async () => {
+    const g = GROUPS.find(x => x.id === group);
+    if (!g) return;
+    if (!(await confirm({ title: `Voltar “${g.label}” ao padrão?`, message: 'Todas as opções desta área voltam ao original. Nada muda para os clientes até você clicar em Publicar alterações.', confirmLabel: 'Voltar ao padrão' }))) return;
+    const keys = SETTINGS_SCHEMA.filter(s => s.group === group).flatMap(s => s.fields.map(f => f.key));
+    setForm(p => ({ ...p, ...Object.fromEntries(keys.map(k => [k, toForm(k, DEFAULT_SETTINGS[k])])) }));
+  };
   const resetAll = async () => {
     if (!(await confirm({ title: 'Voltar tudo ao padrão?', message: 'Todos os textos, cores e opções do site voltam ao original. Nada muda para os clientes até você clicar em Publicar alterações.', confirmLabel: 'Voltar ao padrão' }))) return;
     setForm(defaultForm());
@@ -135,10 +177,10 @@ export default function SiteSettings({ settings, categories, products, group, on
 
   const q = normalizeText(query);
   const searching = q.length > 0;
-  const groupLabel = (id: string) => GROUPS.find(g => g.id === id)?.label || '';
+  const groupLabel = (id: string) => groupLabelOf(id);
   const sections: SettingsSection[] = searching
     ? SETTINGS_SCHEMA.map(s => {
-        const sectionHit = normalizeText(`${s.title} ${groupLabel(s.group)}`).includes(q);
+        const sectionHit = hasAll(normalizeText(`${s.title} ${groupLabel(s.group)}`), q);
         return { ...s, fields: sectionHit ? s.fields : s.fields.filter(f => fieldMatches(f, q)) };
       }).filter(s => s.fields.length > 0)
     : (GROUPS.find(g => g.id === group)?.sections || []).map(t => SETTINGS_SCHEMA.find(s => s.title === t)).filter((s): s is SettingsSection => !!s);
@@ -153,7 +195,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       <PageHeader
         title={searching ? 'Buscar configuração' : current.label}
         description={searching ? 'Resultados de todas as áreas do site.' : current.description}
-        actions={<Button icon={Eye} onClick={() => setPreviewOpen(o => !o)} aria-pressed={previewOpen}>{previewOpen ? 'Fechar prévia' : 'Prévia ao vivo'}</Button>}
+        actions={<div className="flex flex-wrap gap-2">{!searching && <Button icon={RotateCcw} onClick={resetGroup}>Voltar esta área ao padrão</Button>}<Button icon={Eye} onClick={() => setPreviewOpen(o => !o)} aria-pressed={previewOpen}>{previewOpen ? 'Fechar prévia' : 'Prévia ao vivo'}</Button></div>}
       />
       <p className="text-xs text-gray-500 -mt-3">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Use a <strong>Prévia ao vivo</strong> para ver a vitrine com o que você está mudando.</p>
 
@@ -204,7 +246,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       {sections.map(section => {
         const Icon = SECTION_ICONS[section.title] || Type;
         return (
-          <fieldset key={section.title} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <fieldset key={section.title} id={sectionDomId(section.title)} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
             <legend className="sr-only">{section.title}</legend>
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
               <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
@@ -223,7 +265,7 @@ export default function SiteSettings({ settings, categories, products, group, on
               {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} setFlag={set} />}
               {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} setFlag={set} />}
               {section.fields.filter(f => f.type !== 'page' && f.type !== 'menu').map(f => (
-                <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
+                <Field key={f.key} f={f} form={form} base={base} set={set} resetField={resetField} error={problem?.key === f.key ? problem.message : null} flash={flashKey === f.key} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
               {(section.title === 'Logo' || section.title === 'Nome da loja no topo') && <BrandPreview form={form} />}
@@ -247,13 +289,35 @@ export default function SiteSettings({ settings, categories, products, group, on
           {dirty && <button type="button" onClick={discard} className="text-sm text-gray-500 hover:text-gray-800 py-2">Descartar alterações</button>}
         </div>
         <div className="flex items-center gap-3">
-          {dirty && <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">Alterações não publicadas</span>}
-          <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Ver site</a>
+          {dirty && <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">Alterações não publicadas{changes.length > 0 ? ` (${changes.length})` : ''}</span>}
+          {dirty && changes.length > 0 && <Button icon={ListChecks} onClick={() => setReviewOpen(true)}>Revisar</Button>}
+          <a href="/" target="_blank" rel="noreferrer" className="hidden sm:inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Ver site</a>
           <Button type="submit" variant="primary" disabled={saving || !dirty}>{saving ? 'Publicando…' : 'Publicar alterações'}</Button>
         </div>
       </div>
     </form>
     {previewOpen && <VitrinePreview rows={draft} docked={docked} onClose={() => setPreviewOpen(false)} />}
+    {reviewOpen && (
+      <Dialog label="Revisar alterações" onClose={() => setReviewOpen(false)} panelClassName="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Revisar alterações</h2>
+          <p className="text-sm text-gray-600">{changes.length} {changes.length === 1 ? 'configuração será alterada' : 'configurações serão alteradas'}. Os clientes só veem depois de publicar.</p>
+        </div>
+        <ul className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          {changes.map(c => (
+            <li key={c.key} className="px-5 py-3 text-sm">
+              <p className="font-medium text-gray-900">{c.label} <span className="font-normal text-xs text-gray-500">· {c.section}</span></p>
+              <p className="mt-1 text-gray-600"><span className="text-xs uppercase tracking-wide text-gray-500">Antes:</span> {c.before}</p>
+              <p className="text-gray-900"><span className="text-xs uppercase tracking-wide text-gray-500">Depois:</span> {c.after}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="px-5 py-4 border-t border-gray-200 flex justify-end gap-2">
+          <Button onClick={() => setReviewOpen(false)}>Continuar editando</Button>
+          <Button variant="primary" disabled={saving} onClick={async () => { setReviewOpen(false); await publishNow(); }}>{saving ? 'Publicando…' : 'Publicar agora'}</Button>
+        </div>
+      </Dialog>
+    )}
     </div>
   );
 }
@@ -261,19 +325,36 @@ export default function SiteSettings({ settings, categories, products, group, on
 interface FieldProps {
   f: SettingField;
   form: FormValues;
+  base: FormValues;
+  error: string | null;
+  flash: boolean;
   set: (key: string, value: string | boolean) => void;
   resetField: (key: string) => void;
 }
 
-function Field({ f, form, set, resetField }: FieldProps) {
+function Field({ f, form, base, set, resetField, error, flash }: FieldProps) {
   const id = `s-${f.key}`;
   const isDefault = toStored(f.key, form[f.key]) === null;
   const resetBtn = !isDefault && (
     <button type="button" onClick={() => resetField(f.key)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 py-1.5 -my-1.5"><RotateCcw className="w-3 h-3" /> Padrão</button>
   );
 
+  const changed = isChanged(f.key, form, base);
+  const notes = (
+    <>
+      {!isDefault && <p className="text-xs text-gray-500 mt-1">O padrão é: <span className="font-medium text-gray-700">{describeDefault(f)}</span>{f.type === 'toggle' && <button type="button" onClick={() => resetField(f.key)} className="ml-2 text-blue-700 hover:underline">Restaurar</button>}</p>}
+      {error && <p role="alert" className="mt-1 flex items-start gap-1 text-xs font-medium text-red-700"><AlertCircle className="w-3.5 h-3.5 mt-px flex-shrink-0" aria-hidden="true" />{error}</p>}
+    </>
+  );
+  const frame = `${flash ? 'rounded-md ring-2 ring-blue-300 bg-blue-50/60 -m-1.5 p-1.5 transition-colors' : ''} ${error ? 'rounded-md ring-2 ring-red-300 -m-1.5 p-1.5' : ''}`;
   if (f.type === 'toggle') {
-    return <Switch id={id} checked={!!form[f.key]} onChange={v => set(f.key, v)} label={f.label} hint={f.hint} />;
+    return (
+      <div id={`campo-${f.key}`} className={frame}>
+        <Switch id={id} checked={!!form[f.key]} onChange={v => set(f.key, v)} label={f.label} hint={f.hint} />
+        {changed && <span className="mt-1 inline-block text-[11px] font-semibold text-amber-700">Alterado</span>}
+        {notes}
+      </div>
+    );
   }
 
   let control: ReactNode;
@@ -329,9 +410,9 @@ function Field({ f, form, set, resetField }: FieldProps) {
   }
 
   return (
-    <div>
+    <div id={`campo-${f.key}`} className={frame}>
       <div className="flex items-center justify-between mb-1">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{f.label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{f.label}{changed && <span className="ml-2 text-[11px] font-semibold text-amber-700">Alterado</span>}</label>
         {resetBtn}
       </div>
       {control}
@@ -339,6 +420,7 @@ function Field({ f, form, set, resetField }: FieldProps) {
         <p className="text-xs text-amber-700 mt-1">Essa cor é bem clara: o texto branco dos botões pode ficar difícil de ler.</p>
       )}
       {f.hint && <p className="text-xs text-gray-500 mt-1">{f.hint}</p>}
+      {notes}
     </div>
   );
 }
