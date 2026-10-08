@@ -31,6 +31,7 @@ async function newPage({ rows, w: width, admin = false, products = mkProducts(),
     const req = r.request(); const hd = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: hd });
     const u = new URL(req.url()); const path = u.pathname;
+    if (path === '/rest/v1/rpc/is_admin') return r.fulfill({ status: 200, contentType: 'application/json', headers: hd, body: 'true' });
     if (req.method() !== 'GET') {
       let body = null; try { body = req.postDataJSON(); } catch { body = req.postData(); }
       writes.push({ method: req.method(), path, query: u.search, body });

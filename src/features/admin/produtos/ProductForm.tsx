@@ -75,7 +75,7 @@ interface ProductFormState {
 
 
 export default function ProductForm({ initialData, categories, onSave, onCancel, onOpenSettings }: ProductFormProps) {
-  const { toast } = useUI();
+  const { toast, confirm } = useUI();
   const settings = useSettings();
   const { auraLib, stockControl, leadTimeEnabled, aurasEnabled, modelLinkEnabled } = settings;
 
@@ -173,6 +173,10 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     const discountRaw = formData.discount.trim();
     if (discountRaw && (!/^\d{1,2}$/.test(discountRaw) || Number(discountRaw) > MAX_DISCOUNT)) return toast.error(`Desconto: use um número inteiro de 0 a ${MAX_DISCOUNT} (ex: 15 para 15%).`);
 
+    if (!(parseFloat(formData.price) > 0) && !settings.hidePrices) {
+      const goOn = await confirm({ title: 'Preço zerado', message: 'O produto vai aparecer na vitrine como R$ 0,00. Publicar mesmo assim? (Para combinar o valor pelo WhatsApp, ligue "Esconder os preços" em Site.)', confirmLabel: 'Salvar assim mesmo' });
+      if (!goOn) return;
+    }
     setSaving(true);
     const { discount: _discount, ...rest } = formData;
     await onSave({

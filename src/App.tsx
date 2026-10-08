@@ -29,6 +29,7 @@ const AboutView = lazyWithReload(() => import('./features/vitrine/AboutView'));
 const PageView = lazyWithReload(() => import('./features/vitrine/PageView'));
 
 const AdminView = lazyWithReload(() => import('./features/admin/AdminView'));
+const AdminGate = lazyWithReload(() => import('./features/admin/AdminGate'));
 const CustomOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
 const CatalogOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
 
@@ -212,7 +213,9 @@ function MainLayout() {
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={
             user ? (
-              <AdminView admin={admin} onSelectOrder={selectOrder} onDeleteOrder={removeOrder} />
+              <AdminGate userId={user.id} onLogout={handleLogout}>
+                <AdminView admin={admin} onSelectOrder={selectOrder} onDeleteOrder={removeOrder} />
+              </AdminGate>
             ) : (
               <Navigate to="/login" replace />
             )
