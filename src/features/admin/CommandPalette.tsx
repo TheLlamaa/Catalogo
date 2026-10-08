@@ -40,18 +40,19 @@ export default function CommandPalette({ sections, onChoose, onClose }: { sectio
             else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
             else if (e.key === 'Enter') { e.preventDefault(); choose(items[active]); }
           }}
-          role="combobox" aria-expanded="true" aria-controls="paleta-lista" aria-activedescendant={items[active] ? `paleta-${active}` : undefined} aria-label="Buscar no painel"
+          aria-label="Buscar no painel"
           placeholder="O que você quer mudar? ex: cor, WhatsApp, frete, pedidos"
           className="flex-1 py-3.5 text-sm bg-transparent outline-none"
         />
         <kbd className="hidden sm:inline text-[11px] text-gray-500 border border-gray-200 rounded px-1.5 py-0.5">Esc</kbd>
       </div>
-      <ul id="paleta-lista" role="listbox" aria-label="Resultados" className="max-h-[55vh] overflow-y-auto py-1">
+      <ul aria-label="Resultados" className="max-h-[55vh] overflow-y-auto py-1">
         {items.length === 0 && <li className="px-4 py-6 text-center text-sm text-gray-500" role="status">Nada encontrado para “{query.trim()}”. Tente outra palavra.</li>}
         {items.map((item, i) => (
-          <li key={item.id} id={`paleta-${i}`} role="option" aria-selected={i === active}>
+          <li key={item.id}>
             <button
               type="button" tabIndex={-1} onMouseEnter={() => setActive(i)} onClick={() => choose(item)}
+              aria-current={i === active ? "true" : undefined}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm ${i === active ? 'bg-blue-50' : ''}`}
             >
               {item.kind === 'setting' ? <Settings2 className="w-4 h-4 text-blue-600 flex-shrink-0" aria-hidden="true" /> : <PanelLeft className="w-4 h-4 text-gray-500 flex-shrink-0" aria-hidden="true" />}

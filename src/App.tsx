@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, Suspense } from 'react';
+import { makeT } from './lib/texts';
 import { lazyWithReload } from './lib/staleChunk';
 import { useColorMode } from './lib/colorMode';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
@@ -35,13 +36,13 @@ const CatalogOrderDetailModal = lazyWithReload(() => import('./features/admin/pe
 
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)
-function SlowHint() {
+function SlowHint({ text }: { text: string }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 4000);
     return () => clearTimeout(t);
   }, []);
-  return show ? <p className="text-xs text-gray-500 mt-2">Está demorando mais que o normal. Só mais um instante…</p> : null;
+  return show ? <p className="text-xs text-gray-500 mt-2">{text}</p> : null;
 }
 
 export default function App() {
@@ -68,6 +69,8 @@ function MainLayout() {
   // Na prévia do painel, a vitrine mostra o rascunho das configurações (ainda não publicado)
   const previewRows = usePreviewRows();
   const settings = useMemo(() => (previewRows ? mergeSettings(previewRows) : publishedSettings), [previewRows, publishedSettings]);
+  const t = makeT(settings);
+  const goneMessage = t('tProductGone');
   const {
     cart, cartTotal, cartCount, addToCart, updateCartQuantity, removeFromCart, clearCart,
     isCartOpen, openCart, closeCart,
@@ -98,10 +101,10 @@ function MainLayout() {
   useEffect(() => {
     if (loading || loadError || !routeProductId) return;
     if (!products.some(p => String(p.id) === routeProductId)) {
-      toast.info('Esse produto não está mais disponível.');
+      toast.info(goneMessage);
       navigate('/', { replace: true });
     }
-  }, [loading, loadError, routeProductId, products, navigate, toast]);
+  }, [loading, loadError, routeProductId, products, navigate, toast, goneMessage]);
 
   const productTitle = selectedProduct?.title;
   useEffect(() => {
@@ -138,8 +141,8 @@ function MainLayout() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center font-sans">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium text-gray-500">Carregando informações...</p>
-        <SlowHint />
+        <p className="text-sm font-medium text-gray-500">{t('tLoading')}</p>
+        <SlowHint text={t('tSlowLoading')} />
       </div>
     );
   }
@@ -179,7 +182,7 @@ function MainLayout() {
     <div className="min-h-screen bg-[var(--page)] text-gray-900 font-sans flex flex-col">
 
       {/* Atalho de teclado: aparece no primeiro Tab e pula cabeçalho e menus */}
-      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">Pular para o conteúdo</a>
+      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">{t('tSkipLink')}</a>
 
       {ENV_LABEL && !IS_PREVIEW && (
         <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">

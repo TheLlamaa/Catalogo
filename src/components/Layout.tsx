@@ -1,4 +1,5 @@
 import { useEffect, type CSSProperties } from 'react';
+import { makeT } from '../lib/texts';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info, Moon, Sun } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
@@ -185,12 +186,15 @@ export function AdminHeader({ onLogout, storeName, colorMode }: { onLogout: () =
 
 // Rodapé da vitrine
 export function StoreFooter({ settings, categories }: { settings: SiteSettings; categories: Category[] }) {
+  const t = makeT(settings);
   return (
     <footer className="border-t border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
         <div className="text-center sm:text-left">
           <span>© {CURRENT_YEAR} {settings.storeName}</span>
           {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
+          {settings.address && <p className="mt-1">{settings.address}</p>}
+          {settings.openingHours && <p className="mt-1">{settings.openingHours}</p>}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600 py-2">{settings.menuAbout}</Link>}
@@ -203,10 +207,12 @@ export function StoreFooter({ settings, categories }: { settings: SiteSettings; 
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{l.label}</a>
           ))}
           {settings.whatsapp && (
-            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">WhatsApp</a>
+            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">{t('tFooterWhatsapp')}</a>
           )}
-          <Link to="/privacidade" className="hover:text-blue-600 py-2">Política de privacidade</Link>
-          <Link to="/login" className="hover:text-blue-600 py-2">Área do lojista</Link>
+          {settings.showEmailFooter && settings.email && <a href={`mailto:${settings.email}`} className="hover:text-blue-600 py-2">{settings.email}</a>}
+          {settings.mapLink && <a href={settings.mapLink} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{t('tFooterMap')}</a>}
+          <Link to="/privacidade" className="hover:text-blue-600 py-2">{t('tFooterPrivacy')}</Link>
+          {settings.showAdminLink && <Link to="/login" className="hover:text-blue-600 py-2">{t('tFooterAdmin')}</Link>}
         </div>
       </div>
     </footer>

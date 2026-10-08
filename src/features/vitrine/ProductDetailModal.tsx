@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { makeT } from '../../lib/texts';
 import { X, ShoppingCart, Link2, Clock, Image as ImageIcon } from 'lucide-react';
 import Dialog from '../../components/Dialog';
 import ProductImage from './ProductImage';
@@ -6,7 +7,7 @@ import { useUI } from '../../components/UIContext';
 import { useSettings } from '../../components/SettingsContext';
 import type { Category, Product } from '../../types';
 import { badgeStyle } from '../../lib/theme';
-import { availability, badgeFor, relatedProducts } from '../../lib/catalog';
+import { availability, badgeFor, lowStockMaxOf, relatedProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
 
@@ -22,13 +23,14 @@ interface ProductDetailModalProps {
 export default function ProductDetailModal({ product, products = [], categories, onClose, onAddToCart, onOpenProduct }: ProductDetailModalProps) {
   const { toast } = useUI();
   const settings = useSettings();
+  const t = makeT(settings);
   const badge = badgeFor(product, settings);
-  const related = settings.relatedEnabled && onOpenProduct ? relatedProducts(product, products) : [];
+  const related = settings.relatedEnabled && onOpenProduct ? relatedProducts(product, products, Number(settings.relatedCount) || 4) : [];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
   const productCategories = categories.filter(c => product.categoryIds?.includes(c.id));
-  const isOutOfStock = availability(product, settings.stockControl) === 'out';
+  const isOutOfStock = availability(product, settings.stockControl, lowStockMaxOf(settings)) === 'out';
   const options = product.options || [];
   const missing = options.filter(o => !selected[o.name]).map(o => o.name);
 
@@ -36,14 +38,14 @@ export default function ProductDetailModal({ product, products = [], categories,
     const url = `${window.location.origin}/produto/${product.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast.success('Link do produto copiado!');
+      toast.success(t('tLinkCopied'));
     } catch {
-      window.prompt('Copie o link do produto:', url);
+      window.prompt(`${t('tCopyLink')}:`, url);
     }
   };
 
   const handleAdd = () => {
-    if (missing.length) return toast.info(`Escolha: ${missing.join(', ')}.`);
+    if (missing.length) return toast.info(t('tChooseFirst', { lista: missing.join(', ') }));
     if (onAddToCart(product, selected)) onClose();
   };
 
@@ -96,9 +98,9 @@ export default function ProductDetailModal({ product, products = [], categories,
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
             {!settings.hidePrices && <Price product={product} className="text-2xl font-extrabold text-blue-600" />}
-            {settings.stockControl && (
+            {settings.stockControl && (settings.showStockCount || isOutOfStock) && (
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                {isOutOfStock ? 'Esgotado' : `${product.stock} em estoque`}
+                {isOutOfStock ? t('tSoldOut') : t('tInStock', { n: product.stock })}
               </span>
             )}
           </div>
@@ -127,7 +129,7 @@ export default function ProductDetailModal({ product, products = [], categories,
           ))}
 
           <div className="border-t border-gray-100 pt-4 mb-4">
-            <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">Descrição</h3>
+            <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{t('tDescription')}</h3>
             <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
           </div>
 
@@ -152,16 +154,18 @@ export default function ProductDetailModal({ product, products = [], categories,
         </div>
 
         <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-100 flex gap-3">
-          <button
-            onClick={copyLink}
-            title="Copiar link deste produto"
-            aria-label="Copiar link deste produto"
-            className="px-3 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <Link2 className="w-5 h-5" />
-          </button>
+          {settings.showCopyLink && (
+            <button
+              onClick={copyLink}
+              title={t('tCopyLink')}
+              aria-label={t('tCopyLink')}
+              className="px-3 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Link2 className="w-5 h-5" />
+            </button>
+          )}
           <Button variant="primary" size="lg" icon={ShoppingCart} className="flex-1" disabled={isOutOfStock} onClick={handleAdd}>
-            {isOutOfStock ? 'Indisponível' : settings.addToCartLabel}
+            {isOutOfStock ? t('tUnavailable') : settings.addToCartLabel}
           </Button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 // Peças comuns às versões novas da página inicial: filtros (no endereço), busca, ordem, card de produto e "Ver mais".
 import { Fragment, useState, type ReactNode } from 'react';
+import { makeT } from '../../../lib/texts';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, Check, Clock, Sparkles, Image as ImageIcon } from 'lucide-react';
 import type { Settings } from '../../../lib/settings';
@@ -11,7 +12,7 @@ import { useSettings } from '../../../components/SettingsContext';
 import { auraProps, auraDot } from '../../../lib/auras';
 import { badgeStyle } from '../../../lib/theme';
 import { NICHE } from '../../../lib/niche';
-import { availability, badgeFor, effectiveAura, newProducts } from '../../../lib/catalog';
+import { availability, badgeFor, effectiveAura, lowStockMaxOf, newProducts } from '../../../lib/catalog';
 
 export const PAGE_SIZE = 12;
 
@@ -30,6 +31,7 @@ export interface HomeProps {
 // Mesma regra da vitrine atual: ?categoria=&q=&ordem= no endereço, "Ver mais" volta ao início quando o filtro muda
 export function useCatalogFilters(products: Product[], categories: Category[]) {
   const settings = useSettings();
+  const pageSize = Number(settings.pageSize) || PAGE_SIZE;
   const [params, setParams] = useSearchParams();
   const categoryParam = params.get('categoria') || 'all';
   const searchQuery = params.get('q') || '';
@@ -61,17 +63,17 @@ export function useCatalogFilters(products: Product[], categories: Category[]) {
   });
 
   const filterKey = `${activeCategoryId}|${searchQuery}|${sortOrder}`;
-  const [shown, setShown] = useState({ key: filterKey, n: PAGE_SIZE });
-  const visibleCount = shown.key === filterKey ? shown.n : PAGE_SIZE;
+  const [shown, setShown] = useState({ key: filterKey, n: pageSize });
+  const visibleCount = shown.key === filterKey ? shown.n : pageSize;
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
-  const showMore = () => setShown({ key: filterKey, n: visibleCount + PAGE_SIZE });
+  const showMore = () => setShown({ key: filterKey, n: visibleCount + pageSize });
 
   // Vitrine "limpa": sem categoria, busca nem ordem diferente da padrão
   const isClean = activeCategoryId === 'all' && !searchQuery && sortOrder === settings.defaultSort;
   const featured = settings.showFeatured ? active.filter(p => p.section === 'destaque') : [];
   const popular = settings.showPopular ? active.filter(p => p.section === 'popular') : [];
-  const fresh = settings.showNew ? newProducts(active) : [];
+  const fresh = settings.showNew ? newProducts(active, undefined, Number(settings.newDays) || undefined, Number(settings.newMax) || undefined) : [];
 
   return {
     settings, active, activeCategories, activeCategory, activeCategoryId, categoryKey, countIn, inCategory,
@@ -83,14 +85,15 @@ export function useCatalogFilters(products: Product[], categories: Category[]) {
 }
 export type CatalogFilters = ReturnType<typeof useCatalogFilters>;
 
-export function SearchField({ f, placeholder = `Buscar ${NICHE.item.many}`, className = '', inputClassName = '' }: { f: CatalogFilters; placeholder?: string; className?: string; inputClassName?: string }) {
+export function SearchField({ f, placeholder, className = '', inputClassName = '' }: { f: CatalogFilters; placeholder?: string; className?: string; inputClassName?: string }) {
   if (!f.settings.showSearch) return null;
+  const ph = placeholder ?? makeT(f.settings)('tSearchPlaceholderHome');
   return (
     <div className={`relative ${className}`}>
       <label htmlFor="busca" className="sr-only">Buscar produtos</label>
       <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" aria-hidden="true" />
       <input
-        id="busca" type="search" placeholder={placeholder} value={f.searchQuery}
+        id="busca" type="search" placeholder={ph} value={f.searchQuery}
         onChange={(e) => f.updateParam('q', e.target.value, '')}
         className={`block w-full pl-10 pr-3 rounded-full border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${inputClassName || 'py-2 text-sm'}`}
       />
@@ -99,6 +102,8 @@ export function SearchField({ f, placeholder = `Buscar ${NICHE.item.many}`, clas
 }
 
 export function SortSelect({ f, className = '' }: { f: CatalogFilters; className?: string }) {
+  if (!f.settings.showSort) return null;
+  const t = makeT(f.settings);
   return (
     <>
       <label htmlFor="ordem" className="sr-only">Ordenar por</label>
@@ -107,9 +112,9 @@ export function SortSelect({ f, className = '' }: { f: CatalogFilters; className
         onChange={(e) => f.updateParam('ordem', e.target.value, f.settings.defaultSort)}
         className={`border border-gray-300 rounded-full py-1.5 pl-3 pr-8 text-sm bg-white text-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
       >
-        <option value="recent">Mais recentes</option>
-        <option value="price_asc">Menor preço</option>
-        <option value="price_desc">Maior preço</option>
+        <option value="recent">{t('tSortRecent')}</option>
+        <option value="price_asc">{t('tSortPriceAsc')}</option>
+        <option value="price_desc">{t('tSortPriceDesc')}</option>
       </select>
     </>
   );
@@ -126,7 +131,7 @@ export function LoadMore({ f }: { f: CatalogFilters }) {
   return (
     <div className="mt-8 text-center">
       <button onClick={f.showMore} className="px-6 py-2.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-800 hover:border-gray-400">
-        Ver mais {countLabel(f.remaining)}
+        {makeT(f.settings)('tLoadMore')} {countLabel(f.remaining)}
       </button>
     </div>
   );
@@ -134,11 +139,12 @@ export function LoadMore({ f }: { f: CatalogFilters }) {
 
 export function EmptyResult({ f }: { f: CatalogFilters }) {
   if (f.filtered.length > 0) return null;
+  const t = makeT(f.settings);
   return (
     <div className="py-14 text-center">
-      <p className="text-gray-800 font-medium">Nada encontrado{f.searchQuery ? ` para “${f.searchQuery}”` : ''}.</p>
-      <p className="mt-1 text-sm text-gray-600">Tente outra palavra ou veja todas as categorias.</p>
-      <button onClick={f.clearFilters} className="mt-4 text-sm font-medium text-blue-700 hover:underline">Limpar busca</button>
+      <p className="text-gray-800 font-medium">{t('tNothingFound')}{f.searchQuery ? ` para “${f.searchQuery}”` : ''}.</p>
+      <p className="mt-1 text-sm text-gray-600">{t('tNoResultsHintHome')}</p>
+      <button onClick={f.clearFilters} className="mt-4 text-sm font-medium text-blue-700 hover:underline">{t('tClearSearch')}</button>
     </div>
   );
 }
@@ -158,13 +164,14 @@ interface TileProps { product: Product; categories: Category[]; onAdd: () => boo
 
 export function ProductTile({ product, categories, onAdd, onOpen, variant = 'photo', size = 'md' }: TileProps) {
   const settings = useSettings();
+  const t = makeT(settings);
   const [added, setAdded] = useState(false);
   const badge = badgeFor(product, settings);
-  const stock = availability(product, settings.stockControl);
+  const stock = availability(product, settings.stockControl, lowStockMaxOf(settings));
   const out = stock === 'out';
   const hasOptions = (product.options || []).length > 0;
   const image = product.imageUrls?.[0];
-  const actionLabel = out ? 'Indisponível' : hasOptions ? 'Escolher opções' : 'Adicionar ao orçamento';
+  const actionLabel = out ? t('tUnavailable') : hasOptions ? t('tChooseOptions') : t('tAddToBudget');
 
   const act = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -176,9 +183,9 @@ export function ProductTile({ product, categories, onAdd, onOpen, variant = 'pho
     <div className={`relative aspect-square overflow-hidden bg-gray-100 ${variant === 'photo' ? 'rounded-xl' : ''}`}>
       {image
         ? <ProductImage thumb src={image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
-        : <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-gray-500"><ImageIcon className="h-8 w-8 opacity-60" aria-hidden="true" /><span className="text-xs">Foto em breve</span></div>}
+        : <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-gray-500"><ImageIcon className="h-8 w-8 opacity-60" aria-hidden="true" /><span className="text-xs">{t('tPhotoSoon')}</span></div>}
       {badge && <span style={badgeStyle(settings.badgeColor)} className="absolute left-2.5 top-2.5 max-w-[70%] truncate rounded-full px-2.5 py-1 text-[11px] font-semibold">{badge}</span>}
-      {out && <span className="absolute right-2.5 top-2.5 rounded-full bg-gray-900/80 px-2.5 py-1 text-[11px] font-semibold text-white">Esgotado</span>}
+      {out && <span className="absolute right-2.5 top-2.5 rounded-full bg-gray-900/80 px-2.5 py-1 text-[11px] font-semibold text-white">{t('tSoldOut')}</span>}
       {variant === 'photo' && !out && (
         <button
           onClick={act} aria-label={`${actionLabel}: ${product.title}`} title={actionLabel}
@@ -203,7 +210,7 @@ export function ProductTile({ product, categories, onAdd, onOpen, variant = 'pho
       <div className="px-0.5 pt-3">
         <h3 className={`font-medium leading-snug text-gray-900 line-clamp-2 ${size === 'lg' ? 'text-base sm:text-lg' : 'text-sm sm:text-[15px]'}`}>{product.title}</h3>
         {!settings.hidePrices && <div className="mt-1"><Price product={product} className={`font-semibold text-gray-900 ${size === 'lg' ? 'text-base' : 'text-sm sm:text-base'}`} /></div>}
-        {stock === 'low' && <p className="mt-1 text-xs font-medium text-amber-700">{product.stock === 1 ? 'Resta 1 unidade' : `Restam ${product.stock} unidades`}</p>}
+        {stock === 'low' && <p className="mt-1 text-xs font-medium text-amber-700">{product.stock === 1 ? t('tLeftOne') : t('tLeftMany', { n: product.stock })}</p>}
       </div>
     </article>
   ) : (
@@ -218,17 +225,17 @@ export function ProductTile({ product, categories, onAdd, onOpen, variant = 'pho
       {photo}
       <div className="flex flex-1 flex-col p-3 sm:p-4">
         <h3 className="text-sm sm:text-base font-semibold leading-snug text-gray-900 line-clamp-2">{product.title}</h3>
-        {settings.leadTimeEnabled && product.leadTime && (
+        {settings.leadTimeEnabled && settings.showCardLeadTime && product.leadTime && (
           <p className="mt-1 flex items-center gap-1 text-xs text-gray-600"><Clock className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" /><span className="truncate">{product.leadTime}</span></p>
         )}
-        {stock === 'low' && <p className="mt-1 text-xs font-medium text-amber-700">{product.stock === 1 ? 'Resta 1 unidade' : `Restam ${product.stock} unidades`}</p>}
+        {stock === 'low' && <p className="mt-1 text-xs font-medium text-amber-700">{product.stock === 1 ? t('tLeftOne') : t('tLeftMany', { n: product.stock })}</p>}
         <div className="mt-auto pt-3">
           {!settings.hidePrices && <Price product={product} className="text-base sm:text-lg font-bold text-gray-900" />}
           <button
             onClick={act} disabled={out}
             className={`mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${out ? 'cursor-not-allowed bg-gray-100 text-gray-500' : added ? 'bg-green-600 text-white' : 'border border-blue-600 text-blue-700 hover:bg-blue-600 hover:text-white'}`}
           >
-            {added ? <><Check className="h-4 w-4" aria-hidden="true" /> No orçamento</> : out ? 'Indisponível' : hasOptions ? 'Escolher opções' : <><Plus className="h-4 w-4" aria-hidden="true" /> Adicionar</>}
+            {added ? <><Check className="h-4 w-4" aria-hidden="true" /> {t('tAddedToBudget')}</> : out ? t('tUnavailable') : hasOptions ? t('tChooseOptions') : <><Plus className="h-4 w-4" aria-hidden="true" /> {t('tAdd')}</>}
           </button>
         </div>
       </div>

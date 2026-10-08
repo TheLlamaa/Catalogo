@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { makeT } from '../../lib/texts';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, SlidersHorizontal, ShoppingCart,
@@ -9,7 +10,7 @@ import ProductImage from './ProductImage';
 import { useSettings } from '../../components/SettingsContext';
 import { auraProps, auraDot } from '../../lib/auras';
 import { badgeStyle } from '../../lib/theme';
-import { availability, badgeFor, effectiveAura, newProducts } from '../../lib/catalog';
+import { availability, badgeFor, effectiveAura, lowStockMaxOf, newProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
 import { matchesQuery } from '../../lib/text';
@@ -38,6 +39,8 @@ const GRID_CLASS: Record<string, string> = { '2': 'lg:grid-cols-2', '3': 'lg:gri
 
 export default function CatalogView({ products, categories, loadError, onRetry, onAddToCart, onOpenProduct, onOpenCustomRequest }: CatalogViewProps) {
   const settings = useSettings();
+  const t = makeT(settings);
+  const pageSize = Number(settings.pageSize) || PAGE_SIZE;
   // Filtros ficam no endereço: ?categoria=chaveiros&q=vaso&ordem=price_asc
   const [params, setParams] = useSearchParams();
   const categoryParam = params.get('categoria') || 'all';
@@ -73,8 +76,8 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
 
   // "Ver mais": volta para a primeira página sempre que busca, categoria ou ordem mudam
   const filterKey = `${activeCategoryId}|${searchQuery}|${sortOrder}`;
-  const [shown, setShown] = useState({ key: filterKey, n: PAGE_SIZE });
-  const visibleCount = shown.key === filterKey ? shown.n : PAGE_SIZE;
+  const [shown, setShown] = useState({ key: filterKey, n: pageSize });
+  const visibleCount = shown.key === filterKey ? shown.n : pageSize;
   const visibleProducts = filteredProducts.slice(0, visibleCount);
   const remaining = filteredProducts.length - visibleProducts.length;
 
@@ -84,16 +87,16 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const shelves: { id: string; title: string; items: Product[] }[] = showShelves ? [
     settings.showFeatured && { id: 'destaque', title: settings.featuredTitle, items: activeProducts.filter(p => p.section === 'destaque') },
     settings.showPopular && { id: 'popular', title: settings.popularTitle, items: activeProducts.filter(p => p.section === 'popular') },
-    settings.showNew && { id: 'novidades', title: settings.newTitle, items: newProducts(activeProducts) }
+    settings.showNew && { id: 'novidades', title: settings.newTitle, items: newProducts(activeProducts, undefined, Number(settings.newDays) || undefined, Number(settings.newMax) || undefined) }
   ].filter((s): s is { id: string; title: string; items: Product[] } => !!s && s.items.length > 0) : [];
 
   if (loadError && products.length === 0 && categories.length === 0) {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Não conseguimos carregar o catálogo</h1>
-        <p className="text-sm text-gray-600 mb-6">Pode ser uma falha de conexão ou uma manutenção rápida. Tente de novo em instantes.</p>
-        <Button variant="primary" onClick={onRetry}>Tentar novamente</Button>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">{t('tLoadErrorTitle')}</h1>
+        <p className="text-sm text-gray-600 mb-6">{t('tLoadErrorText')}</p>
+        <Button variant="primary" onClick={onRetry}>{t('tRetry')}</Button>
       </div>
     );
   }
@@ -113,7 +116,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             <input
               id="busca"
               type="text"
-              placeholder="Buscar modelos..."
+              placeholder={t('tSearchPlaceholder')}
               value={searchQuery}
               onChange={(e) => updateParam('q', e.target.value, '')}
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -122,13 +125,13 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         </div>}
 
         <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)]" aria-label="Categorias">
-          <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Categorias</h2>
+          <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">{t('tCategoriesTitle')}</h2>
           <button
             onClick={() => updateParam('categoria', 'all', 'all')}
             aria-current={activeCategoryId === 'all' ? 'true' : undefined}
             className={`text-left px-3 py-2 rounded-md text-sm transition-colors whitespace-nowrap flex-shrink-0 max-md:border max-md:rounded-full ${activeCategoryId === 'all' ? 'bg-blue-50 text-blue-700 font-medium max-md:border-blue-200' : 'text-gray-700 hover:bg-gray-100 max-md:border-gray-200 max-md:bg-white'}`}
           >
-            Todos os modelos
+            {t('tAllProducts')}
           </button>
           {activeCategories.map(category => (
             <button
@@ -170,20 +173,22 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <SlidersHorizontal className="w-4 h-4 text-gray-500 hidden sm:block" />
-            <label htmlFor="ordem" className="sr-only">Ordenar por</label>
-            <select
-              id="ordem"
-              value={sortOrder}
-              onChange={(e) => updateParam('ordem', e.target.value, settings.defaultSort)}
-              className="block w-full border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm bg-white cursor-pointer"
-            >
-              <option value="recent">Mais recentes</option>
-              <option value="price_asc">Menor preço</option>
-              <option value="price_desc">Maior preço</option>
-            </select>
-          </div>
+          {settings.showSort && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <SlidersHorizontal className="w-4 h-4 text-gray-500 hidden sm:block" />
+              <label htmlFor="ordem" className="sr-only">Ordenar por</label>
+              <select
+                id="ordem"
+                value={sortOrder}
+                onChange={(e) => updateParam('ordem', e.target.value, settings.defaultSort)}
+                className="block w-full border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm bg-white cursor-pointer"
+              >
+                <option value="recent">{t('tSortRecent')}</option>
+                <option value="price_asc">{t('tSortPriceAsc')}</option>
+                <option value="price_desc">{t('tSortPriceDesc')}</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {shelves.map(shelf => (
@@ -203,7 +208,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             </div>
           </section>
         ))}
-        {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">Todos os modelos</h2>}
+        {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">{t('tAllProducts')}</h2>}
 
         <div className={`grid grid-cols-2 ${GRID_CLASS[settings.gridCols] || GRID_CLASS['3']} gap-3 sm:gap-6`}>
 
@@ -221,17 +226,17 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         {remaining > 0 && (
           <div className="mt-6 text-center">
             <button
-              onClick={() => setShown({ key: filterKey, n: visibleCount + PAGE_SIZE })}
+              onClick={() => setShown({ key: filterKey, n: visibleCount + pageSize })}
               className="px-6 py-2.5 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-50"
             >
-              Ver mais ({remaining})
+              {t('tLoadMore')} ({remaining})
             </button>
           </div>
         )}
 
         {filteredProducts.length === 0 && (
           <p className="text-center text-sm text-gray-500 py-10">
-            Nenhum produto encontrado{searchQuery ? ` para “${searchQuery}”` : ''}. Tente outra busca ou categoria.
+            {t('tNoResults')}{searchQuery ? ` para “${searchQuery}”` : ''}. {t('tNoResultsHint')}
           </p>
         )}
       </div>
@@ -248,11 +253,12 @@ interface ProductCardProps {
 
 function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardProps) {
   const settings = useSettings();
+  const t = makeT(settings);
   const { auraLib } = settings;
   const badge = badgeFor(product, settings);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
-  const stock = availability(product, settings.stockControl);
+  const stock = availability(product, settings.stockControl, lowStockMaxOf(settings));
   const isOutOfStock = stock === 'out';
   const hasOptions = (product.options || []).length > 0;
 
@@ -288,14 +294,14 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-500"><ImageIcon className="h-10 w-10 opacity-60" aria-hidden="true" /><span className="text-xs text-gray-600">Foto em breve</span></div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-500"><ImageIcon className="h-10 w-10 opacity-60" aria-hidden="true" /><span className="text-xs text-gray-600">{t('tPhotoSoon')}</span></div>
         )}
 
         {badge && (
           <span style={badgeStyle(settings.badgeColor)} className="absolute top-2 left-2 z-10 text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider max-w-[70%] truncate">{badge}</span>
         )}
         {isOutOfStock && (
-          <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">Esgotado</span>
+          <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">{t('tSoldOut')}</span>
         )}
       </div>
       <div className="p-3 sm:p-5 flex flex-col flex-1">
@@ -303,13 +309,13 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
         {/* Estoque só aparece quando ajuda a decidir: poucas unidades (o "Esgotado" já está na foto) */}
         {stock === 'low' && (
           <span className="text-xs text-amber-700 mb-1 font-medium">
-            {product.stock === 1 ? 'Resta 1 unidade' : `Restam ${product.stock} unidades`}
+            {product.stock === 1 ? t('tLeftOne') : t('tLeftMany', { n: product.stock })}
           </span>
         )}
-        {settings.leadTimeEnabled && product.leadTime && (
+        {settings.leadTimeEnabled && settings.showCardLeadTime && product.leadTime && (
           <span className="hidden sm:flex text-xs text-gray-500 mb-2 font-medium items-center gap-1"><Clock className="w-3 h-3" /> {product.leadTime}</span>
         )}
-        <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p>
+        {settings.showCardDescription ? <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{product.description}</p> : <div className="flex-1" />}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 mt-auto pt-2 sm:pt-4 border-t border-gray-100">
           {!settings.hidePrices && <Price product={product} className="text-base sm:text-lg font-bold text-gray-900" />}
           <button
@@ -317,7 +323,7 @@ function ProductCard({ product, categories, onAddToCart, onClick }: ProductCardP
             onClick={(e) => { e.stopPropagation(); if (hasOptions) onClick(); else onAddToCart(); }}
             className={`px-2 sm:px-3 py-2 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
           >
-            <ShoppingCart className="w-4 h-4" /> {isOutOfStock ? 'Indisponível' : hasOptions ? 'Escolher opções' : 'Adicionar'}
+            <ShoppingCart className="w-4 h-4" /> {isOutOfStock ? t('tUnavailable') : hasOptions ? t('tChooseOptions') : t('tAdd')}
           </button>
         </div>
       </div>

@@ -59,6 +59,7 @@ export const formatOptions = (options: unknown): string => (
 );
 
 interface OrderMessageInput {
+  labels?: { total?: string; pickup?: string; delivery?: string; notes?: string }; // rótulos editáveis em Textos e mensagens
   name: string;
   items: { title: string; price: number; quantity: number; options?: unknown }[];
   total: number;
@@ -73,15 +74,15 @@ export const DEFAULT_ORDER_INTRO = 'Olá! Acabei de enviar um pedido pelo site. 
 // Troca {nome} pelo nome do cliente (se o texto não tiver {nome}, fica como está)
 export const fillName = (template: string, name: string): string => template.split('{nome}').join(name);
 
-export const buildOrderMessage = ({ name, items, total, notes, deliveryMethod, deliveryAddress, intro }: OrderMessageInput): string => {
+export const buildOrderMessage = ({ name, items, total, notes, deliveryMethod, deliveryAddress, intro, labels }: OrderMessageInput): string => {
   const lines = [fillName(intro?.trim() || DEFAULT_ORDER_INTRO, name), ''];
   items.forEach(i => {
     const opt = formatOptions(i.options);
     lines.push(`• ${i.quantity}x ${i.title}${opt ? ` (${opt})` : ''} - ${brl(i.price * i.quantity)}`);
   });
-  lines.push('', `Total: ${brl(total)}`);
-  lines.push(deliveryMethod === 'entrega' ? `Entrega: ${deliveryAddress}` : 'Retirada');
-  if (notes) lines.push('', `Observações: ${notes}`);
+  lines.push('', `${labels?.total || 'Total:'} ${brl(total)}`);
+  lines.push(deliveryMethod === 'entrega' ? `${labels?.delivery || 'Entrega:'} ${deliveryAddress}` : (labels?.pickup || 'Retirada'));
+  if (notes) lines.push('', `${labels?.notes || 'Observações:'} ${notes}`);
   return lines.join('\n');
 };
 

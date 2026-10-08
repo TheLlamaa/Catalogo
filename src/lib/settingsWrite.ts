@@ -70,6 +70,7 @@ export function findFormProblem(form: FormValues): FormProblem | null {
   for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
     if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return bad(f.key, `${f.label}: use @usuario ou um link começando com https://`);
   }
+  if (str(form.mapLink).trim() && !/^https?:\/\/\S+$/i.test(str(form.mapLink).trim())) return bad('mapLink', 'Link do mapa: cole o endereço completo, começando com https://');
   if (!isValidMinOrder(form.minOrder)) return bad('minOrder', 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.');
   const slugs = new Set<string>();
   for (const k of PAGE_KEYS) {

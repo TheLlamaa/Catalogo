@@ -1,5 +1,6 @@
 // Versão A, "Vitrine": as fotos abrem a página. Capa com mosaico dos destaques, categorias em abas e grade de fotos grandes.
 import type { Product } from '../../../types';
+import { makeT } from '../../../lib/texts';
 import ProductImage from '../ProductImage';
 import Price from '../Price';
 import { ITEMS, withCustomBand, useCatalogFilters, SearchField, SortSelect, CategoryDot, LoadMore, EmptyResult, ProductTile, gridColsClass, type HomeProps } from './shared';
@@ -68,7 +69,7 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
         <div className="mb-6 border-b border-gray-200">
           <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between md:gap-6">
             {settings.showCategoryTabs ? <nav aria-label="Categorias" className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <button onClick={() => f.selectCategory(null)} className={tab(f.activeCategoryId === 'all')} aria-current={f.activeCategoryId === 'all' ? 'page' : undefined}>Tudo</button>
+              <button onClick={() => f.selectCategory(null)} className={tab(f.activeCategoryId === 'all')} aria-current={f.activeCategoryId === 'all' ? 'page' : undefined}>{makeT(f.settings)('tAllTab')}</button>
               {f.activeCategories.map(c => (
                 <button key={c.id} onClick={() => f.selectCategory(c)} className={`${tab(f.activeCategoryId === c.id)} flex items-center gap-1.5`} aria-current={f.activeCategoryId === c.id ? 'page' : undefined}>
                   {c.name}<CategoryDot category={c} />

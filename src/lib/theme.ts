@@ -201,7 +201,10 @@ const SOCIAL = [
   { key: 'socialInstagram', label: 'Instagram', base: 'https://instagram.com/' },
   { key: 'socialTiktok', label: 'TikTok', base: 'https://tiktok.com/@' },
   { key: 'socialFacebook', label: 'Facebook', base: 'https://facebook.com/' },
-  { key: 'socialYoutube', label: 'YouTube', base: 'https://youtube.com/@' }
+  { key: 'socialYoutube', label: 'YouTube', base: 'https://youtube.com/@' },
+  { key: 'socialPinterest', label: 'Pinterest', base: 'https://pinterest.com/' },
+  { key: 'socialX', label: 'X', base: 'https://x.com/' },
+  { key: 'socialLinkedin', label: 'LinkedIn', base: 'https://linkedin.com/in/' }
 ];
 export const normalizeSocial = (key: string, value: unknown): string => {
   const v = String(value || '').trim();

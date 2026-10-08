@@ -8,6 +8,7 @@ import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
 import type { ImageGuideKey } from './imageGuides';
 import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
 import { HINTS } from './settingsHints';
+import { TEXTS, TEXT_SECTIONS } from './texts';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ interface SettingFieldBase {
 
 // Campos de texto livre (valor guardado como string)
 interface TextLikeField extends SettingFieldBase {
-  type: 'text' | 'phone' | 'email' | 'social' | 'image';
+  type: 'text' | 'phone' | 'email' | 'social' | 'image' | 'url';
   default: string;
   max?: number;
   guide?: ImageGuideKey; // campos de imagem: orientação de tamanho mostrada abaixo do envio
@@ -92,8 +93,10 @@ export interface Settings {
   lowStockBadge: boolean; relatedEnabled: boolean; relatedTitle: string;
   defaultSort: string; showSearch: boolean; hidePrices: boolean; badgeColor: string; lowStockText: string;
   ordersPaused: boolean; pausedMessage: string; minOrder: string; deliveryEnabled: boolean; notesEnabled: boolean; deliveryNote: string;
-  socialInstagram: string; socialTiktok: string; socialFacebook: string; socialYoutube: string;
-  footerText: string;
+  socialInstagram: string; socialTiktok: string; socialFacebook: string; socialYoutube: string; socialPinterest: string; socialX: string; socialLinkedin: string;
+  footerText: string; address: string; openingHours: string; mapLink: string; showEmailFooter: boolean; showAdminLink: boolean;
+  pageSize: string; showSort: boolean; showCardDescription: boolean; showCardLeadTime: boolean; showCopyLink: boolean; showStockCount: boolean;
+  relatedCount: string; lowStockMax: string; newDays: string; newMax: string;
   auraLib: AuraLib;
   faq: FaqItem[];
   pages: ExtraPage[];
@@ -110,9 +113,11 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: modelo, capa, faixa de aviso, passo a passo e as seções Destaques, Mais pedidos e Novidades.',
     sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Seções no topo da vitrine', 'Capa da vitrine', 'Página inicial (vitrine)', 'Faixa de aviso no topo', 'Passo a passo do pedido'] },
   { id: 'produtos', label: 'Loja e produtos', description: 'Como os produtos aparecem: ordem, busca, preços, a janela do produto, selos e relacionados.',
-    sections: ['Exibição da vitrine', 'Janela do produto'] },
+    sections: ['Exibição da vitrine', 'Janela do produto', 'Selos e estoque baixo'] },
   { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, textos do carrinho e a página de peça personalizada.',
     sections: ['Pedidos', 'Carrinho e pedido', 'Faixa de destaque (peça personalizada)', 'Página de peça personalizada'] },
+  { id: 'textos', label: 'Textos e mensagens', description: 'Todos os textos de botões, avisos, formulários e estados vazios da vitrine. O que você não mudar continua como está.',
+    sections: TEXT_SECTIONS },
   { id: 'menus', label: 'Menus e páginas', description: 'Menu do topo, rodapé, página Sobre, perguntas frequentes, páginas extras e política de privacidade.',
     sections: ['Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Páginas', 'Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Política de privacidade'] },
   { id: 'contato', label: 'Contato e redes', description: 'Nome da loja, WhatsApp, e-mail, redes sociais e a linha extra do rodapé.',
@@ -232,6 +237,10 @@ const RAW_SCHEMA: SettingsSection[] = [
       { key: 'storeName', label: 'Nome da loja', type: 'text', max: 60, default: STORE_NAME },
       { key: 'whatsapp', label: 'WhatsApp da loja', type: 'phone', default: STORE_WHATSAPP, hint: 'Recebe os pedidos. Ex: (48) 99999-9999' },
       { key: 'email', label: 'E-mail de contato', type: 'email', max: 120, default: STORE_EMAIL, hint: 'Aparece na política de privacidade. Opcional.' },
+      { key: 'address', label: 'Endereço da loja', type: 'text', max: 160, default: '', hint: 'Ex: Rua das Flores, 10, Centro, Florianópolis. Aparece no rodapé. Vazio = não mostra.' },
+      { key: 'openingHours', label: 'Horário de atendimento', type: 'text', max: 120, default: '', hint: 'Ex: Segunda a sexta, das 9h às 18h. Aparece no rodapé. Vazio = não mostra.' },
+      { key: 'mapLink', label: 'Link do mapa', type: 'url', max: 300, default: '', hint: 'Link do Google Maps (começa com https://). Cria o link "Como chegar" no rodapé.' },
+      { key: 'showEmailFooter', label: 'Mostrar o e-mail no rodapé', type: 'toggle', default: false, hint: 'O e-mail de contato aparece como link no rodapé.' },
     ]
   },
   {
@@ -334,6 +343,8 @@ const RAW_SCHEMA: SettingsSection[] = [
       { key: 'popularTitle', label: 'Título de Mais pedidos', type: 'text', max: 40, default: 'Mais pedidos' },
       { key: 'showNew', label: 'Mostrar "Novidades"', type: 'toggle', default: true, hint: 'Produtos dos últimos 30 dias.' },
       { key: 'newTitle', label: 'Título de Novidades', type: 'text', max: 40, default: 'Novidades' },
+      { key: 'newDays', label: 'Até quantos dias um produto é "novidade"', type: 'select', default: '30', options: ['7', '15', '30', '60', '90'].map(n => ({ value: n, label: `${n} dias` })) },
+      { key: 'newMax', label: 'Máximo de produtos em Novidades', type: 'select', default: '8', options: ['4', '6', '8', '12'].map(n => ({ value: n, label: `${n} produtos` })) },
     ]
   },
   {
@@ -352,16 +363,29 @@ const RAW_SCHEMA: SettingsSection[] = [
       { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', display: 'sort', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
       { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
       { key: 'hidePrices', label: 'Esconder os preços', type: 'toggle', default: false, hint: 'Some dos cards, do produto e do carrinho. Use se combina o valor pelo WhatsApp.' },
+      { key: 'showSort', label: 'Mostrar a escolha de ordem (menor preço etc.)', type: 'toggle', default: true },
+      { key: 'pageSize', label: 'Produtos por vez', type: 'select', default: '12', options: ['8', '12', '16', '24', '36', '48'].map(n => ({ value: n, label: `${n} produtos` })), hint: 'Quantos aparecem antes do botão "Ver mais".' },
+      { key: 'showCardDescription', label: 'Mostrar a descrição nos cards', type: 'toggle', default: true, hint: 'No celular a descrição já fica escondida para o card caber melhor.' },
+      { key: 'showCardLeadTime', label: 'Mostrar o prazo de produção nos cards', type: 'toggle', default: true, hint: 'Só vale se o recurso "Prazo de produção" estiver ligado em Avançado.' },
     ]
   },
   {
     group: 'produtos', title: 'Janela do produto',
     fields: [
-      { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
-      { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
-      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão (#f59e0b).' },
       { key: 'relatedEnabled', label: 'Mostrar “Você também pode gostar” (produtos relacionados)', type: 'toggle', default: true, hint: 'Na janela do produto, sugere outros da mesma categoria.' },
       { key: 'relatedTitle', label: 'Título dos relacionados', type: 'text', max: 60, default: 'Você também pode gostar' },
+      { key: 'relatedCount', label: 'Quantos relacionados mostrar', type: 'select', default: '4', options: ['2', '3', '4', '6'].map(n => ({ value: n, label: n })) },
+      { key: 'showCopyLink', label: 'Mostrar o botão “Copiar link”', type: 'toggle', default: true, hint: 'Permite ao cliente copiar o endereço do produto para compartilhar.' },
+      { key: 'showStockCount', label: 'Mostrar quantas unidades há em estoque', type: 'toggle', default: true, hint: 'Só vale com “Controlar estoque” ligado. Desligado, o cliente só vê “Esgotado” quando acaba.' },
+    ]
+  },
+  {
+    group: 'produtos', title: 'Selos e estoque baixo',
+    fields: [
+      { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com poucas unidades e sem outro selo.' },
+      { key: 'lowStockMax', label: 'Quantas unidades contam como “poucas”', type: 'select', default: '3', options: ['1', '2', '3', '5', '10'].map(n => ({ value: n, label: n === '1' ? '1 unidade' : `até ${n} unidades` })), hint: 'Vale para o selo automático e para o aviso “Restam N unidades”.' },
+      { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
+      { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão (#f59e0b).' },
     ]
   },
   {
@@ -379,18 +403,31 @@ const RAW_SCHEMA: SettingsSection[] = [
       { key: 'socialTiktok', label: 'TikTok', type: 'social', max: 200, default: '' },
       { key: 'socialFacebook', label: 'Facebook', type: 'social', max: 200, default: '' },
       { key: 'socialYoutube', label: 'YouTube', type: 'social', max: 200, default: '' },
+      { key: 'socialPinterest', label: 'Pinterest', type: 'social', max: 200, default: '' },
+      { key: 'socialX', label: 'X (Twitter)', type: 'social', max: 200, default: '' },
+      { key: 'socialLinkedin', label: 'LinkedIn', type: 'social', max: 200, default: '', hint: 'Cole o link completo da sua página (começa com https://).' },
     ]
   },
   {
     group: 'contato', title: 'Rodapé',
     fields: [
       { key: 'footerText', label: 'Linha extra no rodapé', type: 'text', max: 160, default: '', hint: 'Ex: Atendimento de segunda a sexta, das 9h às 18h. Vazio = sem linha.' },
+      { key: 'showAdminLink', label: 'Mostrar o link "Área do lojista"', type: 'toggle', default: true, hint: 'Desligado, o link some do rodapé (você ainda entra pelo endereço /login). A política de privacidade fica sempre visível.' },
     ]
   }
 ];
 
+// Seções de "Textos e mensagens", geradas de texts.ts
+const TEXT_HINT = 'Aparece no site exatamente como você escrever. Apagando tudo, volta ao texto original.';
+const TEXT_SCHEMA: SettingsSection[] = TEXT_SECTIONS.map(title => ({
+  group: 'textos', title,
+  fields: TEXTS.filter(t => t.section === title).map((t): SettingField => (t.long
+    ? { key: t.key, label: t.label, type: 'textarea', default: t.default, max: t.max ?? 300, rows: 2, hint: t.hint ?? TEXT_HINT }
+    : { key: t.key, label: t.label, type: 'text', default: t.default, max: t.max ?? 120, hint: t.hint ?? TEXT_HINT })),
+}));
+
 // Campos sem explicação própria ganham a de settingsHints.ts
-export const SETTINGS_SCHEMA: SettingsSection[] = RAW_SCHEMA.map(s => ({ ...s, fields: s.fields.map(f => (f.hint || !HINTS[f.key] ? f : { ...f, hint: HINTS[f.key] })) }));
+export const SETTINGS_SCHEMA: SettingsSection[] = [...RAW_SCHEMA, ...TEXT_SCHEMA].map(s => ({ ...s, fields: s.fields.map(f => (f.hint || !HINTS[f.key] ? f : { ...f, hint: HINTS[f.key] })) }));
 
 export const SETTING_FIELDS: SettingField[] = SETTINGS_SCHEMA.flatMap(s => s.fields);
 export const DEFAULT_SETTINGS: Record<string, string | boolean> = Object.fromEntries(SETTING_FIELDS.map(f => [f.key, f.default]));
@@ -415,6 +452,7 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'date': return /^\d{4}-\d{2}-\d{2}$/.test(value);
     case 'range': { const n = Number(value); return Number.isInteger(n) && n >= field.min && n <= field.max; }
     case 'image': return isUrl(value);
+    case 'url': return isUrl(value);
     case 'page': return isCompletePage(value);
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;

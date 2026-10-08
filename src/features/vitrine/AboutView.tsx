@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { makeT } from '../../lib/texts';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronDown, MessageCircle } from 'lucide-react';
 import { useSettings } from '../../components/SettingsContext';
@@ -6,6 +7,7 @@ import { useSettings } from '../../components/SettingsContext';
 // Página "Sobre / Como funciona": texto, foto e perguntas frequentes editados no painel (Site > Sobre e perguntas)
 export default function AboutView() {
   const settings = useSettings();
+  const t = makeT(settings);
   const paragraphs = settings.aboutText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function AboutView() {
 
       {settings.faq.length > 0 && (
         <section className="mt-10" aria-labelledby="faq-title">
-          <h2 id="faq-title" className="text-lg font-semibold text-gray-900 mb-3">Perguntas frequentes</h2>
+          <h2 id="faq-title" className="text-lg font-semibold text-gray-900 mb-3">{t('tFaqTitle')}</h2>
           <div className="divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
             {settings.faq.map((item, i) => (
               <details key={i} className="group bg-white">
@@ -49,7 +51,7 @@ export default function AboutView() {
       )}
 
       {paragraphs.length === 0 && settings.faq.length === 0 && !settings.aboutImage && (
-        <p className="text-sm text-gray-500">Em breve, mais informações por aqui.</p>
+        <p className="text-sm text-gray-500">{t('tAboutEmpty')}</p>
       )}
 
       {settings.whatsapp && (
@@ -57,7 +59,7 @@ export default function AboutView() {
           href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer"
           className="mt-10 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
         >
-          <MessageCircle className="w-4 h-4" /> Ainda tem dúvida? Fale no WhatsApp
+          <MessageCircle className="w-4 h-4" /> {t('tAboutDoubt')}
         </a>
       )}
     </article>

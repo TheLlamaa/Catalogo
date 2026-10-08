@@ -159,7 +159,7 @@ const baseRows = [
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
   const tabs = await p.locator('[data-nav-section="Personalizar loja"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
-  check('áreas do Site no menu do painel', tabs.join('|') === 'Aparência|Página inicial|Loja e produtos|Pedidos e carrinho|Menus e páginas|Contato e redes|Google e compartilhamento|Avançado', tabs.join('|'));
+  check('áreas do Site no menu do painel', tabs.join('|') === 'Aparência|Página inicial|Loja e produtos|Pedidos e carrinho|Textos e mensagens|Menus e páginas|Contato e redes|Google e compartilhamento|Avançado', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo
   await p.getByLabel('Cor principal (código)').fill('#dc2626');

@@ -2,6 +2,7 @@
 // e um passo a passo do pedido, porque quem chega pela primeira vez não sabe que o orçamento vai pelo WhatsApp.
 // As peças (capa, categorias com foto, passo a passo) também são usadas pelo modelo "Vitrine + Bancada".
 import type { CSSProperties } from 'react';
+import { makeT } from '../../../lib/texts';
 import { Search } from 'lucide-react';
 import ProductImage from '../ProductImage';
 import { bannerStyle } from '../../../lib/theme';
@@ -40,7 +41,7 @@ export function BancadaHero({ f }: { f: CatalogFilters }) {
       <div className="relative mx-auto max-w-2xl text-center">
         <h1 id="titulo-loja" className={`text-[2rem] leading-[1.1] sm:text-[3.25rem] font-bold tracking-[-0.03em] text-balance ${photo ? 'text-white' : 'text-gray-900'}`}>{settings.catalogTitle}</h1>
         <p className={`mx-auto mt-4 max-w-xl text-base sm:text-lg leading-relaxed ${photo ? 'text-white/90' : 'text-gray-700'}`}>{settings.catalogSubtitle}</p>
-        <SearchField f={f} placeholder="O que você procura?" className="mx-auto mt-8 max-w-lg" inputClassName="py-3.5 sm:py-4 text-base shadow-sm" />
+        <SearchField f={f} placeholder={makeT(f.settings)('tSearchPlaceholderBancada')} className="mx-auto mt-8 max-w-lg" inputClassName="py-3.5 sm:py-4 text-base shadow-sm" />
         {settings.showHeroCategories && f.activeCategories.length > 0 && (
           <nav aria-label="Atalhos de categoria" className="mt-5 flex flex-wrap justify-center gap-2">
             {f.activeCategories.map(c => (
@@ -68,7 +69,7 @@ export function CategoryTiles({ f }: { f: CatalogFilters }) {
   }));
   return (
     <section className="mt-12" aria-labelledby="por-categoria">
-      <h2 id="por-categoria" className="text-xl font-bold tracking-tight text-gray-900">Por categoria</h2>
+      <h2 id="por-categoria" className="text-xl font-bold tracking-tight text-gray-900">{makeT(f.settings)('tByCategory')}</h2>
       <div className="mt-4 grid grid-cols-3 gap-3 lg:grid-cols-6 sm:gap-4">
         {f.activeCategories.map(c => {
           const img = covers.get(c.id);
