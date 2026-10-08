@@ -1,3 +1,4 @@
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 import { BASE, launch } from './env.mjs';
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
@@ -31,6 +32,7 @@ async function newPage({ rows, w: width, admin = false, products = mkProducts(),
     const req = r.request(); const hd = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: hd });
     const u = new URL(req.url()); const path = u.pathname;
+    if (path === '/rest/v1/rpc/is_admin') return r.fulfill({ status: 200, contentType: 'application/json', headers: hd, body: 'true' });
     if (req.method() !== 'GET') {
       let body = null; try { body = req.postDataJSON(); } catch { body = req.postData(); }
       writes.push({ method: req.method(), path, query: u.search, body });
@@ -157,8 +159,8 @@ const baseRows = [
   const { p, writes, state } = await newPage({ rows: baseRows, admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
-  const tabs = await p.locator('[data-nav-section="Site"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
-  check('áreas do Site no menu do painel', tabs.join('|') === 'Página inicial|Aparência|Dados da loja|Pedidos e carrinho|Peça personalizada|Páginas e menus|Recursos', tabs.join('|'));
+  const tabs = await p.locator('[data-nav-section="Personalizar loja"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
+  check('áreas do Site no menu do painel', tabs.join('|') === 'Aparência|Página inicial|Loja e produtos|Pedidos e carrinho|Textos e mensagens|Menus e páginas|Contato e redes|Google e compartilhamento|Avançado', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
@@ -176,7 +178,7 @@ const baseRows = [
   check('cor inválida bloqueia a publicação', writes.length === 0 && await p.getByText(/Cor inválida/).count() >= 1);
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
   // troca de aba mantém o rascunho
-  await p.getByRole('button', { name: 'Dados da loja', exact: true }).click();
+  await p.getByRole('button', { name: 'Contato e redes', exact: true }).click();
   await p.getByLabel('Instagram').fill('@novaloja');
   await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   check('rascunho mantido ao trocar de aba', (await p.getByLabel('Cor principal (código)').inputValue()) === '#dc2626');
@@ -208,7 +210,8 @@ const baseRows = [
   await p.getByRole('button', { name: 'Restaurar seção' }).first().click();
   check('restaurar seção limpa os campos', (await p.getByLabel('Cor principal (código)').inputValue()) === '');
   // FAQ editor
-  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
+  await abrirSecao(p, 'Perguntas frequentes');
   check('FAQ carregado no editor', (await p.getByLabel('Pergunta 1', { exact: true }).inputValue()) === 'Quanto demora?');
   await p.getByRole('button', { name: 'Adicionar pergunta' }).click();
   await p.getByLabel('Pergunta 3', { exact: true }).fill('Aceitam Pix?');
@@ -222,14 +225,14 @@ const baseRows = [
 {
   const { p, writes } = await newPage({ rows: [{ key: 'logoUrl', value: 'https://img.test/logo.png' }], admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
-  const slider = p.getByLabel('Tamanho da logo');
+  const slider = p.getByLabel('Tamanho da logo (computador)', { exact: true });
   check('slider começa no padrão (36)', (await slider.inputValue()) === '36');
   await slider.fill('64');
-  check('prévia usa o tamanho do slider', await p.locator('img[alt="Prévia da logo"]').evaluate(e => e.style.height) === '64px');
+  check('prévia usa o tamanho do slider', await p.locator('[aria-label="Prévia no computador"] img').first().evaluate(e => getComputedStyle(e).height) === '64px');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(500);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
   check('publica logoSize=64', post?.body.find(r => r.key === 'logoSize')?.value === '64', JSON.stringify(post?.body.map(r => r.key)));
-  await p.getByLabel('Tamanho da logo').fill('36');
+  await p.getByLabel('Tamanho da logo (computador)', { exact: true }).fill('36');
   const before = writes.length;
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(500);
   check('voltar a 36 apaga a chave (padrão)', writes.slice(before).some(w => w.method === 'DELETE' && decodeURIComponent(w.query).includes('logoSize')));
@@ -247,7 +250,7 @@ const baseRows = [
 {
   const { p, writes, state } = await newPage({ rows: [], admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
-  const names = async () => (await p.locator('tbody tr td:nth-child(2) button.text-gray-900').allInnerTexts()).map(s => s.trim());
+  const names = async () => (await p.locator('tbody tr td:nth-child(3) button.text-gray-900').allInnerTexts()).map(s => s.trim());
   const first = await names();
   check('lista admin na ordem manual', first.join('|') === 'Vaso Cubo|Chaveiro Cão|Chaveiro Gato|Vaso Onda|Item Geral', first.join('|'));
   check('seta de subir do primeiro desabilitada', await p.getByRole('button', { name: 'Subir Vaso Cubo' }).isDisabled());

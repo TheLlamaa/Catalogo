@@ -1,4 +1,5 @@
 import ImageGuideText from '../../components/ImageGuideText';
+import { makeT } from '../../lib/texts';
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -21,6 +22,7 @@ const EMPTY_FORM: CustomFormData = { clientName: '', clientPhone: '', descriptio
 
 export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProps) {
   const settings = useSettings();
+  const t = makeT(settings);
   const { toast } = useUI();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<CustomFormData>(EMPTY_FORM);
@@ -74,7 +76,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação enviada!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('tCustomSent')}</h2>
         <p className="text-gray-600 text-sm mb-6">{settings.customSuccess}</p>
 
         {settings.whatsapp && (
@@ -88,8 +90,8 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         )}
 
         <div className="flex items-center justify-center gap-3 mt-4">
-          <Button variant="soft" size="lg" onClick={() => { setSentSuccess(false); setFormData(EMPTY_FORM); }}>Enviar outra solicitação</Button>
-          <Button variant="primary" size="lg" onClick={() => navigate('/')}>Voltar para a loja</Button>
+          <Button variant="soft" size="lg" onClick={() => { setSentSuccess(false); setFormData(EMPTY_FORM); }}>{t('tCustomAnother')}</Button>
+          <Button variant="primary" size="lg" onClick={() => navigate('/')}>{t('tBackToStore')}</Button>
         </div>
       </div>
     );
@@ -116,15 +118,15 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="c-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome *</label>
+            <label htmlFor="c-nome" className="block text-sm font-medium text-gray-700 mb-1">{t('tYourName')} *</label>
             <input
-              id="c-nome" required type="text" placeholder="Ex: Maria Silva" maxLength={100}
+              id="c-nome" required type="text" placeholder={t('tCustomNamePlaceholder')} maxLength={100}
               value={formData.clientName} onChange={e => setFormData(p => ({ ...p, clientName: e.target.value }))}
               className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="c-whats" className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp *</label>
+            <label htmlFor="c-whats" className="block text-sm font-medium text-gray-700 mb-1">{t('tYourWhatsapp')} *</label>
             <input
               id="c-whats" required type="text" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
               value={formData.clientPhone} onChange={e => setFormData(p => ({ ...p, clientPhone: formatPhoneBR(e.target.value) }))}
@@ -134,7 +136,7 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         </div>
 
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-1">Foto ou Referência do Modelo</span>
+          <span className="block text-sm font-medium text-gray-700 mb-1">{t('tCustomPhotoLabel')}</span>
           {formData.imageUrl ? (
             <div className="relative w-32 h-32 border border-gray-200 rounded-lg overflow-hidden group">
               <img src={formData.imageUrl} alt="Referência enviada" className="w-full h-full object-cover" />
@@ -154,8 +156,8 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
               ) : (
                 <>
                   <Upload className="w-8 h-8 text-gray-500 mb-2" />
-                  <span className="text-sm font-medium text-gray-700">Clique para enviar uma foto ou desenho</span>
-                  <span className="text-xs text-gray-500 mt-1">PNG, JPG ou JPEG</span>
+                  <span className="text-sm font-medium text-gray-700">{t('tCustomPhotoCta')}</span>
+                  <span className="text-xs text-gray-500 mt-1">{t('tCustomPhotoFormats')}</span>
                 </>
               )}
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isCompressing} className="sr-only" />
@@ -165,25 +167,25 @@ export default function CustomRequestView({ onSaveOrder }: CustomRequestViewProp
         </div>
 
         <div>
-          <label htmlFor="c-desc" className="block text-sm font-medium text-gray-700 mb-1">Observações e detalhes da peça *</label>
+          <label htmlFor="c-desc" className="block text-sm font-medium text-gray-700 mb-1">{t('tCustomDescLabel')} *</label>
           <textarea
             id="c-desc" required rows={4} maxLength={2000}
-            placeholder="Descreva o tamanho desejado, cor, utilização da peça ou qualquer detalhe importante..."
+            placeholder={t('tCustomDescPlaceholder')}
             value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
             className={inputClass}
           />
         </div>
 
         <p className="text-xs text-gray-500">
-          Usamos seu nome, WhatsApp e a foto apenas para responder a este pedido.{' '}
-          <Link to="/privacidade" className="text-blue-700 underline">Política de privacidade</Link>
+          {t('tCustomPrivacyNote')}{' '}
+          <Link to="/privacidade" className="text-blue-700 underline">{t('tFooterPrivacy')}</Link>
         </p>
 
         <Button type="submit" variant="primary" size="lg" className="w-full font-semibold" disabled={isSubmitting || settings.ordersPaused} aria-busy={isSubmitting}>
           {isSubmitting ? (
-            <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">Enviando solicitação…</span></>
+            <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">{t('tCustomSending')}</span></>
           ) : (
-            <><Send className="w-5 h-5" aria-hidden="true" /> Enviar solicitação de orçamento</>
+            <><Send className="w-5 h-5" aria-hidden="true" /> {t('tCustomSubmit')}</>
           )}
         </Button>
       </form>

@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { gateway } from '../../../services/gateway';
 import { X, Trash2, Sparkles, ShoppingBag, User, Phone, Calendar, Truck, Image as ImageIcon, MessageSquare, Box } from 'lucide-react';
 import { whatsappButtonClass } from '../../../components/ui';
 import Dialog from '../../../components/Dialog';
@@ -7,7 +8,7 @@ import { useUI } from '../../../components/UIContext';
 import { useSettings } from '../../../components/SettingsContext';
 import { StatusSelect } from './StatusSelect';
 import { brl, formatOptions, customerWhatsapp, whatsappLink } from '../../../lib/format';
-import { ageInfo, itemModelUrl, orderCode } from '../../../lib/orders';
+import { ageInfo, hasReferenceImage, itemModelUrl, orderCode } from '../../../lib/orders';
 import type { CatalogOrder, CustomOrder, OrderStatusId, Product } from '../../../types';
 
 type IconType = ComponentType<{ className?: string }>;
@@ -80,7 +81,23 @@ interface OrderDetailModalProps<T> {
   onUpdateStatus: (id: string, status: OrderStatusId) => unknown;
 }
 
+// A lista de pedidos vem sem a foto de referência (é pesada); ela é buscada aqui, só ao abrir o pedido.
+function useReferenceImage(order: CustomOrder): { src: string | null; loading: boolean } {
+  const [loaded, setLoaded] = useState<{ id: string; src: string | null } | null>(null);
+  const inList = order.image_url || null;
+  const wanted = !inList && hasReferenceImage(order);
+  useEffect(() => {
+    if (!wanted) return;
+    let alive = true;
+    gateway().loadReferenceImage(order.id).then(src => { if (alive) setLoaded({ id: order.id, src }); });
+    return () => { alive = false; };
+  }, [wanted, order.id]);
+  const ready = loaded?.id === order.id;
+  return { src: inList ?? (ready ? loaded.src : null), loading: wanted && !ready };
+}
+
 export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatus }: OrderDetailModalProps<CustomOrder>) {
+  const image = useReferenceImage(order);
   const { confirm } = useUI();
 
   const handleDelete = async () => {
@@ -96,9 +113,11 @@ export function CustomOrderDetailModal({ order, onClose, onDelete, onUpdateStatu
         <WhatsappButton order={order} label="Responder no WhatsApp" message={`Olá ${order.client_name}! Recebi sua solicitação de peça personalizada pelo site.`} />
       </>}
     >
-      {order.image_url ? (
+      {image.loading ? (
+        <div role="status" className="border border-gray-200 rounded-lg p-8 text-center bg-gray-50 text-gray-500 text-sm">Carregando a foto…</div>
+      ) : image.src ? (
         <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex justify-center max-h-80">
-          <img src={order.image_url} alt="Referência enviada" className="object-contain max-h-80 w-auto" />
+          <img src={image.src} alt="Referência enviada" className="object-contain max-h-80 w-auto" />
         </div>
       ) : (
         <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 text-gray-500">

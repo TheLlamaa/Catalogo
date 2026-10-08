@@ -11,7 +11,8 @@ import { optionsFor } from '../../../lib/auras';
 import { useSettings } from '../../../components/SettingsContext';
 import { brl, isHttpUrl } from '../../../lib/format';
 import { MAX_DISCOUNT, clampDiscount, discountedPrice } from '../../../lib/discount';
-import type { Category, Product, ProductOption, StoredProduct } from '../../../types';
+import type { Category, Product, ProductDetail, ProductOption, ProductSpec, StoredProduct } from '../../../types';
+import { DETAIL_SUGGESTIONS, DETAIL_TEXT_MAX, DETAIL_TITLE_MAX, MAX_DETAILS, MAX_SPECS, SPEC_NAME_MAX, SPEC_SUGGESTIONS, SPEC_VALUE_MAX } from '../../../lib/productInfo';
 import { friendlyError } from '../../../lib/errorMessage';
 
 const MAX_OPTION_GROUPS = 4;
@@ -71,11 +72,13 @@ interface ProductFormState {
   section: string;
   modelUrl: string;
   options: { name: string; values: string }[];
+  specs: ProductSpec[];
+  details: ProductDetail[];
 }
 
 
 export default function ProductForm({ initialData, categories, onSave, onCancel, onOpenSettings }: ProductFormProps) {
-  const { toast } = useUI();
+  const { toast, confirm } = useUI();
   const settings = useSettings();
   const { auraLib, stockControl, leadTimeEnabled, aurasEnabled, modelLinkEnabled } = settings;
 
@@ -101,7 +104,9 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
     section: initialData?.section || '',
     modelUrl: initialData?.modelUrl || '',
     // Opções do produto: [{ name: 'Cor', values: 'Branco, Preto' }] (valores como texto separado por vírgula)
-    options: (initialData?.options || []).map(o => ({ name: o.name, values: (o.values || []).join(', ') }))
+    options: (initialData?.options || []).map(o => ({ name: o.name, values: (o.values || []).join(', ') })),
+    specs: (initialData?.specs || []).map(x => ({ ...x })),
+    details: (initialData?.details || []).map(x => ({ ...x })),
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -167,12 +172,19 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
       options.push({ name, values });
     }
 
+    if (formData.specs.some(x => !!x.name.trim() !== !!x.value.trim())) return toast.error('Cada característica precisa de um nome e de um valor (ex: Altura → 20 cm).');
+    if (formData.details.some(x => !!x.title.trim() && !x.text.trim())) return toast.error('Cada bloco de informação com título precisa de um texto (ou apague o bloco).');
+
     const modelUrl = formData.modelUrl.trim();
     if (modelUrl && !isHttpUrl(modelUrl)) return toast.error('O link do modelo precisa começar com http:// ou https://');
 
     const discountRaw = formData.discount.trim();
     if (discountRaw && (!/^\d{1,2}$/.test(discountRaw) || Number(discountRaw) > MAX_DISCOUNT)) return toast.error(`Desconto: use um número inteiro de 0 a ${MAX_DISCOUNT} (ex: 15 para 15%).`);
 
+    if (!(parseFloat(formData.price) > 0) && !settings.hidePrices) {
+      const goOn = await confirm({ title: 'Preço zerado', message: 'O produto vai aparecer na vitrine como R$ 0,00. Publicar mesmo assim? (Para combinar o valor pelo WhatsApp, ligue "Esconder os preços" em Site.)', confirmLabel: 'Salvar assim mesmo' });
+      if (!goOn) return;
+    }
     setSaving(true);
     const { discount: _discount, ...rest } = formData;
     await onSave({
@@ -235,6 +247,73 @@ export default function ProductForm({ initialData, categories, onSave, onCancel,
           <div>
             <label htmlFor="p-desc" className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>
             <textarea id="p-desc" required rows={4} value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} className={inputCls} />
+          </div>
+        </Group>
+
+        <Group title="Detalhes do produto" hint="Aparecem na janela do produto, logo abaixo da descrição. Tudo opcional.">
+          <div>
+            <span className="block text-sm font-medium text-gray-700 mb-2">Características <span className="text-gray-500 font-normal">(ex: Material, Altura, Peso)</span></span>
+            <div className="space-y-2">
+              {formData.specs.map((spec, i) => (
+                <div key={i} className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] sm:items-center">
+                  <input
+                    type="text" aria-label={`Nome da característica ${i + 1}`} list="p-spec-nomes" maxLength={SPEC_NAME_MAX} placeholder="Nome (ex: Altura)"
+                    value={spec.name} onChange={e => setFormData(p => ({ ...p, specs: p.specs.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) }))} className={inputCls}
+                  />
+                  <button
+                    type="button" aria-label={`Remover característica ${i + 1}`} onClick={() => setFormData(p => ({ ...p, specs: p.specs.filter((_, j) => j !== i) }))}
+                    className="p-2 text-gray-500 hover:text-red-600 sm:order-3"
+                  ><Trash2 className="w-4 h-4" /></button>
+                  <input
+                    type="text" aria-label={`Valor da característica ${i + 1}`} maxLength={SPEC_VALUE_MAX} placeholder="Valor (ex: 20 cm)"
+                    value={spec.value} onChange={e => setFormData(p => ({ ...p, specs: p.specs.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)) }))} className={`${inputCls} col-span-2 sm:col-span-1 sm:order-2`}
+                  />
+                </div>
+              ))}
+            </div>
+            <datalist id="p-spec-nomes">{SPEC_SUGGESTIONS.map(s => <option key={s} value={s}>{s}</option>)}</datalist>
+            {formData.specs.length < MAX_SPECS && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {SPEC_SUGGESTIONS.filter(n => !formData.specs.some(x => x.name.trim().toLowerCase() === n.toLowerCase())).slice(0, 5).map(n => (
+                  <button key={n} type="button" onClick={() => setFormData(p => ({ ...p, specs: [...p.specs, { name: n, value: '' }] }))} className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"><Plus className="w-3 h-3" aria-hidden="true" /> {n}</button>
+                ))}
+                <button type="button" onClick={() => setFormData(p => ({ ...p, specs: [...p.specs, { name: '', value: '' }] }))} className="text-sm font-medium text-blue-700 hover:text-blue-800 flex items-center gap-1"><Plus className="w-4 h-4" /> Outra característica</button>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <span className="block text-sm font-medium text-gray-700 mb-2">Informações extras <span className="text-gray-500 font-normal">(ex: Prazo de produção, Cuidados com a peça)</span></span>
+            <div className="space-y-3">
+              {formData.details.map((d, i) => (
+                <div key={i} className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text" aria-label={`Título do bloco ${i + 1}`} list="p-detalhe-titulos" maxLength={DETAIL_TITLE_MAX} placeholder="Título (ex: Cuidados com a peça)"
+                      value={d.title} onChange={e => setFormData(p => ({ ...p, details: p.details.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) }))} className={`${inputCls} flex-1`}
+                    />
+                    <button
+                      type="button" aria-label={`Remover bloco ${i + 1}`} onClick={() => setFormData(p => ({ ...p, details: p.details.filter((_, j) => j !== i) }))}
+                      className="p-2 text-gray-500 hover:text-red-600"
+                    ><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                  <textarea
+                    aria-label={`Texto do bloco ${i + 1}`} rows={3} maxLength={DETAIL_TEXT_MAX} placeholder="Escreva o texto. Linha em branco separa parágrafos."
+                    value={d.text} onChange={e => setFormData(p => ({ ...p, details: p.details.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) }))} className={inputCls}
+                  />
+                  <p className="text-xs text-gray-500">Dica: **negrito**, *itálico* e [texto do link](https://endereço) funcionam aqui. {d.text.length}/{DETAIL_TEXT_MAX}</p>
+                </div>
+              ))}
+            </div>
+            <datalist id="p-detalhe-titulos">{DETAIL_SUGGESTIONS.map(s => <option key={s} value={s}>{s}</option>)}</datalist>
+            {formData.details.length < MAX_DETAILS && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {DETAIL_SUGGESTIONS.filter(n => !formData.details.some(x => x.title.trim().toLowerCase() === n.toLowerCase())).slice(0, 3).map(n => (
+                  <button key={n} type="button" onClick={() => setFormData(p => ({ ...p, details: [...p.details, { title: n, text: '' }] }))} className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"><Plus className="w-3 h-3" aria-hidden="true" /> {n}</button>
+                ))}
+                <button type="button" onClick={() => setFormData(p => ({ ...p, details: [...p.details, { title: '', text: '' }] }))} className="text-sm font-medium text-blue-700 hover:text-blue-800 flex items-center gap-1"><Plus className="w-4 h-4" /> Outro bloco</button>
+              </div>
+            )}
           </div>
         </Group>
 

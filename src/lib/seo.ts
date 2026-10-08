@@ -15,6 +15,13 @@ export interface SeoInput { seoTitle?: string; seoDescription?: string; seoImage
 
 let originalTitle: string | null = null;
 
+/** Título, descrição e imagem de uma página específica (Sobre, páginas extras); o que faltar vem das configurações do site. */
+export const pageSeo = (site: SeoInput & { storeName?: string }, page: { title: string; description?: string; image?: string }): SeoInput => ({
+  seoTitle: `${page.title} | ${site.storeName || ''}`.replace(/ \| $/, ''),
+  seoDescription: (page.description || '').trim() || site.seoDescription,
+  seoImage: (page.image || '').trim() || site.seoImage,
+});
+
 // setTitle = false nas telas que têm título próprio (produto, Sobre, páginas extras)
 export const applySeo = ({ seoTitle, seoDescription, seoImage }: SeoInput, setTitle = true): void => {
   if (typeof document === 'undefined') return;

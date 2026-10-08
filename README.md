@@ -7,6 +7,7 @@ Site de catálogo para pequenas lojas: o cliente escolhe os produtos, monta um o
 ## O que tem
 
 - **Vitrine:** categorias, busca, ordenação, destaques, mais pedidos, novidades, página de cada produto, produtos relacionados, carrinho/orçamento, pedido personalizado e página Sobre.
+- **Personalizar loja (`/admin` > Personalizar loja):** 9 áreas por tarefa (Aparência, Página inicial, Loja e produtos, Pedidos e carrinho, Textos e mensagens, Menus e páginas, Contato e redes, Google e compartilhamento, Avançado), busca em todo o painel (Ctrl+K), prévia ao vivo, revisão antes de publicar, backup em arquivo. Textos, ordem das seções, blocos extras, fonte, cantos e modo escuro são editáveis; sem mexer, o site continua igual.
 - **Painel do dono (`/admin`):** pedidos com resumo, filtros, relatório e planilhas; produtos e categorias com ordem manual; equipe; personalização completa do site (cores, fonte, logo, textos, menus, faixa de aviso, redes sociais).
 - **Recursos que cada loja liga ou desliga:** controle de estoque, pedidos personalizados, prazo de produção, efeito de aura e link do modelo 3D.
 - **Segurança no banco:** regras de acesso (RLS), preço e total dos pedidos calculados pelo banco, limite anti-spam por telefone, administradores em tabela.

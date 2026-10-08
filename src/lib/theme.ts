@@ -25,10 +25,17 @@ export const BG_TONES = [
 export const CARD_STYLES = [
   { id: 'arredondado', name: 'Arredondado (padrão)', radius: '0.75rem' },
   { id: 'reto', name: 'Quase reto', radius: '0.25rem' },
-  { id: 'redondo', name: 'Bem arredondado', radius: '1.25rem' }
+  { id: 'redondo', name: 'Bem arredondado', radius: '1.25rem' },
+  { id: 'quadrado', name: 'Quadrado', radius: '0' },
+  { id: 'suave', name: 'Levemente arredondado', radius: '0.5rem' },
+  { id: 'muito', name: 'Muito arredondado', radius: '1.75rem' }
 ];
 
 export const GRID_COLUMNS = ['2', '3', '4'];
+
+// Fontes extras (de marca) entram por siteFont.ts, que registra aqui como achar a fonte pelo id
+let extraFont: ((id: string) => string | null) | null = null;
+export const setFontResolver = (fn: (id: string) => string | null): void => { extraFont = fn; };
 
 // Temas prontos: preenchem cor, fonte, fundo e cantos de uma vez (o admin ainda pode ajustar e depois publica)
 export interface ThemePreset { id: string; name: string; values: Record<string, string> }
@@ -122,7 +129,9 @@ export const applyTheme = ({ primaryColor, fontChoice, logoUrl, faviconUrl, bgTo
   // Destaque sobre fundo sempre escuro (ícone do cabeçalho do painel)
   root.style.setProperty('--accent-on-dark', paletteFrom(darkBase)[400].join(' '));
   const font = FONT_CHOICES.find(f => f.id === fontChoice);
+  const extraStack = !font && fontChoice && extraFont ? extraFont(fontChoice) : null;
   if (font && font.id !== 'padrao') root.style.setProperty('--font-body', font.stack);
+  else if (extraStack) root.style.setProperty('--font-body', extraStack);
   else root.style.removeProperty('--font-body');
 
   const tone = BG_TONES.find(t => t.id === bgTone);
@@ -201,7 +210,10 @@ const SOCIAL = [
   { key: 'socialInstagram', label: 'Instagram', base: 'https://instagram.com/' },
   { key: 'socialTiktok', label: 'TikTok', base: 'https://tiktok.com/@' },
   { key: 'socialFacebook', label: 'Facebook', base: 'https://facebook.com/' },
-  { key: 'socialYoutube', label: 'YouTube', base: 'https://youtube.com/@' }
+  { key: 'socialYoutube', label: 'YouTube', base: 'https://youtube.com/@' },
+  { key: 'socialPinterest', label: 'Pinterest', base: 'https://pinterest.com/' },
+  { key: 'socialX', label: 'X', base: 'https://x.com/' },
+  { key: 'socialLinkedin', label: 'LinkedIn', base: 'https://linkedin.com/in/' }
 ];
 export const normalizeSocial = (key: string, value: unknown): string => {
   const v = String(value || '').trim();

@@ -10,6 +10,8 @@ import TeamManager from './equipe/TeamManager';
 import ErrorsManager from './erros/ErrorsManager';
 import PriceCalculator from './calculadora/PriceCalculator';
 import AdminNav, { buildNav, type NavId } from './AdminNav';
+import CommandPalette, { type PaletteChoice } from './CommandPalette';
+import { Search } from 'lucide-react';
 import { useUI } from '../../components/UIContext';
 import { Button } from '../../components/ui';
 import { gateway } from '../../services/gateway';
@@ -32,6 +34,14 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
   const [active, setActive] = useState<NavId>('orders');
   const [productFilter, setProductFilter] = useState<{ key: number; value: string }>({ key: 0, value: '' });
   const [schema, setSchema] = useState<SchemaStatus | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [focus, setFocus] = useState<{ key: string; n: number } | null>(null); // campo achado pela busca
+  // Ctrl+K (ou Cmd+K) abre a busca do painel em qualquer tela
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen(true); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   useEffect(() => {
     let alive = true;
     gateway().loadSchemaStatus().then(status => { if (alive) setSchema(status); });
@@ -50,6 +60,12 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
     setActive(id);
     window.scrollTo({ top: 0 });
   };
+  const choose = async (c: PaletteChoice) => {
+    setPaletteOpen(false);
+    if (c.type === 'screen') { await go(c.id); return; }
+    await go(`site:${c.group}` as NavId);
+    setFocus(f => ({ key: c.key, n: (f?.n ?? 0) + 1 }));
+  };
   const showProducts = (value: string) => { setProductFilter(f => ({ key: f.key + 1, value })); go('products'); };
 
   const newCount = (list: { status?: unknown }[]) => list.filter(o => statusInfo(o.status).id === 'novo').length;
@@ -64,6 +80,14 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
     <div className="xl:flex xl:gap-8 xl:items-start">
       <AdminNav sections={sections} active={active} onSelect={go} />
       <div className="flex-1 min-w-0">
+        <button
+          type="button" onClick={() => setPaletteOpen(true)}
+          className="mb-4 w-full flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-500 shadow-sm hover:border-blue-300 text-left"
+        >
+          <Search className="w-4 h-4" aria-hidden="true" />
+          <span className="flex-1">Buscar no painel… ex: cor, WhatsApp, frete, pedidos</span>
+          <kbd className="hidden sm:inline text-[11px] border border-gray-200 rounded px-1.5 py-0.5">Ctrl K</kbd>
+        </button>
         {schema && !schema.ok && (
           <div role="alert" className="mb-4 p-4 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-900 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" /> <span>{schemaMessage(schema)}</span>
@@ -95,7 +119,7 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
           {active === 'products' && (
             <ProductManager
               key={productFilter.key} initialFilter={productFilter.value}
-              products={products} categories={categories} onSave={admin.saveProduct} onPatch={admin.patchProduct} onDelete={admin.deleteProduct} onReorder={admin.reorderProducts}
+              products={products} categories={categories} onSave={admin.saveProduct} onPatch={admin.patchProduct} onBulkPatch={admin.bulkPatchProducts} onDelete={admin.deleteProduct} onReorder={admin.reorderProducts}
               onOpenSettings={(group) => go(`site:${group}`)}
             />
           )}
@@ -117,7 +141,7 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
           {siteGroup && (
             <SiteSettings
               settings={settings} categories={categories} products={products}
-              group={siteGroup} onGroupChange={(g) => go(`site:${g}`)} onDirtyChange={onSiteDirty} onShowProducts={showProducts}
+              group={siteGroup} onGroupChange={(g) => go(`site:${g}`)} onDirtyChange={onSiteDirty} onShowProducts={showProducts} focus={focus}
               onSave={admin.saveSettings} onUndo={admin.undoSettings}
             />
           )}
@@ -126,6 +150,7 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
           {active === 'errors' && <ErrorsManager />}
         </div>
       </div>
+      {paletteOpen && <CommandPalette sections={sections} onChoose={choose} onClose={() => setPaletteOpen(false)} />}
     </div>
   );
 }

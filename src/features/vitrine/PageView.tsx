@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useSettings } from '../../components/SettingsContext';
 import RichText from '../../components/RichText';
+import { applySeo, pageSeo } from '../../lib/seo';
 
 // Página extra criada no painel (Site > Menus e páginas), em /p/:slug
 export default function PageView() {
@@ -11,12 +12,13 @@ export default function PageView() {
   const page = settings.pages.find(p => p.slug === slug && p.published);
   const title = page?.title;
 
+  const description = page?.description; const image = page?.image;
   useEffect(() => {
     if (!title) return;
     const previous = document.title;
-    document.title = `${title} | ${settings.storeName}`;
-    return () => { document.title = previous; };
-  }, [title, settings.storeName]);
+    applySeo(pageSeo(settings, { title, description, image }), true);
+    return () => { applySeo(settings, false); document.title = previous; };
+  }, [title, description, image, settings]);
 
   if (!page) return <Navigate to="/" replace />;
   return (

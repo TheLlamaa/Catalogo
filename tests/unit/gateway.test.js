@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createMemoryGateway } from '../../src/services/memoryGateway';
 import { categoryPayload, detectCapabilities, patchPayload, productPayload, toCategories, toProducts } from '../../src/services/mapping';
 
-const ALL = { ordering: true, discount: true, categoryVisibility: true };
-const NONE = { ordering: false, discount: false, categoryVisibility: false };
+const ALL = { ordering: true, discount: true, categoryVisibility: true, productInfo: true };
+const NONE = { ordering: false, discount: false, categoryVisibility: false, productInfo: false };
 const product = (id, over = {}) => ({
   id, title: `P${id}`, description: '', price: 10, stock: 5, active: true, badge: 'Novo', section: 'destaque',
   sortOrder: 0, categoryIds: ['c1'], imageUrls: ['a.jpg'], auraColor: 'inherit', options: [], leadTime: '', modelUrl: '',
@@ -43,7 +43,7 @@ describe('mapeamento linha do banco -> domínio', () => {
 
 describe('capacidades do banco', () => {
   it('vêm das colunas presentes nas linhas', () => {
-    expect(detectCapabilities([{ sort_order: 1, discount_percent: 0 }], [{ visible: true }])).toEqual(ALL);
+    expect(detectCapabilities([{ sort_order: 1, discount_percent: 0, specs: [] }], [{ visible: true }])).toEqual(ALL);
     expect(detectCapabilities([{ title: 'x' }], [{ name: 'y' }])).toEqual(NONE);
   });
 });
@@ -128,8 +128,19 @@ describe('gateway em memória', () => {
     expect(state.catalogOrders).toHaveLength(1);
   });
   it('lê o schema_version', async () => {
-    expect((await setup({ schemaVersion: 13 }).gateway.loadSchemaStatus()).ok).toBe(true);
+    expect((await setup({ schemaVersion: 18 }).gateway.loadSchemaStatus()).ok).toBe(true);
     expect((await setup({ schemaVersion: 9 }).gateway.loadSchemaStatus()).reason).toBe('desatualizado');
     expect((await setup().gateway.loadSchemaStatus()).reason).toBe('sem-versao');
+  });
+});
+
+describe('pedido personalizado: lista leve', () => {
+  const order = { id: 'k1', client_name: 'Ana', client_phone: '(48) 99999-0000', description: 'Suporte', image_url: 'data:image/jpeg;base64,AAAA', status: 'novo', created_at: '2026-10-01T10:00:00Z' };
+  it('a lista vem sem a foto, só com has_image; a foto é buscada pelo id', async () => {
+    const { gateway } = createMemoryGateway({ customOrders: [order, { ...order, id: 'k2', image_url: '' }] });
+    const { customOrders } = await gateway.load({ isAdmin: true });
+    expect(customOrders.map(o => [o.id, o.has_image, 'image_url' in o])).toEqual([['k1', true, false], ['k2', false, false]]);
+    expect(await gateway.loadReferenceImage('k1')).toBe('data:image/jpeg;base64,AAAA');
+    expect(await gateway.loadReferenceImage('k2')).toBeNull();
   });
 });

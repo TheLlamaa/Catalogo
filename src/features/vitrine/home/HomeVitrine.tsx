@@ -1,7 +1,9 @@
 // Versão A, "Vitrine": as fotos abrem a página. Capa com mosaico dos destaques, categorias em abas e grade de fotos grandes.
 import type { Product } from '../../../types';
+import { makeT } from '../../../lib/texts';
 import ProductImage from '../ProductImage';
 import Price from '../Price';
+import { HomeSections } from './HomeBancada';
 import { ITEMS, withCustomBand, useCatalogFilters, SearchField, SortSelect, CategoryDot, LoadMore, EmptyResult, ProductTile, gridColsClass, type HomeProps } from './shared';
 
 export default function HomeVitrine({ products, categories, onAddToCart, onOpenProduct, onOpenCustomRequest }: HomeProps) {
@@ -42,7 +44,7 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
                   key={p.id} onClick={() => onOpenProduct(p)}
                   className={`group relative overflow-hidden rounded-xl bg-gray-100 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${i === 0 ? 'row-span-2 aspect-[4/5] sm:aspect-auto sm:min-h-[26rem]' : 'aspect-square sm:aspect-auto'}`}
                 >
-                  <ProductImage src={p.imageUrls[0]} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                  <ProductImage src={p.imageUrls[0]} alt="" fetchPriority={i === 0 ? 'high' : undefined} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
                   <span className={`absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto flex flex-col rounded-lg bg-white/95 px-3 py-2 shadow-sm ${i === 0 ? '' : 'max-sm:hidden'}`}>
                     <span className="text-sm font-medium text-gray-900 truncate">{p.title}</span>
                     {!settings.hidePrices && <Price product={p} showBadge={false} className="text-sm font-semibold text-gray-900" />}
@@ -54,7 +56,9 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
         </section>
       )}
 
-      <div id="pecas" className="scroll-mt-20">
+      {showHero && <HomeSections f={f} natives={[]} onOpenCustom={onOpenCustomRequest} />}
+
+      <div id="pecas" className="scroll-mt-20 mt-10">
         {!showHero && (
           <div className="mb-2">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
@@ -68,7 +72,7 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
         <div className="mb-6 border-b border-gray-200">
           <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between md:gap-6">
             {settings.showCategoryTabs ? <nav aria-label="Categorias" className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <button onClick={() => f.selectCategory(null)} className={tab(f.activeCategoryId === 'all')} aria-current={f.activeCategoryId === 'all' ? 'page' : undefined}>Tudo</button>
+              <button onClick={() => f.selectCategory(null)} className={tab(f.activeCategoryId === 'all')} aria-current={f.activeCategoryId === 'all' ? 'page' : undefined}>{makeT(f.settings)('tAllTab')}</button>
               {f.activeCategories.map(c => (
                 <button key={c.id} onClick={() => f.selectCategory(c)} className={`${tab(f.activeCategoryId === c.id)} flex items-center gap-1.5`} aria-current={f.activeCategoryId === c.id ? 'page' : undefined}>
                   {c.name}<CategoryDot category={c} />

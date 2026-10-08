@@ -36,12 +36,17 @@ export interface CustomOrder {
   client_name: string;
   client_phone: string;
   description: string;
-  image_url?: string | null;
+  image_url?: string | null; // a lista do painel vem sem a foto (pesada): use hasReferenceImage e loadReferenceImage
+  has_image?: boolean; // SQL 17
   status: OrderStatusId | 'pending' | string | null;
   created_at: string;
 }
 
 export interface ProductOption { name: string; values: string[] }
+/** Característica do produto (Material: Cimento). Coluna products.specs, SQL 18. */
+export interface ProductSpec { name: string; value: string }
+/** Bloco de informação do produto (Cuidados com a peça: …). Coluna products.details, SQL 18. */
+export interface ProductDetail { title: string; text: string }
 
 export interface Product {
   id: string;
@@ -63,6 +68,8 @@ export interface Product {
   imageUrls: string[];
   auraColor: string;
   options: ProductOption[];
+  specs?: ProductSpec[];
+  details?: ProductDetail[];
   leadTime?: string | null;
   modelUrl?: string;
   created_at?: string;

@@ -1,7 +1,10 @@
-import type { CSSProperties } from 'react';
+import { useEffect, type CSSProperties } from 'react';
+import { makeT } from '../lib/texts';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Package, Settings, Sparkles, ShoppingCart, LogOut, ExternalLink, ShieldCheck, Info, Moon, Sun } from 'lucide-react';
 import { socialLinks } from '../lib/theme';
+import { brandLook } from '../lib/brand';
+import { loadBrandFont } from '../lib/brandFontLoader';
 import { resolveMenu, type MenuContext } from '../lib/menus';
 import type { Category } from '../types';
 import type { Settings as SiteSettings } from '../lib/settings';
@@ -14,6 +17,49 @@ const menuContext = (settings: SiteSettings, categories: Category[]): MenuContex
   labels: { home: settings.menuHome, about: settings.menuAbout, custom: settings.menuCustom },
   aboutEnabled: settings.aboutEnabled, customEnabled: settings.customEnabled
 });
+
+// Logo + nome da loja com tudo que o painel permite escolher (Site > Aparência > Logo / Nome da loja no topo).
+// Também é a prévia do painel. Tamanhos de celular e computador separados por variáveis CSS.
+export function BrandMark({ settings, dark = false, mode = 'auto' }: { settings: SiteSettings; dark?: boolean; mode?: 'auto' | 'desktop' | 'mobile' }) {
+  const look = brandLook(settings, dark);
+  // "auto": celular até 640 px, computador acima. A prévia do painel força um dos dois.
+  // As três versões vêm escritas por extenso porque o Tailwind só gera as classes que aparecem no código
+  const pick = (m: string, d: string, auto: string) => (mode === 'mobile' ? m : mode === 'desktop' ? d : auto);
+  const { name } = look;
+  useEffect(() => { if (look.showName && !look.nameImage) loadBrandFont(look.font.id, name.fontWeight); }, [look.showName, look.nameImage, look.font.id, name.fontWeight]);
+  const shape = look.logo.shape === 'redondo' ? 'rounded-full object-cover aspect-square' : look.logo.shape === 'arredondado' ? 'rounded-[22%] object-cover' : 'object-contain';
+  const vars = {
+    '--logo-h': `${look.logo.h}px`, '--logo-hm': `${look.logo.hMobile}px`, '--logo-w': `${look.logo.h * 4}px`,
+    '--name-d': `${name.sizeD}px`, '--name-m': `${name.sizeM}px`,
+    '--nimg-h': `${look.nameImage?.h || 0}px`, '--nimg-hm': `${look.nameImage?.hMobile || 0}px`,
+  } as CSSProperties; // variáveis CSS não existem em CSSProperties
+
+  return (
+    <span style={vars} className={`flex min-w-0 ${look.stacked ? 'flex-col items-center gap-1 text-center' : 'items-center gap-3'}`}>
+      {settings.logoUrl ? (
+        <img
+          src={settings.logoUrl} alt=""
+          className={`flex-shrink-0 ${pick('h-[var(--logo-hm)]', 'h-[var(--logo-h)]', 'h-[var(--logo-hm)] sm:h-[var(--logo-h)]')} max-w-[min(var(--logo-w),60vw)] ${look.logo.shape === 'redondo' ? pick('w-[var(--logo-hm)]', 'w-[var(--logo-h)]', 'w-[var(--logo-hm)] sm:w-[var(--logo-h)]') : ''} ${shape}`}
+        />
+      ) : !look.showName ? null : look.nameImage ? null : (
+        <Package className="w-6 h-6 flex-shrink-0 text-blue-600" strokeWidth={2.5} aria-hidden="true" />
+      )}
+      {look.showName && (
+        <span className={`flex min-w-0 flex-col ${look.stacked ? 'items-center' : ''}`}>
+          {look.nameImage ? (
+            <img src={settings.nameImage} alt="" className={`${pick('h-[var(--nimg-hm)]', 'h-[var(--nimg-h)]', 'h-[var(--nimg-hm)] sm:h-[var(--nimg-h)]')} w-auto max-w-[60vw] object-contain`} />
+          ) : (
+            <span
+              className={`block truncate leading-tight ${pick('text-[length:var(--name-m)]', 'text-[length:var(--name-d)]', 'text-[length:var(--name-m)] sm:text-[length:var(--name-d)]')} ${name.primary ? 'text-blue-600' : ''}`}
+              style={{ fontFamily: name.fontFamily, fontWeight: name.fontWeight, fontStyle: name.fontStyle, textTransform: name.textTransform as CSSProperties['textTransform'], letterSpacing: name.letterSpacing, color: name.color || undefined }}
+            >{settings.storeName}</span>
+          )}
+          {look.tagline && <span className="block truncate text-xs text-gray-600">{look.tagline}</span>}
+        </span>
+      )}
+    </span>
+  );
+}
 
 // Botão sol/lua do modo escuro (vitrine e painel)
 export interface ColorModeControl { dark: boolean; toggle: () => void }
@@ -37,17 +83,8 @@ export function StoreHeader({ settings, categories, user, cartCount, onOpenCart,
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
-          {settings.logoUrl ? (
-            <img
-              src={settings.logoUrl} alt={settings.logoShowName ? '' : settings.storeName}
-              style={{ '--logo-h': `${Number(settings.logoSize) || 36}px`, '--logo-w': `${(Number(settings.logoSize) || 36) * 4}px` } as CSSProperties} // variáveis CSS não existem em CSSProperties
-              className="object-contain h-[var(--logo-h)] max-sm:h-[min(var(--logo-h),48px)] max-w-[min(var(--logo-w),60vw)]"
-            />
-          ) : (
-            <Package className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
-          )}
-          {(!settings.logoUrl || settings.logoShowName) && <span className="text-lg font-bold tracking-tight">{settings.storeName}</span>}
+        <Link to="/" className="flex min-w-0 items-center" aria-label={`${settings.storeName}, página inicial`}>
+          <BrandMark settings={settings} dark={!!colorMode?.dark} />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {resolveMenu(settings.menus.top, menuContext(settings, categories)).map(item => {
@@ -149,12 +186,15 @@ export function AdminHeader({ onLogout, storeName, colorMode }: { onLogout: () =
 
 // Rodapé da vitrine
 export function StoreFooter({ settings, categories }: { settings: SiteSettings; categories: Category[] }) {
+  const t = makeT(settings);
   return (
     <footer className="border-t border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
         <div className="text-center sm:text-left">
           <span>© {CURRENT_YEAR} {settings.storeName}</span>
           {settings.footerText && <p className="mt-1">{settings.footerText}</p>}
+          {settings.address && <p className="mt-1">{settings.address}</p>}
+          {settings.openingHours && <p className="mt-1">{settings.openingHours}</p>}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {settings.aboutEnabled && <Link to="/sobre" className="hover:text-blue-600 py-2">{settings.menuAbout}</Link>}
@@ -167,10 +207,12 @@ export function StoreFooter({ settings, categories }: { settings: SiteSettings; 
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{l.label}</a>
           ))}
           {settings.whatsapp && (
-            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">WhatsApp</a>
+            <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-blue-600 py-2">{t('tFooterWhatsapp')}</a>
           )}
-          <Link to="/privacidade" className="hover:text-blue-600 py-2">Política de privacidade</Link>
-          <Link to="/login" className="hover:text-blue-600 py-2">Área do lojista</Link>
+          {settings.showEmailFooter && settings.email && <a href={`mailto:${settings.email}`} className="hover:text-blue-600 py-2">{settings.email}</a>}
+          {settings.mapLink && <a href={settings.mapLink} target="_blank" rel="noreferrer noopener" className="hover:text-blue-600 py-2">{t('tFooterMap')}</a>}
+          <Link to="/privacidade" className="hover:text-blue-600 py-2">{t('tFooterPrivacy')}</Link>
+          {settings.showAdminLink && <Link to="/login" className="hover:text-blue-600 py-2">{t('tFooterAdmin')}</Link>}
         </div>
       </div>
     </footer>

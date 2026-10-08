@@ -14,9 +14,10 @@ export interface Capabilities {
   ordering: boolean; // SQL 06: ordem manual, selo e vitrine
   discount: boolean; // SQL 13
   categoryVisibility: boolean; // SQL 12
+  productInfo: boolean; // SQL 18: características e blocos de informação do produto
 }
 
-export const NO_CAPABILITIES: Capabilities = { ordering: false, discount: false, categoryVisibility: false };
+export const NO_CAPABILITIES: Capabilities = { ordering: false, discount: false, categoryVisibility: false, productInfo: false };
 
 export interface CatalogSnapshot {
   products: StoredProduct[];
@@ -29,7 +30,7 @@ export interface CatalogSnapshot {
 }
 
 // Campos que as edições rápidas da lista mudam sem regravar o produto inteiro
-export type ProductPatch = Partial<Pick<StoredProduct, 'stock' | 'active' | 'section' | 'auraColor' | 'price'>>;
+export type ProductPatch = Partial<Pick<StoredProduct, 'stock' | 'active' | 'section' | 'auraColor' | 'price' | 'categoryIds' | 'discountPercent'>>;
 
 export type CategoryInput = Partial<Category> & { name: string };
 
@@ -43,10 +44,14 @@ export interface SaveProductResult extends GatewayResult {
 export interface CatalogGateway {
   /** Tudo que as telas precisam. Pedidos só com admin logado. Lança se produtos ou categorias não carregarem. */
   load(opts: { isAdmin: boolean }): Promise<CatalogSnapshot>;
+  /** Foto de referência de um pedido personalizado (a lista vem sem ela). Só admin. null = sem foto ou falha. */
+  loadReferenceImage(id: string): Promise<string | null>;
   loadSchemaStatus(): Promise<SchemaStatus>;
 
   saveProduct(product: Partial<StoredProduct>, opts: { capabilities: Capabilities; previousModelUrl: string }): Promise<SaveProductResult>;
   patchProduct(id: string, patch: ProductPatch, opts: { capabilities: Capabilities }): Promise<GatewayResult>;
+  /** Várias edições rápidas de uma vez (edição em massa). Segue até o fim e devolve o primeiro erro, se houver. */
+  patchProducts(updates: { id: string; patch: ProductPatch }[], opts: { capabilities: Capabilities }): Promise<GatewayResult & { failedIds: string[] }>;
   deleteProduct(id: string): Promise<GatewayResult>;
 
   saveCategory(category: CategoryInput, opts: { capabilities: Capabilities; sortOrderIfNew?: number }): Promise<GatewayResult>;

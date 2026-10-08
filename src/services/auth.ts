@@ -14,3 +14,10 @@ export function onSessionChange(callback: (session: Session) => void) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
   return () => subscription.unsubscribe();
 }
+
+// O usuário logado é administrador (e-mail na tabela admins)? Só `false` conta como "não é": se a
+// pergunta falhar (rede, banco antigo), devolve null e o painel abre normalmente, pois o RLS barra os dados de qualquer jeito.
+export async function checkIsAdmin(): Promise<boolean | null> {
+  const { data, error } = await supabase.rpc('is_admin');
+  return error || typeof data !== 'boolean' ? null : data;
+}

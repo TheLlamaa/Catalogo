@@ -1,7 +1,7 @@
 // Orientação de tamanho para cada campo de imagem do painel. Os números vêm de como a imagem aparece no site
 // (largura máxima exibida × 2 para telas de alta densidade, arredondada).
 
-export type ImageGuideKey = 'hero' | 'logo' | 'favicon' | 'banner' | 'about' | 'share' | 'product' | 'reference';
+export type ImageGuideKey = 'hero' | 'logo' | 'wordmark' | 'favicon' | 'banner' | 'about' | 'share' | 'product' | 'reference';
 
 export interface ImageGuide {
   text: string;   // "Tamanho ideal: ..."
@@ -17,7 +17,12 @@ export const IMAGE_GUIDES: Record<ImageGuideKey, ImageGuide> = {
   },
   logo: {
     text: 'Tamanho ideal: 768 × 192 px (proporção 4:1) · PNG com fundo transparente ou SVG · até 100 KB',
-    note: 'Logo quadrada também serve; ela é ajustada à altura escolhida acima (no celular, no máximo 48 px).',
+    note: 'Logo quadrada também serve; ela é ajustada à altura escolhida abaixo (computador e celular separados).',
+    maxPx: 800
+  },
+  wordmark: {
+    text: 'Tamanho ideal: 800 × 160 px (proporção 5:1) · PNG com fundo transparente ou SVG · até 100 KB',
+    note: 'Corte bem rente às letras: sobra de fundo deixa o nome menor do que parece. Ela é ajustada à altura escolhida abaixo.',
     maxPx: 800
   },
   favicon: {

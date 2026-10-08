@@ -10,13 +10,17 @@ export const LOW_STOCK_MAX = 3;
 export type StockLevel = 'out' | 'low' | 'ok';
 
 // Nível do número guardado no estoque (é o que o admin edita): 0 = esgotado, até 3 = acabando
-export const stockLevel = (stock: number): StockLevel => (stock <= 0 ? 'out' : stock <= LOW_STOCK_MAX ? 'low' : 'ok');
+const levelFor = (stock: number, lowMax: number): StockLevel => (stock <= 0 ? 'out' : stock <= lowMax ? 'low' : 'ok');
+export const stockLevel = (stock: number): StockLevel => levelFor(stock, LOW_STOCK_MAX);
+
+// Limite de "poucas unidades" escolhido no painel (padrão 3)
+export const lowStockMaxOf = (settings: { lowStockMax?: unknown }): number => { const n = Number(settings.lowStockMax); return Number.isInteger(n) && n >= 1 ? n : LOW_STOCK_MAX; };
 
 // Como o produto aparece para o cliente: esgotado vem de `available` (infinito sem controle de estoque);
 // "acabando" só existe com o controle de estoque ligado
-export const availability = (product: Pick<Product, 'available' | 'stock'>, stockControl: boolean): StockLevel => {
+export const availability = (product: Pick<Product, 'available' | 'stock'>, stockControl: boolean, lowMax = LOW_STOCK_MAX): StockLevel => {
   if (product.available <= 0) return 'out';
-  return stockControl && stockLevel(product.stock) === 'low' ? 'low' : 'ok';
+  return stockControl && levelFor(product.stock, lowMax) === 'low' ? 'low' : 'ok';
 };
 
 // Aura que vem da categoria (a primeira do produto que tem uma); null se nenhuma tem
@@ -37,18 +41,18 @@ export const shownAura = (product: Pick<Product, 'auraColor' | 'categoryIds'>, c
 // Selo do card: o que o admin escreveu; se não houver e a opção estiver ligada, "Últimas unidades"
 export const badgeFor = (
   product: Pick<Product, 'badge' | 'stock'>,
-  settings: { stockControl?: boolean; lowStockBadge?: boolean; lowStockText?: string },
+  settings: { stockControl?: boolean; lowStockBadge?: boolean; lowStockText?: string; lowStockMax?: unknown },
 ): string => {
   const manual = (product.badge || '').trim();
   if (manual) return manual;
-  if (settings.stockControl && settings.lowStockBadge && product.stock > 0 && product.stock <= LOW_STOCK_MAX) return (settings.lowStockText || '').trim() || 'Últimas unidades';
+  if (settings.stockControl && settings.lowStockBadge && product.stock > 0 && product.stock <= lowStockMaxOf(settings)) return (settings.lowStockText || '').trim() || 'Últimas unidades';
   return '';
 };
 
 // Produtos cadastrados nos últimos 30 dias. Se TODOS são novos a seção não diz nada, então some.
-export const newProducts = (activeProducts: Product[], now = Date.now()): Product[] => {
-  const fresh = activeProducts.filter(p => p.created_at && now - new Date(p.created_at).getTime() <= NEW_DAYS * DAY);
-  return fresh.length > 0 && fresh.length < activeProducts.length ? fresh.slice(0, NEW_MAX) : [];
+export const newProducts = (activeProducts: Product[], now = Date.now(), days = NEW_DAYS, max = NEW_MAX): Product[] => {
+  const fresh = activeProducts.filter(p => p.created_at && now - new Date(p.created_at).getTime() <= days * DAY);
+  return fresh.length > 0 && fresh.length < activeProducts.length ? fresh.slice(0, max) : [];
 };
 
 // Outros produtos ativos que dividem categoria com este (mais categorias em comum primeiro, com estoque antes)

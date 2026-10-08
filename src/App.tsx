@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo, Suspense } from 'react';
+import { makeT } from './lib/texts';
 import { lazyWithReload } from './lib/staleChunk';
-import { useColorMode } from './lib/colorMode';
+import { useColorMode, rememberDarkDefault } from './lib/colorMode';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
@@ -8,7 +9,7 @@ import { ENV_LABEL } from './lib/config';
 import { applySeo } from './lib/seo';
 import { applyPublishedTheme, cacheTheme, isBannerActive, bannerStyle } from './lib/theme';
 import { mergeSettings } from './lib/settings';
-import { IS_PREVIEW, usePreviewRows } from './lib/preview';
+import { IS_PREVIEW, usePreviewRows, usePreviewGoto } from './lib/preview';
 import { useCart } from './hooks/useCart';
 import { useCatalogStore } from './hooks/useCatalogStore';
 
@@ -29,18 +30,19 @@ const AboutView = lazyWithReload(() => import('./features/vitrine/AboutView'));
 const PageView = lazyWithReload(() => import('./features/vitrine/PageView'));
 
 const AdminView = lazyWithReload(() => import('./features/admin/AdminView'));
+const AdminGate = lazyWithReload(() => import('./features/admin/AdminGate'));
 const CustomOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CustomOrderDetailModal })));
 const CatalogOrderDetailModal = lazyWithReload(() => import('./features/admin/pedidos/OrderModals').then(m => ({ default: m.CatalogOrderDetailModal })));
 
 
 // Aparece se o carregamento demorar (por exemplo, conexão ruim ou servidor reiniciando)
-function SlowHint() {
+function SlowHint({ text }: { text: string }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 4000);
     return () => clearTimeout(t);
   }, []);
-  return show ? <p className="text-xs text-gray-500 mt-2">Está demorando mais que o normal. Só mais um instante…</p> : null;
+  return show ? <p className="text-xs text-gray-500 mt-2">{text}</p> : null;
 }
 
 export default function App() {
@@ -67,6 +69,8 @@ function MainLayout() {
   // Na prévia do painel, a vitrine mostra o rascunho das configurações (ainda não publicado)
   const previewRows = usePreviewRows();
   const settings = useMemo(() => (previewRows ? mergeSettings(previewRows) : publishedSettings), [previewRows, publishedSettings]);
+  const t = makeT(settings);
+  const goneMessage = t('tProductGone');
   const {
     cart, cartTotal, cartCount, addToCart, updateCartQuantity, removeFromCart, clearCart,
     isCartOpen, openCart, closeCart,
@@ -97,10 +101,10 @@ function MainLayout() {
   useEffect(() => {
     if (loading || loadError || !routeProductId) return;
     if (!products.some(p => String(p.id) === routeProductId)) {
-      toast.info('Esse produto não está mais disponível.');
+      toast.info(goneMessage);
       navigate('/', { replace: true });
     }
-  }, [loading, loadError, routeProductId, products, navigate, toast]);
+  }, [loading, loadError, routeProductId, products, navigate, toast, goneMessage]);
 
   const productTitle = selectedProduct?.title;
   useEffect(() => {
@@ -109,6 +113,17 @@ function MainLayout() {
     document.title = `${productTitle} | ${settings.storeName}`;
     return () => { document.title = previous; };
   }, [productTitle, settings.storeName]);
+
+  // Prévia do painel: mostra a tela onde está o campo em edição (carrinho, produto, rodapé, pedido personalizado)
+  usePreviewGoto(target => {
+    const to = (pathname: string) => navigate({ pathname, search: location.search });
+    if (target === 'cart') { if (cart.length === 0 && products[0]) addToCart(products[0]); openCart(); return; }
+    closeCart();
+    if (target === 'product' && products[0]) to(`/produto/${products[0].id}`);
+    else if (target === 'custom') to('/custom');
+    else to('/');
+    if (target === 'footer') setTimeout(() => document.querySelector('footer')?.scrollIntoView({ behavior: 'smooth' }), 80);
+  });
 
   const openProduct = (product: Product) => navigate({ pathname: `/produto/${product.id}`, search: location.search });
   const closeProduct = () => navigate({ pathname: '/', search: location.search });
@@ -127,18 +142,21 @@ function MainLayout() {
     if (!IS_PREVIEW) cacheTheme(settings);
   }, [settings, loading]);
   const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';
-  useEffect(() => { applySeo(settings, !ownTitle); }, [settings, ownTitle]);
+  // Sobre e páginas extras definem o próprio título, descrição e imagem (ver PageView e AboutView)
+  const pageOwnsSeo = /^\/(sobre|p)(\/|$)/.test(location.pathname);
+  useEffect(() => { if (!pageOwnsSeo) applySeo(settings, !ownTitle); }, [settings, ownTitle, pageOwnsSeo]);
 
   // Modo escuro: painel e login sempre podem; a vitrine só se o lojista não travou no claro
   const onPanel = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
-  const colorMode = useColorMode(onPanel || settings.darkMode !== 'off');
+  const colorMode = useColorMode(onPanel || settings.darkMode !== 'off', !onPanel && settings.darkMode === 'dark');
+  useEffect(() => { if (!loading && !IS_PREVIEW) rememberDarkDefault(settings.darkMode === 'dark'); }, [loading, settings.darkMode]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center font-sans">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium text-gray-500">Carregando informações...</p>
-        <SlowHint />
+        <p className="text-sm font-medium text-gray-500">{t('tLoading')}</p>
+        <SlowHint text={t('tSlowLoading')} />
       </div>
     );
   }
@@ -178,7 +196,7 @@ function MainLayout() {
     <div className="min-h-screen bg-[var(--page)] text-gray-900 font-sans flex flex-col">
 
       {/* Atalho de teclado: aparece no primeiro Tab e pula cabeçalho e menus */}
-      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">Pular para o conteúdo</a>
+      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:text-blue-700 focus:font-medium focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-blue-500">{t('tSkipLink')}</a>
 
       {ENV_LABEL && !IS_PREVIEW && (
         <div role="note" data-testid="faixa-ambiente" className="bg-amber-400 text-amber-950 text-xs font-semibold text-center px-4 py-1.5">
@@ -212,7 +230,9 @@ function MainLayout() {
           <Route path="/login" element={!user ? <LoginView onLoginSuccess={() => navigate('/admin')} /> : <Navigate to="/admin" replace />} />
           <Route path="/admin" element={
             user ? (
-              <AdminView admin={admin} onSelectOrder={selectOrder} onDeleteOrder={removeOrder} />
+              <AdminGate userId={user.id} onLogout={handleLogout}>
+                <AdminView admin={admin} onSelectOrder={selectOrder} onDeleteOrder={removeOrder} />
+              </AdminGate>
             ) : (
               <Navigate to="/login" replace />
             )

@@ -2,6 +2,9 @@
 // e um passo a passo do pedido, porque quem chega pela primeira vez não sabe que o orçamento vai pelo WhatsApp.
 // As peças (capa, categorias com foto, passo a passo) também são usadas pelo modelo "Vitrine + Bancada".
 import type { CSSProperties } from 'react';
+import { orderedSections } from '../../../lib/homeSections';
+import ExtraBlock from './ExtraBlock';
+import { makeT } from '../../../lib/texts';
 import { Search } from 'lucide-react';
 import ProductImage from '../ProductImage';
 import { bannerStyle } from '../../../lib/theme';
@@ -40,7 +43,7 @@ export function BancadaHero({ f }: { f: CatalogFilters }) {
       <div className="relative mx-auto max-w-2xl text-center">
         <h1 id="titulo-loja" className={`text-[2rem] leading-[1.1] sm:text-[3.25rem] font-bold tracking-[-0.03em] text-balance ${photo ? 'text-white' : 'text-gray-900'}`}>{settings.catalogTitle}</h1>
         <p className={`mx-auto mt-4 max-w-xl text-base sm:text-lg leading-relaxed ${photo ? 'text-white/90' : 'text-gray-700'}`}>{settings.catalogSubtitle}</p>
-        <SearchField f={f} placeholder="O que você procura?" className="mx-auto mt-8 max-w-lg" inputClassName="py-3.5 sm:py-4 text-base shadow-sm" />
+        <SearchField f={f} placeholder={makeT(f.settings)('tSearchPlaceholderBancada')} className="mx-auto mt-8 max-w-lg" inputClassName="py-3.5 sm:py-4 text-base shadow-sm" />
         {settings.showHeroCategories && f.activeCategories.length > 0 && (
           <nav aria-label="Atalhos de categoria" className="mt-5 flex flex-wrap justify-center gap-2">
             {f.activeCategories.map(c => (
@@ -68,7 +71,7 @@ export function CategoryTiles({ f }: { f: CatalogFilters }) {
   }));
   return (
     <section className="mt-12" aria-labelledby="por-categoria">
-      <h2 id="por-categoria" className="text-xl font-bold tracking-tight text-gray-900">Por categoria</h2>
+      <h2 id="por-categoria" className="text-xl font-bold tracking-tight text-gray-900">{makeT(f.settings)('tByCategory')}</h2>
       <div className="mt-4 grid grid-cols-3 gap-3 lg:grid-cols-6 sm:gap-4">
         {f.activeCategories.map(c => {
           const img = covers.get(c.id);
@@ -118,6 +121,23 @@ export function HowItWorks({ onOpenCustom }: { onOpenCustom: () => void }) {
   );
 }
 
+// Seções entre a capa e a lista de produtos, na ordem escolhida em Personalizar loja > Página inicial > Seções e blocos.
+// "natives": as seções próprias deste modelo; os blocos extras do dono aparecem em todos.
+export function HomeSections({ f, natives, onOpenCustom }: { f: CatalogFilters; natives: ('categorias' | 'passos')[]; onOpenCustom: () => void }) {
+  const { blocks } = f.settings;
+  const ids = orderedSections(f.settings.homeSections, [...natives, ...blocks.map(b => b.id)]);
+  return (
+    <>
+      {ids.map(id => {
+        if (id === 'categorias') return <CategoryTiles key={id} f={f} />;
+        if (id === 'passos') return <HowItWorks key={id} onOpenCustom={onOpenCustom} />;
+        const block = blocks.find(b => b.id === id);
+        return block ? <ExtraBlock key={id} block={block} /> : null;
+      })}
+    </>
+  );
+}
+
 // Título da página quando há categoria ou busca (a capa some)
 export function FilteredHeading({ f, search = true }: { f: CatalogFilters; search?: boolean }) {
   return (
@@ -142,8 +162,7 @@ export default function HomeBancada({ products, categories, onAddToCart, onOpenP
   return (
     <div>
       {f.isClean ? <BancadaHero f={f} /> : <FilteredHeading f={f} />}
-      {f.isClean && <CategoryTiles f={f} />}
-      {f.isClean && <HowItWorks onOpenCustom={onOpenCustomRequest} />}
+      {f.isClean && <HomeSections f={f} natives={['categorias', 'passos']} onOpenCustom={onOpenCustomRequest} />}
 
       <section className={f.isClean ? 'mt-12' : 'mt-6'} aria-labelledby="todas">
         <div className="mb-5 flex items-center justify-between gap-4">

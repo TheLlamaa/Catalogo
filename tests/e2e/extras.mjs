@@ -1,3 +1,4 @@
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 import { BASE, launch } from './env.mjs';
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
@@ -31,6 +32,7 @@ async function newPage({ rows, w: width, admin = false, products = mkProducts(),
     const req = r.request(); const hd = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: hd });
     const u = new URL(req.url()); const path = u.pathname;
+    if (path === '/rest/v1/rpc/is_admin') return r.fulfill({ status: 200, contentType: 'application/json', headers: hd, body: 'true' });
     if (req.method() !== 'GET') {
       let body = null; try { body = req.postDataJSON(); } catch { body = req.postData(); }
       writes.push({ method: req.method(), path, query: u.search, body });
@@ -164,8 +166,9 @@ const rowsExtra = [
   check('tema pronto mostra o fundo na hora', bgNow === '#fdf8ee', bgNow);
   check('tema pronto não grava nada sozinho', writes.length === 0);
   // criar página pelo painel: incompleta bloqueia
-  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   check('nomes dos botões do menu aparecem na aba', await p.getByLabel('Nome do botão da vitrine').count() === 1 && await p.getByLabel('Nome do botão “Sobre”').count() === 1);
+  await abrirSecao(p, 'Páginas');
   await p.getByRole('button', { name: 'Nova página' }).click();
   await p.getByLabel('Título da página').fill('Só título');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
@@ -178,6 +181,8 @@ const rowsExtra = [
   await p.getByRole('button', { name: 'Prévia', exact: true }).click();
   check('prévia mostra o texto', await p.getByText('Conteúdo da página').count() >= 1);
   // coloca a página no menu do topo e no rodapé
+  await abrirSecao(p, 'Menu do topo');
+  await abrirSecao(p, 'Links do rodapé');
   await p.getByRole('button', { name: 'Página', exact: true }).first().click();
   check('item de página no menu do topo', await p.getByLabel('Página do item').count() === 1);
   await p.getByRole('button', { name: 'Página', exact: true }).nth(1).click();
@@ -214,7 +219,7 @@ const rowsExtra = [
 // ============ ADMIN: ligar o botão Sobre direto no menu ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   await p.getByRole('listitem').filter({ hasText: 'Sobre' }).getByLabel('Mostrar na loja').check();
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
@@ -253,7 +258,7 @@ const rowsExtra = [
   await p.getByLabel('Buscar configurações').fill('ícone');
   check('ícone da aba: orientação', await p.getByText('Tamanho ideal: 256 × 256 px').count() === 1);
   await p.getByLabel('Buscar configurações').fill('compartilhamento');
-  check('compartilhamento: 1200 × 630', await p.getByText('Tamanho ideal: 1200 × 630 px').count() === 1);
+  check('compartilhamento: 1200 × 630', await p.getByText('Tamanho ideal: 1200 × 630 px').count() >= 1);
   await p.getByRole('button', { name: /^Produtos/ }).click();
   await p.getByRole('button', { name: 'Novo produto' }).click();
   check('produto: orientação de tamanho das fotos', await p.getByText('Tamanho ideal: 800 × 800 px (proporção 1:1)').count() === 1);

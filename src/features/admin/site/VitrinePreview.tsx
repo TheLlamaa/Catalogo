@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Monitor, RotateCw, Smartphone, X } from 'lucide-react';
 import Dialog from '../../../components/Dialog';
-import { PREVIEW_MSG, PREVIEW_READY } from '../../../lib/preview';
+import { PREVIEW_GOTO, PREVIEW_MSG, PREVIEW_READY, type PreviewTarget } from '../../../lib/preview';
 import type { SettingRow } from '../../../types';
 
 // Prévia ao vivo: a vitrine de verdade num iframe (/?preview=1), recebendo o rascunho a cada mudança.
 // No computador largo fica fixa ao lado do formulário; em telas menores abre numa janela.
 interface VitrinePreviewProps {
   rows: SettingRow[];
+  target?: PreviewTarget; // tela que a prévia mostra (acompanha o campo em edição)
   docked: boolean;
   onClose: () => void;
 }
@@ -15,11 +16,12 @@ interface VitrinePreviewProps {
 const PHONE_W = 390;
 const DESKTOP_W = 1280;
 
-export default function VitrinePreview({ rows, docked, onClose }: VitrinePreviewProps) {
+export default function VitrinePreview({ rows, target = 'home', docked, onClose }: VitrinePreviewProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef(rows);
-  useEffect(() => { rowsRef.current = rows; });
+  const targetRef = useRef(target);
+  useEffect(() => { rowsRef.current = rows; targetRef.current = target; });
   const [device, setDevice] = useState<'celular' | 'computador'>('celular');
   const [boxW, setBoxW] = useState(PHONE_W);
   const [reloadKey, setReloadKey] = useState(0);
@@ -30,11 +32,19 @@ export default function VitrinePreview({ rows, docked, onClose }: VitrinePreview
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      if (e.data?.type === PREVIEW_READY) send();
+      if (e.data?.type === PREVIEW_READY) {
+        send();
+        if (targetRef.current !== 'home') setTimeout(() => frameRef.current?.contentWindow?.postMessage({ type: PREVIEW_GOTO, target: targetRef.current }, window.location.origin), 300);
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [send]);
+
+  // Campo em edição mudou de área: a prévia vai para a tela certa
+  useEffect(() => {
+    frameRef.current?.contentWindow?.postMessage({ type: PREVIEW_GOTO, target }, window.location.origin);
+  }, [target]);
 
   // A cada mudança no formulário (com uma pequena espera para não piscar enquanto digita)
   useEffect(() => {

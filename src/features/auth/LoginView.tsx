@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, AlertCircle, ChevronLeft } from 'lucide-react';
 import { signIn } from '../../services/auth';
+import { friendlyError } from '../../lib/errorMessage';
 
 export default function LoginView({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function LoginView({ onLoginSuccess }: { onLoginSuccess: () => vo
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError(''); setLoading(true);
     const { error: signInError } = await signIn(email, password);
-    if (signInError) { setError(signInError.message); setLoading(false); } 
+    if (signInError) { setError(/invalid login credentials/i.test(signInError.message) ? 'E-mail ou senha incorretos.' : friendlyError(signInError)); setLoading(false); } 
     else onLoginSuccess();
   };
 

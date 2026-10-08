@@ -1,5 +1,6 @@
 // Painel: menu agrupado (computador e celular), ações rápidas na lista de produtos e atalhos entre áreas.
 import { BASE, launch } from './env.mjs';
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: 4102444800 })}.sig`;
@@ -47,7 +48,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   const { page, ctx, writes } = await abrir();
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
   const grupos = await page.locator('nav[aria-label="Seções do painel"] [data-nav-section]').evaluateAll(els => els.map(e => e.getAttribute('data-nav-section')));
-  check('menu agrupado em Vendas, Catálogo, Site e Sistema', grupos.join('|') === 'Vendas|Catálogo|Site|Sistema', grupos.join('|'));
+  check('menu agrupado em Vendas, Catálogo, Personalizar loja e Sistema', grupos.join('|') === 'Vendas|Catálogo|Personalizar loja|Sistema', grupos.join('|'));
   check('item ativo marcado (aria-current)', (await page.locator('nav[aria-label="Seções do painel"] [aria-current="page"] .sr-only').textContent()) === 'Pedidos (0)');
 
   // produtos: busca, filtros e ações rápidas
@@ -79,7 +80,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   check('atalho da categoria abre Produtos já filtrado', (await page.getByLabel('Filtrar por categoria').inputValue()) === 'c2' && (await page.locator('tbody tr').count()) === 2);
 
   // Site: aviso antes de sair com alterações não publicadas
-  await nav(page, 'Dados da loja').click();
+  await nav(page, 'Contato e redes').click();
   await page.getByLabel('Nome da loja').fill('Loja Nova');
   await nav(page, 'Aparência').click();
   check('trocar de área do Site mantém o que foi digitado', await page.getByText('Alterações não publicadas').isVisible());
@@ -91,6 +92,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   // Página inicial liga com Produtos
   await nav(page, 'Página inicial').click();
   await page.getByRole('button', { name: /^Publicar alterações/ }).click(); await page.waitForTimeout(500);
+  await abrirSecao(page, 'Seções no topo da vitrine');
   await page.getByRole('button', { name: /^Ver Destaques/ }).click();
   check('"Ver Destaques" leva aos produtos destacados', (await page.getByRole('button', { name: /^Destaques/ }).getAttribute('aria-pressed')) === 'true');
   await ctx.close();
@@ -104,7 +106,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await abrirMenu.click();
   const menu = page.getByRole('dialog', { name: 'Menu do painel' });
   const itens = await menu.getByRole('button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
-  check('celular: menu lista todas as áreas', ['Produtos (3)', 'Página inicial', 'Dados da loja', 'Recursos', 'Equipe'].every(n => itens.includes(n)), itens.join(' | '));
+  check('celular: menu lista todas as áreas', ['Produtos (3)', 'Página inicial', 'Contato e redes', 'Avançado', 'Equipe'].every(n => itens.includes(n)), itens.join(' | '));
   await menu.getByRole('button', { name: 'Produtos (3)', exact: true }).click();
   check('celular: escolher no menu abre a área e fecha o menu', await page.getByRole('heading', { name: 'Produtos', exact: true }).isVisible() && await menu.count() === 0);
   check('celular: produtos em cards com ações visíveis', await page.getByRole('button', { name: 'Editar Vaso Cubo' }).isVisible() && await page.locator('table').count() === 0);

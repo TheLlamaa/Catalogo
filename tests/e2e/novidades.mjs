@@ -1,6 +1,7 @@
 // Estoque direto na lista, arrastar para ordenar, categoria oculta, prévia ao vivo do Site,
 // aviso da faixa sem texto e o fluxo do pedido como um leitor de tela o percebe.
 import { BASE, launch } from './env.mjs';
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: 4102444800 })}.sig`;
@@ -108,7 +109,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
 { // Site: prévia ao vivo e aviso da faixa sem texto
   const { page, ctx, writes } = await abrir();
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
-  await nav(page, 'Dados da loja').click();
+  await nav(page, 'Contato e redes').click();
   await page.getByRole('button', { name: 'Prévia ao vivo' }).click();
   const quadro = page.frameLocator('iframe[title^="Prévia da vitrine"]');
   await quadro.getByText('Vaso Cubo').first().waitFor();
@@ -132,6 +133,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   check('fechar tira a prévia', await page.locator('iframe').count() === 0);
 
   await nav(page, 'Página inicial').click();
+  await abrirSecao(page, 'Faixa de aviso no topo');
   const faixa = page.getByRole('switch', { name: /faixa/i }).first();
   if (await faixa.count()) {
     if ((await faixa.getAttribute('aria-checked')) !== 'true') await faixa.click();
@@ -145,7 +147,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
 { // Celular: a prévia abre numa janela
   const { page, ctx } = await abrir({ viewport: { width: 390, height: 844 } });
   await page.getByRole('button', { name: /Abrir menu do painel/ }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Dados da loja', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Contato e redes', exact: true }).click();
   await page.getByRole('button', { name: 'Prévia ao vivo' }).click();
   const janela = page.getByRole('dialog', { name: 'Prévia da vitrine' });
   check('celular: prévia abre em janela', await janela.isVisible());
@@ -207,7 +209,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
     return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
   });
   let falhou = 0;
-  await page.route(/\/assets\/AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
+  await page.route(/\/assets\/(?:v2\/)?AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
   await page.goto(BASE + '/admin');
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor({ timeout: 10000 }).catch(() => {});
   check('arquivo antigo some: a página recarrega e o painel abre', falhou >= 2 && await page.getByRole('button', { name: /^Pedidos \(/ }).isVisible(), `tentativas=${falhou}`);
@@ -330,7 +332,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await page.waitForTimeout(800);
   check('tema pronto aplicado no painel', rosa === '190 24 93', rosa);
   check('dados recarregaram e a cor do rascunho continua', recarregou && await cor() === rosa, `${recarregou} ${await cor()}`);
-  await nav(page, 'Dados da loja').click(); await page.waitForTimeout(200);
+  await nav(page, 'Contato e redes').click(); await page.waitForTimeout(200);
   await nav(page, 'Produtos (3)').click();
   await page.getByRole('dialog').getByRole('button', { name: /Sair sem publicar/ }).click();
   await page.waitForTimeout(300);

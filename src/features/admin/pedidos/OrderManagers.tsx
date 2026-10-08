@@ -8,7 +8,7 @@ import ViewToggle from './ViewToggle';
 import { useOrderInbox } from '../../../hooks/useOrderInbox';
 import { OrderFilters, StatusChips } from './OrderFilters';
 import { downloadCsv, statusInfo } from '../../../lib/format';
-import { ageInfo, orderCode } from '../../../lib/orders';
+import { ageInfo, hasReferenceImage, orderCode } from '../../../lib/orders';
 import type { CustomOrder, OrderStatusId } from '../../../types';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -45,7 +45,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
   const exportCsv = () => downloadCsv(
     `pedidos-personalizados-${today()}.csv`,
     ['Data', 'Cliente', 'WhatsApp', 'Descrição', 'Tem foto', 'Status'],
-    visible.map(o => [dateTime(o.created_at), o.client_name, o.client_phone, o.description, o.image_url ? 'Sim' : 'Não', statusInfo(o.status).label])
+    visible.map(o => [dateTime(o.created_at), o.client_name, o.client_phone, o.description, hasReferenceImage(o) ? 'Sim' : 'Não', statusInfo(o.status).label])
   );
 
   return (
@@ -84,6 +84,11 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
               {order.image_url ? (
                 <div className="w-20 h-20 bg-gray-100 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                   <ProductImage src={order.image_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : hasReferenceImage(order) ? (
+                <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-lg flex flex-col items-center justify-center gap-0.5 text-blue-700 flex-shrink-0">
+                  <ImageIcon className="w-7 h-7" aria-hidden="true" />
+                  <span className="text-[10px] font-medium">Com foto</span>
                 </div>
               ) : (
                 <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-500 flex-shrink-0">
@@ -146,7 +151,7 @@ export function CustomOrdersManager({ customOrders, onDelete, onSelectOrder, onU
                     <span className="block text-xs text-gray-500" title={dateTime(order.created_at)}>{orderCode(order)} · {ageInfo(order).label}</span>
                   </td>
                   <td className="px-3 py-2.5 align-top text-xs text-gray-600 max-w-[22rem]"><span className="line-clamp-2" title={order.description}>{order.description}</span></td>
-                  <td className="px-3 py-2.5 align-top text-xs text-gray-500">{order.image_url ? 'Sim' : '—'}</td>
+                  <td className="px-3 py-2.5 align-top text-xs text-gray-500">{hasReferenceImage(order) ? 'Sim' : '—'}</td>
                   <td className="px-3 py-2.5 align-top" onClick={(e) => e.stopPropagation()}><StatusSelect value={order.status} onChange={(s) => onUpdateStatus(order.id, s)} /></td>
                   <td className="px-3 py-2.5 align-top">
                     <div className="flex justify-end">

@@ -2,6 +2,8 @@
 // guardados, validação, diferença entre o rascunho e o publicado, e o protocolo de gravação com backup para "Desfazer".
 import { DEFAULT_SETTINGS, SETTING_FIELDS, isValidMinOrder, isValidWhatsapp, normalizeWhatsapp } from './settings';
 import type { Settings, SettingsBackup } from './settings';
+import { BLOCK_KEYS, blockToStored, isCompleteBlock, parseBlockDraft } from './blocks';
+import { orderToStored } from './homeSections';
 import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from './pages';
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from './menus';
 import { isHex, normalizeSocial, parseFaq } from './theme';
@@ -35,6 +37,8 @@ export const toStored = (key: string, value: unknown): string | null => {
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
   else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
   else if (/^page[A-T]$/.test(key)) v = pageToStored(v);
+  else if (/^block[A-F]$/.test(key)) v = blockToStored(v);
+  else if (key === 'homeSections') v = orderToStored(v);
   else if (key === 'menuTop') v = menuToStored(v, MAX_TOP, true);
   else if (key === 'menuFoot') v = menuToStored(v, MAX_FOOT, false);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
@@ -56,18 +60,22 @@ export function diffSettings(form: FormValues, base: FormValues): SettingChanges
   return changes;
 }
 
-/** Primeira mensagem de erro do formulário, ou null se pode publicar. */
-export function validateSettingsForm(form: FormValues): string | null {
-  if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999';
-  if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return 'E-mail inválido.';
-  if (!str(form.storeName).trim()) return 'O nome da loja não pode ficar vazio.';
+/** Primeiro problema do formulário, com a chave do campo (para destacá-lo na tela), ou null se pode publicar. */
+export interface FormProblem { key: string; message: string }
+
+export function findFormProblem(form: FormValues): FormProblem | null {
+  const bad = (key: string, message: string): FormProblem => ({ key, message });
+  if (str(form.whatsapp).trim() && !isValidWhatsapp(form.whatsapp)) return bad('whatsapp', 'WhatsApp inválido. Use DDD + número, ex: (48) 99999-9999');
+  if (str(form.email).trim() && !EMAIL_RE.test(str(form.email).trim())) return bad('email', 'E-mail inválido.');
+  if (!str(form.storeName).trim()) return bad('storeName', 'O nome da loja não pode ficar vazio.');
   for (const k of ['primaryColor', 'bannerColor', 'badgeColor']) {
-    if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.';
+    if (str(form[k]).trim() && !isHex(str(form[k]).trim())) return bad(k, 'Cor inválida. Use o seletor de cor ou o formato #1a2b3c.');
   }
   for (const f of SETTING_FIELDS.filter(x => x.type === 'social')) {
-    if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return `${f.label}: use @usuario ou um link começando com https://`;
+    if (str(form[f.key]).trim() && !normalizeSocial(f.key, form[f.key])) return bad(f.key, `${f.label}: use @usuario ou um link começando com https://`);
   }
-  if (!isValidMinOrder(form.minOrder)) return 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.';
+  if (str(form.mapLink).trim() && !/^https?:\/\/\S+$/i.test(str(form.mapLink).trim())) return bad('mapLink', 'Link do mapa: cole o endereço completo, começando com https://');
+  if (!isValidMinOrder(form.minOrder)) return bad('minOrder', 'Pedido mínimo: use um número maior que zero, ex: 30 ou 30,50.');
   const slugs = new Set<string>();
   for (const k of PAGE_KEYS) {
     const raw = str(form[k]);
@@ -75,25 +83,40 @@ export function validateSettingsForm(form: FormValues): string | null {
     if (!stored) continue;
     const d = parsePageDraft(raw);
     const name = (d.t || '').trim() || 'Página sem título';
-    if (!isCompletePage(raw)) return `Página “${name}”: preencha o título e o texto (ou apague a página).`;
-    if (stored.length > DB_VALUE_MAX) return `Página “${name}”: o texto ficou grande demais. Encurte um pouco.`;
+    if (!isCompletePage(raw)) return bad(k, `Página “${name}”: preencha o título e o texto (ou apague a página).`);
+    if (stored.length > DB_VALUE_MAX) return bad(k, `Página “${name}”: o texto ficou grande demais. Encurte um pouco.`);
     const slug = slugify(d.s || '') || slugify(d.t || '');
-    if (!isValidSlug(slug)) return `Página “${name}”: o endereço precisa ter letras ou números.`;
-    if (slugs.has(slug)) return `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`;
+    if (!isValidSlug(slug)) return bad(k, `Página “${name}”: o endereço precisa ter letras ou números.`);
+    if (slugs.has(slug)) return bad(k, `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`);
     slugs.add(slug);
   }
-  const menuError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo') || menuProblem(form.menuFoot, MAX_FOOT, false, 'Links do rodapé');
-  if (menuError) return menuError;
+  for (const k of BLOCK_KEYS) {
+    const stored = blockToStored(str(form[k]));
+    if (!stored) continue;
+    const d = parseBlockDraft(stored);
+    if (!isCompleteBlock(d)) {
+      const name = d?.t?.trim() || 'sem título';
+      const need = d?.k === 'banner' ? 'envie a imagem, escreva um título ou texto e confira o link' : d?.k === 'depoimentos' ? 'escreva ao menos um depoimento' : 'escreva um título ou um texto';
+      return bad(k, `Bloco extra “${name}”: ${need} (ou apague o bloco).`);
+    }
+  }
+  const topError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo');
+  if (topError) return bad('menuTop', topError);
+  const footError = menuProblem(form.menuFoot, MAX_FOOT, false, 'Links do rodapé');
+  if (footError) return bad('menuFoot', footError);
   try {
     const raw: FaqDraft[] = JSON.parse(str(form.faqItems) || '[]');
-    if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return 'Toda pergunta precisa de uma resposta.';
-    if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return 'Toda resposta precisa de uma pergunta.';
+    if (raw.some(i => (i.q || '').trim() !== '' && (i.a || '').trim() === '')) return bad('faqItems', 'Toda pergunta precisa de uma resposta.');
+    if (raw.some(i => (i.a || '').trim() !== '' && (i.q || '').trim() === '')) return bad('faqItems', 'Toda resposta precisa de uma pergunta.');
   } catch { /* texto vazio */ }
   const privacy = toStored('privacyText', form.privacyText) || '';
-  if (privacy.length > DB_VALUE_MAX) return 'O texto da política ficou grande demais.';
-  if ((toStored('faqItems', form.faqItems) || '').length > DB_VALUE_MAX) return 'As perguntas frequentes ficaram grandes demais. Encurte algumas respostas.';
+  if (privacy.length > DB_VALUE_MAX) return bad('privacyText', 'O texto da política ficou grande demais.');
+  if ((toStored('faqItems', form.faqItems) || '').length > DB_VALUE_MAX) return bad('faqItems', 'As perguntas frequentes ficaram grandes demais. Encurte algumas respostas.');
   return null;
 }
+
+/** Primeira mensagem de erro do formulário, ou null se pode publicar. */
+export const validateSettingsForm = (form: FormValues): string | null => findFormProblem(form)?.message ?? null;
 
 /**
  * O que gravar para aplicar `changes`: valores novos, chaves a apagar e, a menos que `noBackup`, o backup

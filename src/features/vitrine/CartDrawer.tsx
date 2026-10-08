@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { makeT } from '../../lib/texts';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Package, Image as ImageIcon, Minus, Plus, CheckCircle2, MessageSquare } from 'lucide-react';
 import { Button, inputClass, whatsappButtonClass } from '../../components/ui';
@@ -33,6 +34,7 @@ interface LastOrder {
 
 export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, removeItem, total, onCheckout }: CartDrawerProps) {
   const settings = useSettings();
+  const t = makeT(settings);
   const { toast } = useUI();
   const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart'); // cart, checkout, success
   const [clientName, setClientName] = useState('');
@@ -124,7 +126,7 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
                             <span aria-live="polite" className="px-3 text-sm font-medium"><span className="sr-only">Quantidade: </span>{line.quantity}</span>
                             <button type="button" onClick={() => updateQuantity(line.key, 1)} aria-label={`Aumentar quantidade de ${line.product.title}`} className="p-1.5 text-gray-500 hover:bg-gray-50"><Plus className="w-3.5 h-3.5" aria-hidden="true" /></button>
                           </div>
-                          <button type="button" onClick={() => removeItem(line.key)} aria-label={`Remover ${line.product.title} do orçamento`} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">Remover</button>
+                          <button type="button" onClick={() => removeItem(line.key)} aria-label={`Remover ${line.product.title} do orçamento`} className="text-xs text-red-600 font-medium py-2 px-1 -my-2 -mx-1">{t('tCartRemove')}</button>
                         </div>
                       </div>
                     </li>
@@ -135,11 +137,11 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           </div>
           {cart.length > 0 && (
             <div className="border-t border-gray-200 p-6 bg-gray-50 mt-auto">
-              {!settings.hidePrices && <div className="flex justify-between mb-5"><span className="text-sm font-medium">Total</span><span className="text-xl font-bold">{brl(total)}</span></div>}
+              {!settings.hidePrices && <div className="flex justify-between mb-5"><span className="text-sm font-medium">{t('tCartTotal')}</span><span className="text-xl font-bold">{brl(total)}</span></div>}
               {settings.ordersPaused && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">{settings.pausedMessage}</p>}
-              {!settings.ordersPaused && belowMin && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">Pedido mínimo: {brl(minOrder)}. Faltam {brl(shortfall)}.</p>}
+              {!settings.ordersPaused && belowMin && <p role="status" className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">{t('tMinOrder', { min: brl(minOrder), falta: brl(shortfall) })}</p>}
               <Button variant="primary" size="lg" className="w-full" onClick={() => setStep('checkout')} disabled={!canProceed(settings, total)}>
-                Avançar para Identificação
+                {t('tCartNext')}
               </Button>
             </div>
           )}
@@ -154,20 +156,20 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             className="absolute -left-[9999px] w-px h-px opacity-0"
           />
           <div>
-            <h3 ref={stepHeading} tabIndex={-1} className="text-lg font-bold text-gray-900 mb-1 outline-none">Informações para contato</h3>
+            <h3 ref={stepHeading} tabIndex={-1} className="text-lg font-bold text-gray-900 mb-1 outline-none">{t('tContactTitle')}</h3>
             <p className="text-xs text-gray-500 mb-5">{settings.cartIntro}</p>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">Seu nome <span aria-hidden="true">*</span></label>
+                <label htmlFor="k-nome" className="block text-sm font-medium text-gray-700 mb-1">{t('tYourName')} <span aria-hidden="true">*</span></label>
                 <input
-                  id="k-nome" required type="text" autoComplete="name" placeholder="Ex: João Souza" maxLength={100}
+                  id="k-nome" required type="text" autoComplete="name" placeholder={t('tNamePlaceholder')} maxLength={100}
                   value={clientName} onChange={e => setClientName(e.target.value)}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label htmlFor="k-whats" className="block text-sm font-medium text-gray-700 mb-1">Seu WhatsApp <span aria-hidden="true">*</span></label>
+                <label htmlFor="k-whats" className="block text-sm font-medium text-gray-700 mb-1">{t('tYourWhatsapp')} <span aria-hidden="true">*</span></label>
                 <input
                   id="k-whats" required type="tel" autoComplete="tel-national" placeholder="(11) 99999-9999" inputMode="tel" maxLength={15}
                   value={clientPhone} onChange={e => setClientPhone(formatPhoneBR(e.target.value))}
@@ -178,9 +180,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           </div>
 
           {settings.deliveryEnabled && <fieldset>
-            <legend className="block text-sm font-medium text-gray-700 mb-2">Como prefere receber?</legend>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">{t('tReceiveHow')}</legend>
             <div className="grid grid-cols-2 gap-3">
-              {([{ id: 'retirada', label: 'Retirada' }, { id: 'entrega', label: 'Entrega' }] as { id: DeliveryMethod; label: string }[]).map(opt => (
+              {([{ id: 'retirada', label: t('tPickup') }, { id: 'entrega', label: t('tDeliveryOpt') }] as { id: DeliveryMethod; label: string }[]).map(opt => (
                 <label
                   key={opt.id}
                   className={`flex items-center justify-center gap-2 border rounded-md py-2 text-sm cursor-pointer transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${deliveryMethod === opt.id ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
@@ -192,9 +194,9 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
             </div>
             {deliveryMethod === 'entrega' && (
               <div className="mt-3">
-                <label htmlFor="k-end" className="block text-sm font-medium text-gray-700 mb-1">Endereço (ou bairro e cidade) <span aria-hidden="true">*</span></label>
+                <label htmlFor="k-end" className="block text-sm font-medium text-gray-700 mb-1">{t('tAddressLabel')} <span aria-hidden="true">*</span></label>
                 <input
-                  id="k-end" type="text" aria-required="true" maxLength={300} autoComplete="street-address" placeholder="Rua, número, bairro e cidade"
+                  id="k-end" type="text" aria-required="true" maxLength={300} autoComplete="street-address" placeholder={t('tAddressPlaceholder')}
                   value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
                   className={inputClass}
                 />
@@ -205,33 +207,33 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
 
           {settings.notesEnabled && <div>
             <label htmlFor="k-obs" className="block text-sm font-medium text-gray-700 mb-1">
-              Observações <span className="text-gray-500 font-normal">(opcional)</span>
+              {t('tNotesLabel')} <span className="text-gray-500 font-normal">{t('tNotesOptional')}</span>
             </label>
             <textarea
               id="k-obs" rows={3} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="Ex: cor preferida, prazo desejado..."
+              placeholder={t('tNotesPlaceholder')}
               className={inputClass}
             />
             <p className="text-xs text-gray-500 mt-1 text-right">{notes.length}/500</p>
           </div>}
 
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2">
-            <div className="flex justify-between text-gray-600"><span>Itens:</span><span>{cart.length} produto(s)</span></div>
+            <div className="flex justify-between text-gray-600"><span>{t('tItemsLabel')}</span><span>{cart.length} produto(s)</span></div>
             {!settings.hidePrices && <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200">
-              <span>Total:</span>
+              <span>{t('tCartTotal')}:</span>
               <span>{brl(total)}</span>
             </div>}
           </div>
 
           <p className="text-xs text-gray-500">
-            Usamos seus dados apenas para atender este pedido.{' '}
-            <Link to="/privacidade" onClick={handleClose} className="text-blue-600 hover:underline">Política de privacidade</Link>
+            {t('tPrivacyNote')}{' '}
+            <Link to="/privacidade" onClick={handleClose} className="text-blue-600 hover:underline">{t('tFooterPrivacy')}</Link>
           </p>
 
           <div className="mt-auto pt-2 flex gap-3">
-            <Button size="lg" className="px-4" onClick={() => setStep('cart')}>Voltar</Button>
+            <Button size="lg" className="px-4" onClick={() => setStep('cart')}>{t('tBack')}</Button>
             <Button type="submit" variant="primary" size="lg" className="flex-1" disabled={isSubmitting} aria-busy={isSubmitting}>
-              {isSubmitting ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">Enviando pedido…</span></> : 'Finalizar pedido'}
+              {isSubmitting ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">{t('tSendingOrder')}</span></> : t('tFinishOrder')}
             </Button>
           </div>
         </form>
@@ -246,14 +248,14 @@ export default function CartDrawer({ isOpen, onClose, cart, updateQuantity, remo
           <p className="text-sm text-gray-600 mb-6">{settings.orderDoneText}</p>
           {settings.whatsapp && lastOrder && (
             <a
-              href={whatsappLink(settings.whatsapp, buildOrderMessage({ ...lastOrder, intro: settings.orderMessageIntro }))}
+              href={whatsappLink(settings.whatsapp, buildOrderMessage({ ...lastOrder, intro: settings.orderMessageIntro, labels: { total: t('tMsgTotal'), pickup: t('tMsgPickup'), delivery: t('tMsgDelivery'), notes: t('tMsgNotes') } }))}
               target="_blank" rel="noreferrer"
               className={whatsappButtonClass}
             >
               <MessageSquare className="w-4 h-4" /> {settings.whatsappButton}
             </a>
           )}
-          <Button variant="primary" size="lg" onClick={handleClose}>Concluir</Button>
+          <Button variant="primary" size="lg" onClick={handleClose}>{t('tDone')}</Button>
         </div>
       )}
     </Dialog>

@@ -7,10 +7,11 @@ export const PAGE_KEYS = PAGE_LETTERS.split('').map(l => `page${l}`);
 export const PAGE_TITLE_MAX = 60;
 export const PAGE_TEXT_MAX = 3000;
 
-export interface ExtraPage { key: string; slug: string; title: string; text: string; published: boolean }
+export interface ExtraPage { key: string; slug: string; title: string; text: string; published: boolean; description: string; image: string }
+export const PAGE_DESC_MAX = 160;
 
 // Como a página é digitada no painel (campos podem estar vazios)
-export interface PageDraft { t?: string; x?: string; s?: string; p?: boolean }
+export interface PageDraft { t?: string; x?: string; s?: string; p?: boolean; d?: string; m?: string } // d = descrição para o Google, m = imagem de compartilhamento
 
 export const slugify = (title: string): string => title
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -24,7 +25,8 @@ export const parsePageDraft = (value: string): PageDraft => {
     if (o && typeof o === 'object' && !Array.isArray(o)) {
       return {
         t: typeof o.t === 'string' ? o.t : '', x: typeof o.x === 'string' ? o.x : '',
-        s: typeof o.s === 'string' ? o.s : '', p: o.p !== false
+        s: typeof o.s === 'string' ? o.s : '', p: o.p !== false,
+        d: typeof o.d === 'string' ? o.d : '', m: typeof o.m === 'string' ? o.m : ''
       };
     }
   } catch { /* vazio */ }
@@ -38,7 +40,9 @@ export const pageToStored = (value: string): string => {
   const x = (d.x || '').trim().slice(0, PAGE_TEXT_MAX);
   if (!t && !x) return '';
   const s = slugify(d.s || '') || slugify(t);
-  return JSON.stringify({ t, x, s, p: d.p !== false });
+  const desc = (d.d || '').trim().slice(0, PAGE_DESC_MAX);
+  const img = /^https?:\/\//i.test((d.m || '').trim()) ? (d.m || '').trim() : '';
+  return JSON.stringify({ t, x, s, p: d.p !== false, ...(desc ? { d: desc } : {}), ...(img ? { m: img } : {}) });
 };
 
 export const isCompletePage = (value: string): boolean => {
@@ -61,7 +65,7 @@ export const buildPages = (byKey: Record<string, string | undefined>): ExtraPage
     let slug = slugify(d.s || '') || slugify(title);
     if (seen.has(slug)) slug = `${slug}-${key.slice(-1).toLowerCase()}`.slice(0, 40);
     seen.add(slug);
-    out.push({ key, slug, title, text: (d.x || '').trim(), published: d.p !== false });
+    out.push({ key, slug, title, text: (d.x || '').trim(), published: d.p !== false, description: (d.d || '').trim(), image: /^https?:\/\//i.test((d.m || '').trim()) ? (d.m || '').trim() : '' });
   }
   return out;
 };

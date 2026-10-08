@@ -97,8 +97,8 @@ export function InlineSwitch({ on, onToggle, label, onText, offText, title }: In
 // Cabeçalho de cada tela do painel: título, explicação curta e a ação principal à direita
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
-      <div className="min-w-0">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start justify-between gap-3 mb-5">
+      <div className="min-w-0 sm:min-w-[14rem] sm:flex-1">
         <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
         {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
       </div>
