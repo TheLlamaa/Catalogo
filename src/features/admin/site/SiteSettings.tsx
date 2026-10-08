@@ -7,7 +7,10 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
 import { Switch, PageHeader, Button, inputClass } from '../../../components/ui';
-import { GROUPS, SETTINGS_SCHEMA, DEFAULT_SETTINGS } from '../../../lib/settings';
+import { GROUPS, SETTINGS_SCHEMA, DEFAULT_SETTINGS, mergeSettings } from '../../../lib/settings';
+import { brandFont, nearestWeight } from '../../../lib/brand';
+import { loadAllBrandFonts } from '../../../lib/brandFontLoader';
+import { BrandMark } from '../../../components/Layout';
 import type { ColorField as ColorFieldDef, Settings, SettingField, SettingsSection } from '../../../lib/settings';
 import { MAX_TOP, MAX_FOOT } from '../../../lib/menus';
 import ImageGuideText from '../../../components/ImageGuideText';
@@ -25,7 +28,7 @@ import VitrinePreview from './VitrinePreview';
 
 // Ícone de cada seção do painel (só visual, ajuda a achar o bloco certo)
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Modelo da página inicial': LayoutTemplate, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Faixa de aviso no topo': Megaphone,
+  'Cores e fonte': Palette, 'Estilo dos cards': LayoutGrid, 'Modelo da página inicial': LayoutTemplate, 'Capa da vitrine': ImageIcon, 'Páginas': FileText, 'Menu do topo': Menu, 'Links do rodapé': Link2, 'Política de privacidade': FileText, 'Carrinho e pedido': FileText, 'Google e compartilhamento': Search, 'Pedidos': ToggleRight, 'Exibição da vitrine': LayoutGrid, 'Logo': ImageIcon, 'Nome da loja no topo': Type, 'Faixa de aviso no topo': Megaphone,
   'Identidade e contato': Store, 'Nomes dos botões do menu': Type, 'Página inicial (vitrine)': LayoutGrid,
   'Faixa de destaque (peça personalizada)': Sparkles, 'Blocos da página inicial': ToggleRight, 'Passo a passo do pedido': ListOrdered, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
@@ -223,6 +226,7 @@ export default function SiteSettings({ settings, categories, products, group, on
                 <Field key={f.key} f={f} form={form} set={set} resetField={resetField} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
+              {(section.title === 'Logo' || section.title === 'Nome da loja no topo') && <BrandPreview form={form} />}
               {section.title === 'Seções no topo da vitrine' && (
                 <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-900 space-y-2">
                   <p><strong>Quais produtos aparecem?</strong> Você escolhe na lista de Produtos (estrela ★ Destaque) ou no cadastro do produto, em “Onde aparece na vitrine”. Novidades entram sozinhas: produtos dos últimos 30 dias.</p>
@@ -295,13 +299,6 @@ function Field({ f, form, set, resetField }: FieldProps) {
             <input id={id} type="range" min={f.min} max={f.max} step={f.step} value={str(form[f.key])} onChange={e => set(f.key, e.target.value)} className="flex-1 accent-blue-600" />
             <span className="w-16 text-right text-sm font-mono text-gray-700">{str(form[f.key])} {f.unit}</span>
           </div>
-          {f.key === 'logoSize' && (
-            <div className="mt-3 flex items-center h-[7rem] px-4 rounded-md border border-dashed border-gray-300 bg-gray-50 overflow-hidden">
-              {form.logoUrl
-                ? <img src={str(form.logoUrl)} alt="Prévia da logo" style={{ height: `${form.logoSize}px`, maxWidth: '100%' }} className="object-contain" />
-                : <span className="text-xs text-gray-500">Envie uma logo acima para ver a prévia do tamanho.</span>}
-            </div>
-          )}
         </div>
       );
       break;
@@ -393,6 +390,14 @@ function ImageField({ id, label, guide, value, onChange }: { id: string; label: 
 function ChoicePreview({ display, value }: { display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string }) {
   if (display === 'columns') return <ColumnsIcon n={Number(value)} />;
   if (display === 'layout') return <LayoutIcon id={value} />;
+  if (display === 'shape') {
+    const r = value === 'redondo' ? '9999px' : value === 'arredondado' ? '22%' : '2px';
+    return <div className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-700" style={{ borderRadius: r }} aria-hidden="true" />;
+  }
+  if (display === 'brandfont') {
+    const font = brandFont(value);
+    return <span style={{ fontFamily: font.stack, fontWeight: nearestWeight(font, 700) }} className="text-2xl leading-none text-gray-800" aria-hidden="true">Aa</span>;
+  }
   if (display === 'corners') {
     const radius = CARD_STYLES.find(c => c.id === value)?.radius || '0.75rem';
     return (
@@ -415,6 +420,7 @@ function ChoicePreview({ display, value }: { display: NonNullable<Extract<Settin
 }
 
 function ChoiceGroup({ f, display, value, onChange }: { f: Extract<SettingField, { type: 'select' }>; display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string; onChange: (v: string) => void }) {
+  useEffect(() => { if (display === 'brandfont') loadAllBrandFonts(); }, [display]);
   return (
     <div role="radiogroup" aria-label={f.label} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
       {f.options.map(o => {
@@ -513,6 +519,24 @@ function FaqField({ value, onChange }: { value: string; onChange: (v: string) =>
       {items.length < MAX_FAQ && (
         <button type="button" onClick={() => save([...items, { q: '', a: '' }])} className="flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:underline"><Plus className="w-4 h-4" /> Adicionar pergunta</button>
       )}
+    </div>
+  );
+}
+
+// Prévia do topo da loja (logo + nome) no computador e no celular, com o rascunho do formulário
+function BrandPreview({ form }: { form: FormValues }) {
+  const draft = useMemo(() => mergeSettings(draftRows(form)), [form]);
+  return (
+    <div>
+      <span className="block text-xs font-medium text-gray-500 mb-1">Prévia do topo</span>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <div className="flex min-h-[5rem] items-center overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3" aria-label="Prévia no computador">
+          <div className="min-w-0"><BrandMark settings={draft} mode="desktop" /></div>
+        </div>
+        <div className="flex min-h-[5rem] w-[15rem] items-center overflow-hidden rounded-md border border-gray-200 bg-white px-3 py-3" aria-label="Prévia no celular">
+          <div className="min-w-0 max-w-full"><BrandMark settings={draft} mode="mobile" /></div>
+        </div>
+      </div>
     </div>
   );
 }

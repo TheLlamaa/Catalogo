@@ -87,8 +87,8 @@ describe('mergeSettings', () => {
   });
 
   it('logoSize aceita só inteiros dentro da faixa', () => {
-    for (const bad of ['23', '97', '40.5', 'abc', '-30']) expect(mergeSettings(rows({ logoSize: bad })).logoSize, bad).toBe('36');
-    for (const ok of ['24', '96', '48']) expect(mergeSettings(rows({ logoSize: ok })).logoSize, ok).toBe(ok);
+    for (const bad of ['23', '129', '40.5', 'abc', '-30']) expect(mergeSettings(rows({ logoSize: bad })).logoSize, bad).toBe('36');
+    for (const ok of ['24', '96', '128', '48']) expect(mergeSettings(rows({ logoSize: ok })).logoSize, ok).toBe(ok);
   });
 
   it('perguntas frequentes viram lista', () => {

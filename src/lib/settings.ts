@@ -3,6 +3,7 @@ import { normalizeWhatsapp } from './whatsapp';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
 import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
+import { BRAND_FONTS, NAME_WEIGHTS, NAME_CASES, NAME_SPACINGS, NAME_COLORS, LOGO_SHAPES, BRAND_LAYOUTS } from './brand';
 import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
 import type { ImageGuideKey } from './imageGuides';
 import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
@@ -37,7 +38,7 @@ export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
   options: { value: string; label: string }[];
-  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort' | 'layout'; // mostra exemplos visuais em vez de lista
+  display?: 'columns' | 'corners' | 'font' | 'tone' | 'sort' | 'layout' | 'shape' | 'brandfont'; // mostra exemplos visuais em vez de lista
 }
 export interface RangeField extends SettingFieldBase {
   type: 'range';
@@ -72,7 +73,9 @@ export interface Settings {
   showHowItWorks: boolean; showHowCustom: boolean; howTitle: string; howCustomText: string;
   stepOneTitle: string; stepOneText: string; stepTwoTitle: string; stepTwoText: string; stepThreeTitle: string; stepThreeText: string;
   faviconUrl: string; seoTitle: string; seoDescription: string; seoImage: string;
-  logoUrl: string; logoSize: string; logoShowName: boolean;
+  logoUrl: string; logoSize: string; logoShowName: boolean; logoSizeMobile: string; logoShape: string; brandLayout: string;
+  nameImage: string; nameImageSize: string; nameFont: string; nameSize: string; nameSizeMobile: string; nameWeight: string;
+  nameItalic: boolean; nameCase: string; nameSpacing: string; nameColorMode: string; nameColor: string; storeTagline: string;
   bannerEnabled: boolean; bannerText: string; bannerUntil: string; bannerColor: string; bannerImage: string;
   storeName: string; whatsapp: string; email: string;
   menuHome: string; menuCustom: string;
@@ -104,7 +107,7 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: capa, título, faixa de aviso e as seções Destaques, Mais pedidos e Novidades.',
     sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Passo a passo do pedido', 'Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
   { id: 'aparencia', label: 'Aparência', description: 'Cores, fonte, logo e o formato dos cards. Vale para o site inteiro.',
-    sections: ['Cores e fonte', 'Logo', 'Estilo dos cards'] },
+    sections: ['Cores e fonte', 'Logo', 'Nome da loja no topo', 'Estilo dos cards'] },
   { id: 'loja', label: 'Dados da loja', description: 'Nome, WhatsApp, e-mail, redes sociais, rodapé e como o site aparece no Google e no WhatsApp.',
     sections: ['Identidade e contato', 'Redes sociais', 'Rodapé', 'Google e compartilhamento'] },
   { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, a janela do produto e os textos do carrinho.',
@@ -185,9 +188,29 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     group: 'aparencia', title: 'Logo',
     fields: [
       { key: 'logoUrl', label: 'Logo da loja', type: 'image', guide: 'logo', default: '', max: 700, hint: 'Aparece no topo e na aba do navegador.' },
+      { key: 'logoShape', label: 'Formato da logo', type: 'select', display: 'shape', default: 'original', options: LOGO_SHAPES },
+      { key: 'logoSize', label: 'Tamanho da logo (computador)', type: 'range', min: 24, max: 128, step: 4, unit: 'px', default: '36', hint: 'Altura no topo.' },
+      { key: 'logoSizeMobile', label: 'Tamanho da logo (celular)', type: 'range', min: 24, max: 80, step: 4, unit: 'px', default: '48', hint: 'Não passa do tamanho do computador.' },
       { key: 'faviconUrl', label: 'Ícone da aba (opcional)', type: 'image', guide: 'favicon', default: '', max: 700, hint: 'Vazio = usa a logo.' },
-      { key: 'logoSize', label: 'Tamanho da logo', type: 'range', min: 24, max: 96, step: 4, unit: 'px', default: '36', hint: 'Altura no topo. No celular é limitada a 48 px.' },
-      { key: 'logoShowName', label: 'Mostrar o nome da loja ao lado da logo', type: 'toggle', default: true },
+    ]
+  },
+  {
+    group: 'aparencia', title: 'Nome da loja no topo',
+    fields: [
+      { key: 'logoShowName', label: 'Mostrar o nome da loja', type: 'toggle', default: true, hint: 'Sem logo, o nome sempre aparece.' },
+      { key: 'brandLayout', label: 'Posição do nome', type: 'select', default: 'lado', options: BRAND_LAYOUTS },
+      { key: 'nameImage', label: 'Imagem no lugar do nome (opcional)', type: 'image', guide: 'wordmark', default: '', max: 700, hint: 'Use se o nome da loja já é um desenho (letreiro). Com imagem, as opções de fonte abaixo não são usadas.' },
+      { key: 'nameImageSize', label: 'Altura da imagem do nome', type: 'range', min: 16, max: 96, step: 2, unit: 'px', default: '32', hint: 'No celular, no máximo 40 px.' },
+      { key: 'nameFont', label: 'Fonte do nome', type: 'select', display: 'brandfont', default: 'site', options: BRAND_FONTS.map(f => ({ value: f.id, label: f.name })) },
+      { key: 'nameSize', label: 'Tamanho do nome (computador)', type: 'range', min: 12, max: 56, step: 1, unit: 'px', default: '18' },
+      { key: 'nameSizeMobile', label: 'Tamanho do nome (celular)', type: 'range', min: 12, max: 40, step: 1, unit: 'px', default: '18', hint: 'Não passa do tamanho do computador.' },
+      { key: 'nameWeight', label: 'Espessura da letra', type: 'select', default: '700', options: NAME_WEIGHTS, hint: 'Algumas fontes têm uma espessura só; aí vale a mais próxima.' },
+      { key: 'nameItalic', label: 'Itálico', type: 'toggle', default: false },
+      { key: 'nameCase', label: 'Maiúsculas e minúsculas', type: 'select', default: 'normal', options: NAME_CASES },
+      { key: 'nameSpacing', label: 'Espaço entre as letras', type: 'select', default: 'apertado', options: NAME_SPACINGS.map(({ value, label }) => ({ value, label })) },
+      { key: 'nameColorMode', label: 'Cor do nome', type: 'select', default: 'texto', options: NAME_COLORS },
+      { key: 'nameColor', label: 'Cor escolhida', type: 'color', default: '', hint: 'Usada quando "Cor do nome" é "Escolher uma cor". No modo escuro, cor muito escura volta à cor do texto.' },
+      { key: 'storeTagline', label: 'Frase abaixo do nome (opcional)', type: 'text', max: 60, default: '', hint: 'Ex.: Impressão 3D sob medida' },
     ]
   },
   {

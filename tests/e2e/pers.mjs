@@ -222,14 +222,14 @@ const baseRows = [
 {
   const { p, writes } = await newPage({ rows: [{ key: 'logoUrl', value: 'https://img.test/logo.png' }], admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
-  const slider = p.getByLabel('Tamanho da logo');
+  const slider = p.getByLabel('Tamanho da logo (computador)', { exact: true });
   check('slider começa no padrão (36)', (await slider.inputValue()) === '36');
   await slider.fill('64');
-  check('prévia usa o tamanho do slider', await p.locator('img[alt="Prévia da logo"]').evaluate(e => e.style.height) === '64px');
+  check('prévia usa o tamanho do slider', await p.locator('[aria-label="Prévia no computador"] img').first().evaluate(e => getComputedStyle(e).height) === '64px');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(500);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));
   check('publica logoSize=64', post?.body.find(r => r.key === 'logoSize')?.value === '64', JSON.stringify(post?.body.map(r => r.key)));
-  await p.getByLabel('Tamanho da logo').fill('36');
+  await p.getByLabel('Tamanho da logo (computador)', { exact: true }).fill('36');
   const before = writes.length;
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(500);
   check('voltar a 36 apaga a chave (padrão)', writes.slice(before).some(w => w.method === 'DELETE' && decodeURIComponent(w.query).includes('logoSize')));
