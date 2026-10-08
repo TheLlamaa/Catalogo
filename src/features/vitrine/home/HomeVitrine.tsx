@@ -42,7 +42,7 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
                   key={p.id} onClick={() => onOpenProduct(p)}
                   className={`group relative overflow-hidden rounded-xl bg-gray-100 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${i === 0 ? 'row-span-2 aspect-[4/5] sm:aspect-auto sm:min-h-[26rem]' : 'aspect-square sm:aspect-auto'}`}
                 >
-                  <ProductImage src={p.imageUrls[0]} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                  <ProductImage src={p.imageUrls[0]} alt="" fetchPriority={i === 0 ? 'high' : undefined} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
                   <span className={`absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto flex flex-col rounded-lg bg-white/95 px-3 py-2 shadow-sm ${i === 0 ? '' : 'max-sm:hidden'}`}>
                     <span className="text-sm font-medium text-gray-900 truncate">{p.title}</span>
                     {!settings.hidePrices && <Price product={p} showBadge={false} className="text-sm font-semibold text-gray-900" />}

@@ -128,7 +128,7 @@ describe('gateway em memória', () => {
     expect(state.catalogOrders).toHaveLength(1);
   });
   it('lê o schema_version', async () => {
-    expect((await setup({ schemaVersion: 13 }).gateway.loadSchemaStatus()).ok).toBe(true);
+    expect((await setup({ schemaVersion: 16 }).gateway.loadSchemaStatus()).ok).toBe(true);
     expect((await setup({ schemaVersion: 9 }).gateway.loadSchemaStatus()).reason).toBe('desatualizado');
     expect((await setup().gateway.loadSchemaStatus()).reason).toBe('sem-versao');
   });

@@ -5,6 +5,7 @@ import { Search, Plus, Check, Clock, Sparkles, Image as ImageIcon } from 'lucide
 import type { Settings } from '../../../lib/settings';
 import type { Category, Product } from '../../../types';
 import ProductImage from '../ProductImage';
+import { matchesQuery } from '../../../lib/text';
 import Price from '../Price';
 import { useSettings } from '../../../components/SettingsContext';
 import { auraProps, auraDot } from '../../../lib/auras';
@@ -48,10 +49,9 @@ export function useCatalogFilters(products: Product[], categories: Category[]) {
   const countIn = (c: Category) => active.filter(p => p.categoryIds?.includes(c.id)).length;
   const inCategory = (c: Category) => active.filter(p => p.categoryIds?.includes(c.id));
 
-  const query = searchQuery.toLowerCase();
   const filtered = active.filter(p => {
     const matchesCategory = activeCategoryId === 'all' || p.categoryIds?.includes(activeCategoryId);
-    const matchesSearch = p.title.toLowerCase().includes(query) || (p.description || '').toLowerCase().includes(query);
+    const matchesSearch = matchesQuery(searchQuery, p.title, p.description);
     return matchesCategory && matchesSearch;
   });
   filtered.sort((a, b) => {

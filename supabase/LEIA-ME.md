@@ -28,6 +28,8 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 12 | `12-categoria-oculta-e-opcoes.sql` | Esconder categoria do menu da vitrine sem excluir; limite no tamanho das opções dos itens do pedido |
 | 13 | `13-desconto.sql` | Desconto em % no produto: a vitrine mostra o preço riscado e o banco aplica o desconto no pedido |
 | 14 | `14-estoque-por-produto.sql` | O estoque do pedido é somado por produto (duas linhas do mesmo produto não passam do estoque) |
+| 15 | `15-baixa-de-estoque.sql` | O estoque cai sozinho quando o pedido chega e volta se o pedido for cancelado (com "Controlar estoque" ligado) |
+| 16 | `16-limites-do-bucket.sql` | Fotos: até 5 MB por arquivo e só imagem (JPEG, PNG, WebP, SVG) |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.
 

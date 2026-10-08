@@ -13,7 +13,7 @@ def role(r,email=None):
 # ambiente mínimo parecido com o Supabase
 cur.execute("""create role anon nologin; create role authenticated nologin; create schema auth; create schema storage;
 create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
-create table storage.buckets (id text primary key, name text, public boolean default false);
+create table storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text); alter table storage.objects enable row level security; grant all on storage.objects to anon, authenticated;
 create publication supabase_realtime;
 grant usage on schema public, auth, storage to anon, authenticated;
@@ -36,7 +36,7 @@ check('política aberta antiga foi removida', 'Permitir tudo em categorias' not 
 cur.execute("select count(*) from pg_policies where schemaname in ('public','storage')"); n=cur.fetchone()[0]
 check('quantidade de políticas = 21 (18 public + 3 storage)', n==21, str(n))
 cur.execute("select tgname from pg_trigger where not tgisinternal and tgrelid::regclass::text in ('orders','custom_orders','public.orders','public.custom_orders') order by 1"); tg=[r[0] for r in cur.fetchall()]
-check('7 gatilhos criados', tg==['limitar_custom_orders','limitar_orders','opcoes_orders','precificar_orders','promocao_orders','validar_custom_orders','validar_orders'], str(tg))
+check('9 gatilhos criados', tg==['baixa_estoque_orders','estoque_status_orders','limitar_custom_orders','limitar_orders','opcoes_orders','precificar_orders','promocao_orders','validar_custom_orders','validar_orders'], str(tg))
 cur.execute("select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1"); check('tempo real nas 4 tabelas', [r[0] for r in cur.fetchall()]==['categories','custom_orders','orders','products'])
 cur.execute("select has_function_privilege('anon','public.limitar_pedidos()','execute')"); check('limitar_pedidos não é chamável pela API', cur.fetchone()[0] is False)
 # comportamento
@@ -72,7 +72,9 @@ cur.execute("select has_function_privilege('anon','public.limitar_pedidos()','ex
 
 cur.execute("insert into public.products (title, price, active, stock, image_urls) values ('Chaveiro', 60, true, 5, '{https://x/a.jpg,https://x/b.jpg}'), ('Inativo', 10, false, 5, '{}'), ('Sem estoque', 10, true, 0, '{}') returning id"); ids=[r[0] for r in cur.fetchall()]; pid,inat,zero=map(str,ids)
 cur.execute("update public.products set title='Chaveiro' where id=%s",(pid,))
-def pedido(items,total=0.01,tel='(48) 99999-3333'):
+def pedido(items,total=0.01,tel='(48) 99999-3333',refill=True):
+    # O estoque agora cai a cada pedido (SQL 15): cada teste começa com o produto cheio, salvo refill=False
+    if refill: cur.execute('reset role'); cur.execute('update public.products set stock=5 where id=%s',(pid,))
     role('anon'); return att("insert into public.orders (client_name, client_phone, items, total, delivery_method) values ('Cliente',%s,%s,%s,'retirada')",(tel,json.dumps(items),total))
 def ultimo():
     role('authenticated','admin@teste.com'); cur.execute("select total, items from public.orders order by created_at desc limit 1"); return cur.fetchone()
@@ -140,8 +142,8 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (14)', cur.fetchone()[0]=='14')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='14')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (16)', cur.fetchone()[0]=='16')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='16')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
 cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
@@ -220,6 +222,23 @@ ok,m=rodar08(); c2.execute("select pg_get_functiondef('public.is_admin()'::regpr
 check('migração: se não conseguir copiar os e-mails, para com aviso', not ok and 'Nada foi alterado' in m, m)
 check('migração: ...e a função antiga continua como estava (ninguém perde acesso)', 'public.admins' not in d and "'dono'" in d)
 c2.execute("select to_regclass('public.admins')"); check('migração: ...e nem a tabela fica criada pela metade', c2.fetchone()[0] is None)
+
+# --- baixa automática de estoque (SQL 15) ---
+def estoque(): cur.execute('reset role'); cur.execute('select stock from public.products where id=%s',(pid,)); return cur.fetchone()[0]
+def status(oid_,st): cur.execute('reset role'); cur.execute('update public.orders set status=%s where id=%s',(st,oid_))
+cur.execute('reset role'); cur.execute("update public.site_settings set value='true' where key='stockControl'"); cur.execute("delete from public.site_settings where key='stockControl'")
+ok,m=pedido([{"id":pid,"quantity":2}],tel='(48) 99999-3131'); check('pedido aceito baixa o estoque (5 - 2 = 3)', ok and estoque()==3, f"{m} estoque={estoque()}")
+cur.execute('reset role'); cur.execute("select id from public.orders where client_phone='(48) 99999-3131'"); oid1=cur.fetchone()[0]
+ok,m=pedido([{"id":pid,"quantity":4}],tel='(48) 99999-3232',refill=False); check('pedido acima do que sobrou é recusado e não mexe no estoque', (not ok) and estoque()==3, f"{m} estoque={estoque()}")
+status(oid1,'cancelado'); check('cancelar devolve o estoque (3 + 2 = 5)', estoque()==5, str(estoque()))
+status(oid1,'cancelado'); check('cancelar de novo não devolve em dobro', estoque()==5, str(estoque()))
+status(oid1,'novo'); check('reabrir o pedido tira o estoque de novo (5 - 2 = 3)', estoque()==3, str(estoque()))
+status(oid1,'em_producao'); check('mudar entre status ativos não mexe no estoque', estoque()==3, str(estoque()))
+ok,m=pedido([{"id":pid,"quantity":2,"options":{"Cor":"Azul"}},{"id":pid,"quantity":1,"options":{"Cor":"Vermelho"}}],tel='(48) 99999-3535',refill=False); check('duas linhas do mesmo produto baixam a soma (3 - 3 = 0)', ok and estoque()==0, f"{m} estoque={estoque()}")
+cur.execute('reset role'); cur.execute("insert into public.site_settings(key,value) values ('stockControl','false') on conflict (key) do update set value=excluded.value")
+ok,m=pedido([{"id":pid,"quantity":2}],tel='(48) 99999-3434',refill=False); check('controle desligado: aceita e não mexe no estoque', ok and estoque()==0, f"{m} estoque={estoque()}")
+cur.execute('reset role'); cur.execute("delete from public.site_settings where key='stockControl'")
+role('anon'); ok,m=att('select public.baixar_estoque_pedido()'); check('função de baixa não é chamável pela API', not ok, m)
 
 import sys
 print('TUDO OK' if allok else 'HÁ FALHAS'); sys.exit(0 if allok else 1)

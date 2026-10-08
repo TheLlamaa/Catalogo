@@ -12,6 +12,7 @@ import { badgeStyle } from '../../lib/theme';
 import { availability, badgeFor, effectiveAura, newProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
+import { matchesQuery } from '../../lib/text';
 import HomeVitrine from './home/HomeVitrine';
 import HomeBancada from './home/HomeBancada';
 import HomeMista from './home/HomeMista';
@@ -57,12 +58,10 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
   const activeCategoryId = activeCategory ? activeCategory.id : 'all';
   const categoryKey = (c: Category) => c.slug || String(c.id);
 
-  const query = searchQuery.toLowerCase();
   const filteredProducts = products.filter(product => {
     const isVisible = product.active !== false;
     const matchesCategory = activeCategoryId === 'all' || (product.categoryIds && product.categoryIds.includes(activeCategoryId));
-    const matchesSearch = product.title.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query));
+    const matchesSearch = matchesQuery(searchQuery, product.title, product.description);
     return isVisible && matchesCategory && matchesSearch;
   });
 
@@ -126,6 +125,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           <h2 className="hidden md:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Categorias</h2>
           <button
             onClick={() => updateParam('categoria', 'all', 'all')}
+            aria-current={activeCategoryId === 'all' ? 'true' : undefined}
             className={`text-left px-3 py-2 rounded-md text-sm transition-colors whitespace-nowrap flex-shrink-0 max-md:border max-md:rounded-full ${activeCategoryId === 'all' ? 'bg-blue-50 text-blue-700 font-medium max-md:border-blue-200' : 'text-gray-700 hover:bg-gray-100 max-md:border-gray-200 max-md:bg-white'}`}
           >
             Todos os modelos
@@ -134,6 +134,7 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
             <button
               key={category.id}
               onClick={() => updateParam('categoria', categoryKey(category), 'all')}
+              aria-current={activeCategoryId === category.id ? 'true' : undefined}
               className={`text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between gap-2 whitespace-nowrap flex-shrink-0 max-md:border max-md:rounded-full ${activeCategoryId === category.id ? 'bg-blue-50 text-blue-700 font-medium max-md:border-blue-200' : 'text-gray-700 hover:bg-gray-100 max-md:border-gray-200 max-md:bg-white'}`}
             >
               <span>{category.name}</span>

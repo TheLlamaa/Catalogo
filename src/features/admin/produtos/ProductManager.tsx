@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Price from '../../vitrine/Price';
 import { useDragReorder } from '../../../hooks/useDragReorder';
+import { normalizeText } from '../../../lib/text';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import {
   Plus, Edit2, Trash2, Copy, Star, Flame, Box, Image as ImageIcon, ArrowUp, ArrowDown, GripVertical, Search, PackageOpen, SearchX, Info,
@@ -31,7 +32,7 @@ interface ProductManagerProps {
 
 type StatusFilter = '' | 'visible' | 'hidden' | 'destaque' | 'popular' | 'nostock' | 'nophoto';
 
-const normalize = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const normalize = normalizeText;
 const SECTION_LABEL: Record<string, string> = { destaque: 'Destaque', popular: 'Mais pedido' };
 
 export default function ProductManager({ products, categories, onSave, onPatch, onDelete, onReorder, initialFilter = '', onOpenSettings }: ProductManagerProps) {
