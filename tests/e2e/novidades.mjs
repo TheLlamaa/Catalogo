@@ -207,7 +207,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
     return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
   });
   let falhou = 0;
-  await page.route(/\/assets\/AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
+  await page.route(/\/assets\/(?:v2\/)?AdminView-[^/]+\.js$/, (route) => { if (falhou++ === 0) return route.fulfill({ status: 404, contentType: 'text/html', body: 'not found' }); return route.continue(); });
   await page.goto(BASE + '/admin');
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor({ timeout: 10000 }).catch(() => {});
   check('arquivo antigo some: a página recarrega e o painel abre', falhou >= 2 && await page.getByRole('button', { name: /^Pedidos \(/ }).isVisible(), `tentativas=${falhou}`);
