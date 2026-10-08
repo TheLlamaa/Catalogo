@@ -19,6 +19,8 @@ export function displayValue(field: SettingField, value: unknown): string {
     case 'menu': return value ? 'Menu personalizado' : 'Menu padrão';
     case 'faq': return value ? 'Perguntas cadastradas' : 'Sem perguntas';
     case 'page': return value ? 'Página cadastrada' : 'Sem página';
+    case 'block': return value ? 'Bloco cadastrado' : 'Sem bloco';
+    case 'sections': return value ? 'Ordem personalizada' : 'Ordem padrão';
     default: { const text = String(value ?? '').trim(); return text ? clip(text) : '(vazio)'; }
   }
 }
@@ -40,7 +42,7 @@ export function changedFields(form: FormValues, base: FormValues): Change[] {
       if (toStored(f.key, form[f.key]) === toStored(f.key, base[f.key])) continue;
       out.push({
         key: f.key,
-        label: f.type === 'page' || f.type === 'menu' ? section.title : f.label,
+        label: f.type === 'page' || f.type === 'menu' || f.type === 'block' ? section.title : f.label,
         section: section.title,
         before: displayValue(f, base[f.key]),
         after: displayValue(f, form[f.key]),
@@ -80,12 +82,12 @@ export function searchSettings(query: string, limit = 12): SettingHit[] {
   const hits: (SettingHit & { score: number })[] = [];
   for (const section of SETTINGS_SCHEMA) {
     for (const f of section.fields) {
-      if (f.type === 'page' && f.key !== 'pageA') continue; // 20 páginas viram uma entrada só
+      if ((f.type === 'page' && f.key !== 'pageA') || (f.type === 'block' && f.key !== 'blockA')) continue; // páginas e blocos viram uma entrada só
       const text = searchText(f, section.title, section.group);
       if (!words.every(w => text.includes(w))) continue;
       const label = norm(f.label);
       const score = words.reduce((n, w) => n + (label.startsWith(w) ? 3 : label.includes(w) ? 2 : 0), 0);
-      hits.push({ key: f.key, label: f.type === 'page' ? 'Páginas extras' : f.label, hint: f.hint ?? '', section: section.title, group: section.group, groupLabel: groupLabel(section.group), score });
+      hits.push({ key: f.key, label: f.type === 'page' ? 'Páginas extras' : f.type === 'block' ? 'Blocos extras da página inicial' : f.label, hint: f.hint ?? '', section: section.title, group: section.group, groupLabel: groupLabel(section.group), score });
     }
   }
   return hits.sort((a, b) => b.score - a.score).slice(0, limit).map(({ score: _score, ...hit }) => hit);

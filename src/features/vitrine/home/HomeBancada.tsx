@@ -2,6 +2,8 @@
 // e um passo a passo do pedido, porque quem chega pela primeira vez não sabe que o orçamento vai pelo WhatsApp.
 // As peças (capa, categorias com foto, passo a passo) também são usadas pelo modelo "Vitrine + Bancada".
 import type { CSSProperties } from 'react';
+import { orderedSections } from '../../../lib/homeSections';
+import ExtraBlock from './ExtraBlock';
 import { makeT } from '../../../lib/texts';
 import { Search } from 'lucide-react';
 import ProductImage from '../ProductImage';
@@ -119,6 +121,23 @@ export function HowItWorks({ onOpenCustom }: { onOpenCustom: () => void }) {
   );
 }
 
+// Seções entre a capa e a lista de produtos, na ordem escolhida em Personalizar loja > Página inicial > Seções e blocos.
+// "natives": as seções próprias deste modelo; os blocos extras do dono aparecem em todos.
+export function HomeSections({ f, natives, onOpenCustom }: { f: CatalogFilters; natives: ('categorias' | 'passos')[]; onOpenCustom: () => void }) {
+  const { blocks } = f.settings;
+  const ids = orderedSections(f.settings.homeSections, [...natives, ...blocks.map(b => b.id)]);
+  return (
+    <>
+      {ids.map(id => {
+        if (id === 'categorias') return <CategoryTiles key={id} f={f} />;
+        if (id === 'passos') return <HowItWorks key={id} onOpenCustom={onOpenCustom} />;
+        const block = blocks.find(b => b.id === id);
+        return block ? <ExtraBlock key={id} block={block} /> : null;
+      })}
+    </>
+  );
+}
+
 // Título da página quando há categoria ou busca (a capa some)
 export function FilteredHeading({ f, search = true }: { f: CatalogFilters; search?: boolean }) {
   return (
@@ -143,8 +162,7 @@ export default function HomeBancada({ products, categories, onAddToCart, onOpenP
   return (
     <div>
       {f.isClean ? <BancadaHero f={f} /> : <FilteredHeading f={f} />}
-      {f.isClean && <CategoryTiles f={f} />}
-      {f.isClean && <HowItWorks onOpenCustom={onOpenCustomRequest} />}
+      {f.isClean && <HomeSections f={f} natives={['categorias', 'passos']} onOpenCustom={onOpenCustomRequest} />}
 
       <section className={f.isClean ? 'mt-12' : 'mt-6'} aria-labelledby="todas">
         <div className="mb-5 flex items-center justify-between gap-4">

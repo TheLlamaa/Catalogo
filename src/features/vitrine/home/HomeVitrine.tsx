@@ -3,6 +3,7 @@ import type { Product } from '../../../types';
 import { makeT } from '../../../lib/texts';
 import ProductImage from '../ProductImage';
 import Price from '../Price';
+import { HomeSections } from './HomeBancada';
 import { ITEMS, withCustomBand, useCatalogFilters, SearchField, SortSelect, CategoryDot, LoadMore, EmptyResult, ProductTile, gridColsClass, type HomeProps } from './shared';
 
 export default function HomeVitrine({ products, categories, onAddToCart, onOpenProduct, onOpenCustomRequest }: HomeProps) {
@@ -55,7 +56,9 @@ export default function HomeVitrine({ products, categories, onAddToCart, onOpenP
         </section>
       )}
 
-      <div id="pecas" className="scroll-mt-20">
+      {showHero && <HomeSections f={f} natives={[]} onOpenCustom={onOpenCustomRequest} />}
+
+      <div id="pecas" className="scroll-mt-20 mt-10">
         {!showHero && (
           <div className="mb-2">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">

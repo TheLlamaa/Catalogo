@@ -13,6 +13,9 @@ import { badgeStyle } from '../../lib/theme';
 import { availability, badgeFor, effectiveAura, lowStockMaxOf, newProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
+import ExtraBlock from './home/ExtraBlock';
+import type { HomeBlock } from '../../lib/blocks';
+import { orderedSections } from '../../lib/homeSections';
 import { matchesQuery } from '../../lib/text';
 import HomeVitrine from './home/HomeVitrine';
 import HomeBancada from './home/HomeBancada';
@@ -89,6 +92,16 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
     settings.showPopular && { id: 'popular', title: settings.popularTitle, items: activeProducts.filter(p => p.section === 'popular') },
     settings.showNew && { id: 'novidades', title: settings.newTitle, items: newProducts(activeProducts, undefined, Number(settings.newDays) || undefined, Number(settings.newMax) || undefined) }
   ].filter((s): s is { id: string; title: string; items: Product[] } => !!s && s.items.length > 0) : [];
+
+  // Seções do topo na ordem escolhida (Destaques, Mais pedidos, Novidades e os blocos extras do dono)
+  const extraBlocks = showShelves ? settings.blocks : [];
+  type Entry = { shelf: Shelf; block: null } | { shelf: null; block: HomeBlock };
+  const entries = orderedSections(settings.homeSections, [...shelves.map(s => s.id), ...extraBlocks.map(b => b.id)]).flatMap((id): Entry[] => {
+    const shelf = shelves.find(s => s.id === id);
+    if (shelf) return [{ shelf, block: null }];
+    const block = extraBlocks.find(b => b.id === id);
+    return block ? [{ shelf: null, block }] : [];
+  });
 
   if (loadError && products.length === 0 && categories.length === 0) {
     return (
@@ -191,24 +204,10 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
           )}
         </div>
 
-        {shelves.map(shelf => (
-          <section key={shelf.id} className="mb-8" aria-labelledby={`shelf-${shelf.id}`}>
-            <h2 id={`shelf-${shelf.id}`} className="text-lg font-bold text-gray-900 mb-3">{shelf.title}</h2>
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory py-6 -my-3 px-4 -mx-4 [scrollbar-width:thin]">
-              {shelf.items.map(product => (
-                <div key={product.id} className="w-44 sm:w-56 flex-shrink-0 snap-start">
-                  <ProductCard
-                    product={product}
-                    categories={categories}
-                    onAddToCart={() => onAddToCart(product)}
-                    onClick={() => onOpenProduct(product)}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-        {shelves.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">{t('tAllProducts')}</h2>}
+        {entries.map(entry => entry.block
+          ? <ExtraBlock key={entry.block.id} block={entry.block} />
+          : <ShelfRow key={entry.shelf.id} shelf={entry.shelf} categories={categories} onAddToCart={onAddToCart} onOpenProduct={onOpenProduct} />)}
+        {entries.length > 0 && <h2 className="text-lg font-bold text-gray-900 mb-3">{t('tAllProducts')}</h2>}
 
         <div className={`grid grid-cols-2 ${GRID_CLASS[settings.gridCols] || GRID_CLASS['3']} gap-3 sm:gap-6`}>
 
@@ -241,6 +240,29 @@ export default function CatalogView({ products, categories, loadError, onRetry, 
         )}
       </div>
     </div>
+  );
+}
+
+interface Shelf { id: string; title: string; items: Product[] }
+
+// Uma seção do topo da vitrine (Destaques, Mais pedidos, Novidades): fileira de cards que rola de lado
+function ShelfRow({ shelf, categories, onAddToCart, onOpenProduct }: { shelf: Shelf; categories: Category[]; onAddToCart: (product: Product) => boolean; onOpenProduct: (product: Product) => void }) {
+  return (
+    <section className="mb-8" aria-labelledby={`shelf-${shelf.id}`}>
+      <h2 id={`shelf-${shelf.id}`} className="text-lg font-bold text-gray-900 mb-3">{shelf.title}</h2>
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory py-6 -my-3 px-4 -mx-4 [scrollbar-width:thin]">
+        {shelf.items.map(product => (
+          <div key={product.id} className="w-44 sm:w-56 flex-shrink-0 snap-start">
+            <ProductCard
+              product={product}
+              categories={categories}
+              onAddToCart={() => onAddToCart(product)}
+              onClick={() => onOpenProduct(product)}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

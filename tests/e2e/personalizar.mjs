@@ -77,6 +77,20 @@ await page.getByRole('dialog').getByRole('button', { name: 'Voltar ao padrão' }
 await page.waitForTimeout(300);
 check('restaurar a área devolve o padrão no formulário', (await page.locator('#s-storeName').inputValue()) !== 'Outro nome');
 
+// ordem das seções e bloco extra (Página inicial > Seções e blocos)
+writes.length = 0;
+await page.getByRole('button', { name: 'Página inicial', exact: true }).first().click();
+await page.getByRole('heading', { name: 'Página inicial', exact: true }).waitFor();
+await page.getByRole('button', { name: 'Descer Categorias com foto' }).click();
+await page.getByRole('button', { name: 'Texto', exact: true }).click();
+await page.locator('#bloco-blockA-t').fill('Meu aviso');
+await page.locator('#bloco-blockA-x').fill('Entregas até sexta.');
+check('o bloco novo entra na lista de ordem', await page.getByRole('button', { name: 'Subir Meu aviso' }).count() === 1);
+await page.getByRole('button', { name: 'Publicar alterações' }).click();
+await page.waitForTimeout(600);
+const grav = writes.find(w => w.method === 'POST')?.body ?? [];
+check('publica a ordem trocada e o bloco', grav.some(r => r.key === 'homeSections' && r.value.startsWith('passos,categorias,')) && grav.some(r => r.key === 'blockA' && r.value.includes('Meu aviso')), JSON.stringify(grav).slice(0, 300));
+
 await browser.close();
 console.log(fails ? `\n${fails} falha(s)` : '\nTudo certo');
 process.exit(fails ? 1 : 0);

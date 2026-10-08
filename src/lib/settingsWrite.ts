@@ -2,6 +2,8 @@
 // guardados, validação, diferença entre o rascunho e o publicado, e o protocolo de gravação com backup para "Desfazer".
 import { DEFAULT_SETTINGS, SETTING_FIELDS, isValidMinOrder, isValidWhatsapp, normalizeWhatsapp } from './settings';
 import type { Settings, SettingsBackup } from './settings';
+import { BLOCK_KEYS, blockToStored, isCompleteBlock, parseBlockDraft } from './blocks';
+import { orderToStored } from './homeSections';
 import { PAGE_KEYS, parsePageDraft, pageToStored, isCompletePage, slugify, isValidSlug } from './pages';
 import { MAX_TOP, MAX_FOOT, menuToStored, menuProblem } from './menus';
 import { isHex, normalizeSocial, parseFaq } from './theme';
@@ -35,6 +37,8 @@ export const toStored = (key: string, value: unknown): string | null => {
   else if (key.startsWith('social')) v = normalizeSocial(key, v) || v;
   else if (key === 'primaryColor' || key === 'bannerColor' || key === 'badgeColor') v = v.toLowerCase();
   else if (/^page[A-T]$/.test(key)) v = pageToStored(v);
+  else if (/^block[A-F]$/.test(key)) v = blockToStored(v);
+  else if (key === 'homeSections') v = orderToStored(v);
   else if (key === 'menuTop') v = menuToStored(v, MAX_TOP, true);
   else if (key === 'menuFoot') v = menuToStored(v, MAX_FOOT, false);
   else if (key === 'faqItems') { const items = parseFaq(v); v = items.length ? JSON.stringify(items) : ''; }
@@ -85,6 +89,16 @@ export function findFormProblem(form: FormValues): FormProblem | null {
     if (!isValidSlug(slug)) return bad(k, `Página “${name}”: o endereço precisa ter letras ou números.`);
     if (slugs.has(slug)) return bad(k, `Página “${name}”: o endereço /p/${slug} já é usado por outra página.`);
     slugs.add(slug);
+  }
+  for (const k of BLOCK_KEYS) {
+    const stored = blockToStored(str(form[k]));
+    if (!stored) continue;
+    const d = parseBlockDraft(stored);
+    if (!isCompleteBlock(d)) {
+      const name = d?.t?.trim() || 'sem título';
+      const need = d?.k === 'banner' ? 'envie a imagem, escreva um título ou texto e confira o link' : d?.k === 'depoimentos' ? 'escreva ao menos um depoimento' : 'escreva um título ou um texto';
+      return bad(k, `Bloco extra “${name}”: ${need} (ou apague o bloco).`);
+    }
   }
   const topError = menuProblem(form.menuTop, MAX_TOP, true, 'Menu do topo');
   if (topError) return bad('menuTop', topError);

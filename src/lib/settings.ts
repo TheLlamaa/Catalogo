@@ -9,6 +9,8 @@ import type { ImageGuideKey } from './imageGuides';
 import { MAX_TOP, MAX_FOOT, parseMenu, type MenuItem } from './menus';
 import { HINTS } from './settingsHints';
 import { TEXTS, TEXT_SECTIONS } from './texts';
+import { BLOCK_KEYS, buildBlocks, parseBlockDraft, type HomeBlock } from './blocks';
+import { parseOrder } from './homeSections';
 import type { SettingRow } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +38,8 @@ export interface DateField extends SettingFieldBase { type: 'date'; default: str
 export interface FaqField extends SettingFieldBase { type: 'faq'; default: string }
 export interface MenuField extends SettingFieldBase { type: 'menu'; default: string }
 export interface PageField extends SettingFieldBase { type: 'page'; default: string }
+export interface SectionsField extends SettingFieldBase { type: 'sections'; default: string }
+export interface BlockField extends SettingFieldBase { type: 'block'; default: string }
 export interface SelectField extends SettingFieldBase {
   type: 'select';
   default: string;
@@ -53,7 +57,7 @@ export interface RangeField extends SettingFieldBase {
 export interface ToggleField extends SettingFieldBase { type: 'toggle'; default: boolean }
 
 // União discriminada por "type": cada tipo traz só os campos que usa
-export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | MenuField | SelectField | RangeField | ToggleField;
+export type SettingField = TextLikeField | TextareaField | ColorField | DateField | FaqField | PageField | SectionsField | BlockField | MenuField | SelectField | RangeField | ToggleField;
 
 export interface SettingsGroup { id: string; label: string; description: string; sections: string[] }
 
@@ -100,6 +104,9 @@ export interface Settings {
   auraLib: AuraLib;
   faq: FaqItem[];
   pages: ExtraPage[];
+  homeSections: string; blockA: string; blockB: string; blockC: string; blockD: string; blockE: string; blockF: string;
+  blocks: HomeBlock[]; // blocos extras da página inicial, prontos para mostrar
+  homeOrder: string[]; // ordem das seções da página inicial
   menus: { top: MenuItem[]; foot: MenuItem[] };
   backup: SettingsBackup | null;
 }
@@ -111,7 +118,7 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'aparencia', label: 'Aparência', description: 'Logo, nome da loja no topo, cores, fonte e o formato dos cards. Vale para o site inteiro.',
     sections: ['Cores e fonte', 'Logo', 'Nome da loja no topo', 'Estilo dos cards'] },
   { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: modelo, capa, faixa de aviso, passo a passo e as seções Destaques, Mais pedidos e Novidades.',
-    sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Seções no topo da vitrine', 'Capa da vitrine', 'Página inicial (vitrine)', 'Faixa de aviso no topo', 'Passo a passo do pedido'] },
+    sections: ['Modelo da página inicial', 'Seções e blocos', 'Blocos da página inicial', 'Seções no topo da vitrine', 'Capa da vitrine', 'Página inicial (vitrine)', 'Faixa de aviso no topo', 'Passo a passo do pedido'] },
   { id: 'produtos', label: 'Loja e produtos', description: 'Como os produtos aparecem: ordem, busca, preços, a janela do produto, selos e relacionados.',
     sections: ['Exibição da vitrine', 'Janela do produto', 'Selos e estoque baixo'] },
   { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, textos do carrinho e a página de peça personalizada.',
@@ -158,6 +165,13 @@ const RAW_SCHEMA: SettingsSection[] = [
     fields: [
       { key: 'homeLayout', label: 'Modelo', type: 'select', display: 'layout', default: 'classico', options: HOME_LAYOUTS.map(l => ({ value: l.id, label: l.name })),
         hint: 'Clássico: categorias na lateral e as seções Destaques, Mais pedidos e Novidades. Vitrine: as fotos dos Destaques abrem a página e as categorias viram abas. Bancada: busca grande, atalhos de categoria e o passo a passo do pedido. Vitrine + Bancada: a capa e o passo a passo da Bancada com a grade de fotos e as abas da Vitrine.' },
+    ]
+  },
+  {
+    group: 'inicio', title: 'Seções e blocos',
+    fields: [
+      { key: 'homeSections', label: 'Ordem das seções', type: 'sections', default: '', hint: 'Arraste para cima ou para baixo (setas) e ligue ou desligue cada seção. Cada modelo mostra só as seções que ele tem.' },
+      ...BLOCK_KEYS.map((key, i): SettingField => ({ key, label: `Bloco extra ${i + 1}`, type: 'block', default: '' })),
     ]
   },
   {
@@ -454,6 +468,7 @@ const validFor = (field: SettingField, value: string): boolean => {
     case 'image': return isUrl(value);
     case 'url': return isUrl(value);
     case 'page': return isCompletePage(value);
+    case 'block': return parseBlockDraft(value) !== null;
     case 'social': return !!normalizeSocial(field.key, value);
     default: return true;
   }
@@ -471,7 +486,7 @@ export const parseBackup = (value: string): SettingsBackup | null => {
 // Linhas do banco ({key, value}) por cima dos padrões
 export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
   // Os padrões cobrem todas as chaves conhecidas de Settings; o cast só informa isso ao compilador
-  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], menus: { top: [], foot: [] }, backup: null } as unknown as Settings;
+  const out = { ...DEFAULT_SETTINGS, auraLib: { custom: [], overrides: {} }, faq: [], pages: [], menus: { top: [], foot: [] }, blocks: [], homeOrder: [], backup: null } as unknown as Settings;
   const byKey = new Map<string, SettingField>(SETTING_FIELDS.map(f => [f.key, f]));
   (rows || []).forEach(({ key, value }) => {
     if (key === 'customAuras') { out.auraLib.custom = parseCustomAuras(value); return; }
@@ -484,6 +499,8 @@ export const mergeSettings = (rows?: SettingRow[] | null): Settings => {
     out[key] = value;
     if (key === 'faqItems') out.faq = parseFaq(value);
   });
+  out.blocks = buildBlocks(Object.fromEntries(BLOCK_KEYS.map(k => [k, typeof out[k] === 'string' ? out[k] as string : ''])));
+  out.homeOrder = parseOrder(out.homeSections);
   out.pages = buildPages(Object.fromEntries(PAGE_KEYS.map(k => [k, typeof out[k] === 'string' ? out[k] as string : ''])));
   out.menus = { top: parseMenu(out.menuTop, MAX_TOP, true), foot: parseMenu(out.menuFoot, MAX_FOOT, false) };
   return out;

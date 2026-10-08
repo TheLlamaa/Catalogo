@@ -7,7 +7,7 @@ const field = (key) => SETTING_FIELDS.find(f => f.key === key);
 
 describe('explicações dos campos', () => {
   it('todo campo comum tem uma explicação curta (as de página e menu ficam nos editores próprios)', () => {
-    const sem = SETTING_FIELDS.filter(f => !['page', 'menu'].includes(f.type) && !(f.hint || '').trim()).map(f => f.key);
+    const sem = SETTING_FIELDS.filter(f => !['page', 'menu', 'block', 'sections'].includes(f.type) && !(f.hint || '').trim()).map(f => f.key);
     expect(sem).toEqual([]);
   });
   it('as explicações novas não mudam o padrão nem o que é gravado', () => {

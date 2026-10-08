@@ -17,6 +17,8 @@ import { MAX_TOP, MAX_FOOT } from '../../../lib/menus';
 import ImageGuideText from '../../../components/ImageGuideText';
 import { IMAGE_GUIDES, type ImageGuideKey } from '../../../lib/imageGuides';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
+import HomeSectionsEditor from './HomeSectionsEditor';
+import { ImageField } from './ImageField';
 import type { Category, Product } from '../../../types';
 import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
@@ -264,7 +266,8 @@ export default function SiteSettings({ settings, categories, products, group, on
               {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
               {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} setFlag={set} />}
               {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} setFlag={set} />}
-              {section.fields.filter(f => f.type !== 'page' && f.type !== 'menu').map(f => (
+              {section.title === 'Seções e blocos' && <HomeSectionsEditor form={form} set={set} />}
+              {section.fields.filter(f => f.type !== 'page' && f.type !== 'menu' && f.type !== 'sections' && f.type !== 'block').map(f => (
                 <Field key={f.key} f={f} form={form} base={base} set={set} resetField={resetField} error={problem?.key === f.key ? problem.message : null} flash={flashKey === f.key} />
               ))}
               {section.title === 'Faixa de aviso no topo' && <BannerPreview form={form} />}
@@ -394,6 +397,8 @@ function Field({ f, form, base, set, resetField, error, flash }: FieldProps) {
       break;
     case 'page':
     case 'menu':
+    case 'sections':
+    case 'block':
       return null; // editados em "Menus e páginas"
     case 'faq':
       control = <FaqField value={str(form[f.key])} onChange={v => set(f.key, v)} />;
@@ -432,38 +437,6 @@ function ColorField({ id, f, value, onChange, primary }: { id: string; f: ColorF
     <div className="flex items-center gap-3">
       <input id={id} type="color" value={shown} onChange={e => onChange(e.target.value)} aria-label={f.label} className="h-10 w-14 rounded border border-gray-300 bg-white p-1 cursor-pointer" />
       <input type="text" value={value} placeholder={`Padrão (${fallback})`} maxLength={7} onChange={e => onChange(e.target.value)} onBlur={e => { const n = normalizeHex(e.target.value); if (n !== e.target.value) onChange(n); }} aria-label={`${f.label} (código)`} className={`${inputCls} sm:w-48 font-mono`} />
-    </div>
-  );
-}
-
-function ImageField({ id, label, guide, value, onChange }: { id: string; label: string; guide?: ImageGuideKey; value: string; onChange: (v: string) => void }) {
-  const { toast } = useUI();
-  const [busy, setBusy] = useState(false);
-  const pick = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/')) return toast.error('Escolha um arquivo de imagem.');
-    setBusy(true);
-    try { onChange(await uploadSiteImage(file, guide ? IMAGE_GUIDES[guide].maxPx : undefined)); }
-    catch (err) { console.error(err); toast.error(`A imagem não foi enviada. ${friendlyError(err)}`); }
-    setBusy(false);
-  };
-  return (
-    <div>
-    <div className="flex items-center gap-4">
-      <div className="h-16 w-24 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-        {value ? <img src={value} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="w-5 h-5 text-gray-500" />}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <label htmlFor={id} className={`px-3 py-2 border border-gray-300 rounded-md text-sm font-medium cursor-pointer hover:bg-gray-50 flex items-center gap-1.5 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
-          <Upload className="w-4 h-4" /> {busy ? 'Enviando…' : value ? 'Trocar' : 'Enviar imagem'}
-        </label>
-        <input id={id} type="file" accept="image/*" onChange={pick} className="sr-only" aria-label={label} />
-        {value && <button type="button" onClick={() => onChange('')} className="px-3 py-2 text-sm text-gray-500 hover:text-red-600 flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Remover</button>}
-      </div>
-    </div>
-    {guide && <ImageGuideText guide={guide} className="mt-2" />}
     </div>
   );
 }
