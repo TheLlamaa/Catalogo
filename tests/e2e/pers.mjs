@@ -1,3 +1,4 @@
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 import { BASE, launch } from './env.mjs';
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
@@ -210,6 +211,7 @@ const baseRows = [
   check('restaurar seção limpa os campos', (await p.getByLabel('Cor principal (código)').inputValue()) === '');
   // FAQ editor
   await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
+  await abrirSecao(p, 'Perguntas frequentes');
   check('FAQ carregado no editor', (await p.getByLabel('Pergunta 1', { exact: true }).inputValue()) === 'Quanto demora?');
   await p.getByRole('button', { name: 'Adicionar pergunta' }).click();
   await p.getByLabel('Pergunta 3', { exact: true }).fill('Aceitam Pix?');

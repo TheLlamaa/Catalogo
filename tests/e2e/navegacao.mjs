@@ -1,5 +1,6 @@
 // Painel: menu agrupado (computador e celular), ações rápidas na lista de produtos e atalhos entre áreas.
 import { BASE, launch } from './env.mjs';
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: 4102444800 })}.sig`;
@@ -91,6 +92,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   // Página inicial liga com Produtos
   await nav(page, 'Página inicial').click();
   await page.getByRole('button', { name: /^Publicar alterações/ }).click(); await page.waitForTimeout(500);
+  await abrirSecao(page, 'Seções no topo da vitrine');
   await page.getByRole('button', { name: /^Ver Destaques/ }).click();
   check('"Ver Destaques" leva aos produtos destacados', (await page.getByRole('button', { name: /^Destaques/ }).getAttribute('aria-pressed')) === 'true');
   await ctx.close();

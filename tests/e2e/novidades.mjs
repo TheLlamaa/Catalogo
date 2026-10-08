@@ -1,6 +1,7 @@
 // Estoque direto na lista, arrastar para ordenar, categoria oculta, prévia ao vivo do Site,
 // aviso da faixa sem texto e o fluxo do pedido como um leitor de tela o percebe.
 import { BASE, launch } from './env.mjs';
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: 4102444800 })}.sig`;
@@ -132,6 +133,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   check('fechar tira a prévia', await page.locator('iframe').count() === 0);
 
   await nav(page, 'Página inicial').click();
+  await abrirSecao(page, 'Faixa de aviso no topo');
   const faixa = page.getByRole('switch', { name: /faixa/i }).first();
   if (await faixa.count()) {
     if ((await faixa.getAttribute('aria-checked')) !== 'true') await faixa.click();

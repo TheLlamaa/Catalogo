@@ -1,3 +1,4 @@
+const abrirSecao = async (pg, titulo) => { const b = pg.getByRole('button', { name: new RegExp('^' + titulo) }).first(); if ((await b.getAttribute('aria-expanded')) === 'false') await b.click(); };
 import { BASE, launch } from './env.mjs';
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + n + (e ? ` — ${e}` : '')); };
@@ -167,6 +168,7 @@ const rowsExtra = [
   // criar página pelo painel: incompleta bloqueia
   await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   check('nomes dos botões do menu aparecem na aba', await p.getByLabel('Nome do botão da vitrine').count() === 1 && await p.getByLabel('Nome do botão “Sobre”').count() === 1);
+  await abrirSecao(p, 'Páginas');
   await p.getByRole('button', { name: 'Nova página' }).click();
   await p.getByLabel('Título da página').fill('Só título');
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(300);
@@ -179,6 +181,8 @@ const rowsExtra = [
   await p.getByRole('button', { name: 'Prévia', exact: true }).click();
   check('prévia mostra o texto', await p.getByText('Conteúdo da página').count() >= 1);
   // coloca a página no menu do topo e no rodapé
+  await abrirSecao(p, 'Menu do topo');
+  await abrirSecao(p, 'Links do rodapé');
   await p.getByRole('button', { name: 'Página', exact: true }).first().click();
   check('item de página no menu do topo', await p.getByLabel('Página do item').count() === 1);
   await p.getByRole('button', { name: 'Página', exact: true }).nth(1).click();

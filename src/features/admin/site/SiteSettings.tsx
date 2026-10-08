@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  AlertCircle, ListChecks, Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom, ShoppingCart as ShoppingCartIcon
+  AlertCircle, ChevronDown, ChevronsDownUp, ChevronsUpDown, ListChecks, Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom, ShoppingCart as ShoppingCartIcon
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
@@ -43,6 +43,13 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'Vitrine e produtos': Type, 'Janela do produto (textos)': Package, 'Carrinho e formulários': ShoppingCartIcon, 'Pedido personalizado (formulário)': Sparkles, 'Estados vazios e erros': CircleHelp, 'Rodapé e links': PanelBottom, 'Mensagem do WhatsApp (rótulos)': Share2, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
+// Quais seções o dono deixou abertas ou fechadas: lembrado neste navegador
+const OPEN_KEY = 'catalogo-secoes-abertas';
+const readOpenSections = (): Record<string, boolean> => {
+  try { const v = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch { return {}; }
+};
+const saveOpenSections = (v: Record<string, boolean>): void => { try { localStorage.setItem(OPEN_KEY, JSON.stringify(v)); } catch { /* só não lembra */ } };
+
 // Sem acento e em minúsculas, para a busca achar "voce" em "Você"; todas as palavras precisam aparecer (com sinônimos como "zap")
 const normalizeText = norm;
 const hasAll = (text: string, q: string): boolean => q.split(/\s+/).every(w => text.includes(w));
@@ -78,6 +85,8 @@ export default function SiteSettings({ settings, categories, products, group, on
   const [problem, setProblem] = useState<FormProblem | null>(null); // erro de validação, mostrado no próprio campo
   const [reviewOpen, setReviewOpen] = useState(false);
   const [previewTarget, setPreviewTarget] = useState<PreviewTarget>('home');
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>(readOpenSections); // seções abertas/fechadas (lembradas neste navegador)
+  const setOpen = (title: string, value: boolean) => setOpenMap(m => { const next = { ...m, [title]: value }; saveOpenSections(next); return next; });
   const [flashKey, setFlashKey] = useState<string | null>(null); // campo recém-achado pela busca
   const docked = useMediaQuery('(min-width: 1280px)');
 
@@ -114,6 +123,7 @@ export default function SiteSettings({ settings, categories, products, group, on
   const changes = useMemo(() => changedFields(form, base), [form, base]);
 
   // Rola até um campo (erro de validação ou resultado da busca) e o destaca
+  const openSectionOf = (key: string) => { const sec = SETTINGS_SCHEMA.find(x => x.fields.some(f => f.key === key)); if (sec) setOpen(sec.title, true); };
   const reveal = (key: string) => {
     const el = document.getElementById(`s-${key}`) ?? document.getElementById(`campo-${key}`);
     const section = SETTINGS_SCHEMA.find(s => s.fields.some(f => f.key === key));
@@ -125,7 +135,8 @@ export default function SiteSettings({ settings, categories, products, group, on
     if (!problem) return;
     const g = SETTINGS_SCHEMA.find(s => s.fields.some(f => f.key === problem.key))?.group;
     if (g && g !== group) onGroupChange(g);
-    const t = setTimeout(() => reveal(problem.key), 60);
+    openSectionOf(problem.key);
+    const t = setTimeout(() => reveal(problem.key), 90);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando aparece um erro novo
   }, [problem]);
@@ -133,7 +144,8 @@ export default function SiteSettings({ settings, categories, products, group, on
     if (!focus) return;
     setQuery('');
     setFlashKey(focus.key);
-    const t = setTimeout(() => reveal(focus.key), 80);
+    openSectionOf(focus.key);
+    const t = setTimeout(() => reveal(focus.key), 120);
     const off = setTimeout(() => setFlashKey(null), 2600);
     return () => { clearTimeout(t); clearTimeout(off); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a busca manda abrir outro campo
@@ -195,6 +207,9 @@ export default function SiteSettings({ settings, categories, products, group, on
   const count = (section: string) => products.filter(p => p.section === section).length;
   const resultCount = sections.reduce((n, s) => n + (s.group === 'menus' ? 1 : s.fields.length), 0);
 
+  const allOpen = sections.every((sec, i) => openMap[sec.title] ?? (sections.length <= 4 || i < 2));
+  const setAll = (value: boolean) => setOpenMap(m => { const next = { ...m, ...Object.fromEntries(sections.map(sec => [sec.title, value])) }; saveOpenSections(next); return next; });
+
   const showDocked = previewOpen && docked;
   return (
     <div className={showDocked ? 'grid grid-cols-[minmax(0,1fr)_400px] gap-6 items-start' : ''}>
@@ -202,7 +217,7 @@ export default function SiteSettings({ settings, categories, products, group, on
       <PageHeader
         title={searching ? 'Buscar configuração' : current.label}
         description={searching ? 'Resultados de todas as áreas do site.' : current.description}
-        actions={<div className="flex flex-wrap gap-2">{!searching && <Button icon={RotateCcw} onClick={resetGroup}>Voltar esta área ao padrão</Button>}<Button icon={Eye} onClick={() => setPreviewOpen(o => !o)} aria-pressed={previewOpen}>{previewOpen ? 'Fechar prévia' : 'Prévia ao vivo'}</Button></div>}
+        actions={<div className="flex flex-wrap gap-2">{!searching && sections.length > 1 && <Button icon={allOpen ? ChevronsDownUp : ChevronsUpDown} onClick={() => setAll(!allOpen)}>{allOpen ? 'Recolher todas' : 'Expandir todas'}</Button>}{!searching && <Button icon={RotateCcw} onClick={resetGroup}>Voltar esta área ao padrão</Button>}<Button icon={Eye} onClick={() => setPreviewOpen(o => !o)} aria-pressed={previewOpen}>{previewOpen ? 'Fechar prévia' : 'Prévia ao vivo'}</Button></div>}
       />
       <p className="text-xs text-gray-500 -mt-3">Os clientes só veem as mudanças depois de <strong>Publicar alterações</strong>. Use a <strong>Prévia ao vivo</strong> para ver a vitrine com o que você está mudando.</p>
 
@@ -257,24 +272,35 @@ export default function SiteSettings({ settings, categories, products, group, on
         </fieldset>
       )}
 
-      {sections.map(section => {
+      {sections.map((section, index) => {
         const Icon = SECTION_ICONS[section.title] || Type;
+        const changedIn = changes.filter(c => c.section === section.title).length;
+        const hasProblem = !!problem && section.fields.some(f => f.key === problem.key);
+        const open = searching || hasProblem || (openMap[section.title] ?? (sections.length <= 4 || index < 2));
         return (
-          <fieldset key={section.title} id={sectionDomId(section.title)} onFocusCapture={() => setPreviewTarget(previewTargetFor(section.title))} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
+          <fieldset key={section.title} id={sectionDomId(section.title)} onFocusCapture={() => setPreviewTarget(previewTargetFor(section.title))} className="min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
             <legend className="sr-only">{section.title}</legend>
-            <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-200">
-              <h2 className="flex items-center gap-2.5 text-base font-semibold text-gray-900">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
-                {section.title}
-                {searching && (
-                  <button type="button" onClick={() => { onGroupChange(section.group); setQuery(''); }} className="text-xs font-normal text-blue-700 underline py-1">
-                    em {groupLabel(section.group)}
-                  </button>
-                )}
-              </h2>
-              {!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap py-2 -my-2"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}
+            <div className={`flex items-center justify-between gap-3 bg-gray-50 border-gray-200 ${open ? 'border-b' : ''}`}>
+              <button
+                type="button" onClick={() => setOpen(section.title, !open)} aria-expanded={open} aria-controls={`${sectionDomId(section.title)}-corpo`}
+                disabled={searching}
+                className="flex flex-1 min-w-0 items-center gap-2.5 px-5 py-3.5 text-left text-base font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default"
+              >
+                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600" aria-hidden="true"><Icon className="w-4 h-4" /></span>
+                <span className="truncate">{section.title}</span>
+                {changedIn > 0 && <span className="flex-shrink-0 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700">{changedIn} {changedIn === 1 ? 'alterado' : 'alterados'}</span>}
+                {hasProblem && <span className="flex-shrink-0 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-[11px] font-medium text-red-700">precisa de atenção</span>}
+                {!searching && <ChevronDown className={`ml-auto w-4 h-4 flex-shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />}
+              </button>
+              {searching && (
+                <button type="button" onClick={() => { onGroupChange(section.group); setQuery(''); }} className="mr-5 text-xs font-normal text-blue-700 underline py-1 whitespace-nowrap">
+                  em {groupLabel(section.group)}
+                </button>
+              )}
+              {!searching && open && <span className="pr-5">{!searching && <button type="button" onClick={() => resetSection(section)} className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 whitespace-nowrap py-2 -my-2"><RotateCcw className="w-3 h-3" /> Restaurar seção</button>}</span>}
             </div>
-            <div className="p-5 space-y-5">
+            {open && (
+            <div id={`${sectionDomId(section.title)}-corpo`} className="p-5 space-y-5">
               {section.title === 'Páginas' && <PagesEditor form={form} set={set} />}
               {section.title === 'Menu do topo' && <MenuEditor value={str(form.menuTop)} onChange={v => set('menuTop', v)} withBuiltins max={MAX_TOP} form={form} categories={categories} setFlag={set} />}
               {section.title === 'Links do rodapé' && <MenuEditor value={str(form.menuFoot)} onChange={v => set('menuFoot', v)} withBuiltins={false} max={MAX_FOOT} form={form} categories={categories} setFlag={set} />}
@@ -294,6 +320,7 @@ export default function SiteSettings({ settings, categories, products, group, on
                 </div>
               )}
             </div>
+            )}
           </fieldset>
         );
       })}

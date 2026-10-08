@@ -118,6 +118,28 @@ await page.getByRole('button', { name: 'Contato e redes', exact: true }).first()
 check('backup carregado vira rascunho no formulário', (await page.locator('#s-storeName').inputValue()) === 'Loja do Backup');
 check('e nada foi publicado sozinho', await page.getByText(/Alterações não publicadas/).count() >= 1);
 
+// seções recolhíveis
+await page.getByRole('button', { name: 'Página inicial', exact: true }).first().click();
+await page.getByRole('heading', { name: 'Página inicial', exact: true }).waitFor();
+const cab = (t) => page.getByRole('button', { name: new RegExp('^' + t) }).first();
+check('seção do fim da lista começa recolhida', (await cab('Passo a passo do pedido').getAttribute('aria-expanded')) === 'false' && await page.locator('#s-howTitle').count() === 0);
+await cab('Passo a passo do pedido').click();
+check('clicar no título abre a seção', await page.locator('#s-howTitle').isVisible());
+await page.getByRole('button', { name: 'Expandir todas' }).click();
+check('"Expandir todas" abre todas', (await cab('Modelo da página inicial').getAttribute('aria-expanded')) === 'true' && (await cab('Faixa de aviso no topo').getAttribute('aria-expanded')) === 'true');
+await page.getByRole('button', { name: 'Recolher todas' }).click();
+check('"Recolher todas" fecha todas', await page.locator('#s-howTitle').count() === 0 && (await cab('Modelo da página inicial').getAttribute('aria-expanded')) === 'false');
+await page.keyboard.press('Control+k');
+await page.getByRole('textbox', { name: 'Buscar no painel' }).fill('passo 1');
+await page.getByRole('button', { name: /Passo 1: título/ }).first().click();
+await page.locator('#s-stepOneTitle').waitFor({ timeout: 4000 });
+check('achar um campo pela busca abre a seção dele', await page.locator('#s-stepOneTitle').isVisible());
+await page.reload();
+await page.getByRole('button', { name: /Buscar no painel/ }).waitFor();
+await page.getByRole('button', { name: 'Página inicial', exact: true }).first().click();
+await page.getByRole('heading', { name: 'Página inicial', exact: true }).waitFor();
+check('o que o dono abriu ou fechou é lembrado', (await cab('Passo a passo do pedido').getAttribute('aria-expanded')) === 'true' && (await cab('Modelo da página inicial').getAttribute('aria-expanded')) === 'false');
+
 // celular: sem rolagem lateral nas áreas novas
 const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 await mctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
