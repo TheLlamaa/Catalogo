@@ -128,8 +128,19 @@ describe('gateway em memória', () => {
     expect(state.catalogOrders).toHaveLength(1);
   });
   it('lê o schema_version', async () => {
-    expect((await setup({ schemaVersion: 16 }).gateway.loadSchemaStatus()).ok).toBe(true);
+    expect((await setup({ schemaVersion: 17 }).gateway.loadSchemaStatus()).ok).toBe(true);
     expect((await setup({ schemaVersion: 9 }).gateway.loadSchemaStatus()).reason).toBe('desatualizado');
     expect((await setup().gateway.loadSchemaStatus()).reason).toBe('sem-versao');
+  });
+});
+
+describe('pedido personalizado: lista leve', () => {
+  const order = { id: 'k1', client_name: 'Ana', client_phone: '(48) 99999-0000', description: 'Suporte', image_url: 'data:image/jpeg;base64,AAAA', status: 'novo', created_at: '2026-10-01T10:00:00Z' };
+  it('a lista vem sem a foto, só com has_image; a foto é buscada pelo id', async () => {
+    const { gateway } = createMemoryGateway({ customOrders: [order, { ...order, id: 'k2', image_url: '' }] });
+    const { customOrders } = await gateway.load({ isAdmin: true });
+    expect(customOrders.map(o => [o.id, o.has_image, 'image_url' in o])).toEqual([['k1', true, false], ['k2', false, false]]);
+    expect(await gateway.loadReferenceImage('k1')).toBe('data:image/jpeg;base64,AAAA');
+    expect(await gateway.loadReferenceImage('k2')).toBeNull();
   });
 });

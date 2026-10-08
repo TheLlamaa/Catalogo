@@ -43,6 +43,8 @@ export interface SaveProductResult extends GatewayResult {
 export interface CatalogGateway {
   /** Tudo que as telas precisam. Pedidos só com admin logado. Lança se produtos ou categorias não carregarem. */
   load(opts: { isAdmin: boolean }): Promise<CatalogSnapshot>;
+  /** Foto de referência de um pedido personalizado (a lista vem sem ela). Só admin. null = sem foto ou falha. */
+  loadReferenceImage(id: string): Promise<string | null>;
   loadSchemaStatus(): Promise<SchemaStatus>;
 
   saveProduct(product: Partial<StoredProduct>, opts: { capabilities: Capabilities; previousModelUrl: string }): Promise<SaveProductResult>;

@@ -36,7 +36,8 @@ export interface CustomOrder {
   client_name: string;
   client_phone: string;
   description: string;
-  image_url?: string | null;
+  image_url?: string | null; // a lista do painel vem sem a foto (pesada): use hasReferenceImage e loadReferenceImage
+  has_image?: boolean; // SQL 17
   status: OrderStatusId | 'pending' | string | null;
   created_at: string;
 }

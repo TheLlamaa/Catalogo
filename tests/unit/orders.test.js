@@ -147,3 +147,16 @@ describe('link do modelo 3D no item do pedido', () => {
   it('link que não é http(s) é ignorado', () => expect(itemModelUrl({ id: 'c' }, products)).toBeNull());
   it('produto removido ou item antigo sem id: null', () => { expect(itemModelUrl({ id: 'z' }, products)).toBeNull(); expect(itemModelUrl({}, products)).toBeNull(); });
 });
+
+import { hasReferenceImage } from '../../src/lib/orders';
+describe('foto de referência do pedido personalizado', () => {
+  it('usa has_image quando o banco tem o SQL 17', () => {
+    expect(hasReferenceImage({ has_image: true })).toBe(true);
+    expect(hasReferenceImage({ has_image: false, image_url: 'data:x' })).toBe(false);
+  });
+  it('banco antigo: olha a própria foto', () => {
+    expect(hasReferenceImage({ image_url: 'data:image/jpeg;base64,AA' })).toBe(true);
+    expect(hasReferenceImage({ image_url: '' })).toBe(false);
+    expect(hasReferenceImage({})).toBe(false);
+  });
+});

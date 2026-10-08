@@ -13,14 +13,17 @@ const firstError = (rs: { error: { message: string } | null }[]): GatewayResult 
 
 const withStatus = <T extends { status: unknown }>(rows: T[]) => rows.map(o => ({ ...o, status: statusInfo(o.status).id }));
 
+const CUSTOM_LIST_COLUMNS = 'id, client_name, client_phone, description, status, created_at, has_image';
+
 export const supabaseGateway: CatalogGateway = {
   async load({ isAdmin }) {
     // Pedidos e links de modelo contêm dados sensíveis: só com admin logado.
     const none = Promise.resolve({ data: null, error: null });
-    const [products, categories, customOrders, orders, modelUrls, settings] = await Promise.all([
+    let [products, categories, customOrders, orders, modelUrls, settings] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('name', { ascending: true }),
-      isAdmin ? supabase.from('custom_orders').select('*').order('created_at', { ascending: false }) : none,
+      // Sem a foto de referência (pesada, embutida): vem só has_image. Banco sem o SQL 17 cai na consulta antiga abaixo.
+      isAdmin ? supabase.from('custom_orders').select(CUSTOM_LIST_COLUMNS).order('created_at', { ascending: false }) : none,
       isAdmin ? supabase.from('orders').select('*').order('created_at', { ascending: false }) : none,
       isAdmin ? supabase.from('product_private').select('product_id, model_url') : none,
       // Textos personalizados (públicos). Se a tabela ainda não existir, usa os padrões.
@@ -28,6 +31,7 @@ export const supabaseGateway: CatalogGateway = {
     ]);
 
     if (products.error || categories.error) throw (products.error || categories.error);
+    if (isAdmin && customOrders.error) customOrders = await supabase.from('custom_orders').select('*').order('created_at', { ascending: false });
     const productRows = (products.data ?? []) as ProductRow[];
     const categoryRows = (categories.data ?? []) as CategoryRow[];
 
@@ -47,6 +51,11 @@ export const supabaseGateway: CatalogGateway = {
       customOrders: customOrders.data && !customOrders.error ? withStatus(customOrders.data as CustomOrder[]) : null,
       catalogOrders: orders.data && !orders.error ? withStatus(orders.data as CatalogOrder[]) : null,
     };
+  },
+
+  async loadReferenceImage(id) {
+    const { data, error } = await supabase.from('custom_orders').select('image_url').eq('id', id).maybeSingle();
+    return error ? null : (data?.image_url || null);
   },
 
   async loadSchemaStatus() {

@@ -210,3 +210,6 @@ export const itemModelUrl = (
   const url = products.find(p => p.id === item.id)?.modelUrl;
   return isHttpUrl(url) ? url : null;
 };
+
+// O pedido tem foto de referência? Bancos sem o SQL 17 mandam a foto na lista (image_url); com ele, só has_image.
+export const hasReferenceImage = (o: { has_image?: boolean; image_url?: string | null }): boolean => o.has_image ?? !!o.image_url;

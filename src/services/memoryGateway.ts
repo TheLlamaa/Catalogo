@@ -41,9 +41,13 @@ export function createMemoryGateway(initial: Partial<MemoryState> = {}) {
         categories: structuredClone(state.categories),
         capabilities: { ...state.capabilities },
         settings: structuredClone(state.settings),
-        customOrders: isAdmin ? structuredClone(state.customOrders) : null,
+        customOrders: isAdmin ? structuredClone(state.customOrders).map(({ image_url, ...rest }) => ({ ...rest, has_image: !!image_url })) : null,
         catalogOrders: isAdmin ? structuredClone(state.catalogOrders) : null,
       };
+    },
+
+    async loadReferenceImage(id) {
+      return state.customOrders.find(o => o.id === id)?.image_url || null;
     },
 
     async loadSchemaStatus() {
