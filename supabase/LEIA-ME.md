@@ -30,6 +30,7 @@ No painel do Supabase → SQL Editor, rode nesta ordem (cada arquivo pode ser ro
 | 14 | `14-estoque-por-produto.sql` | O estoque do pedido é somado por produto (duas linhas do mesmo produto não passam do estoque) |
 | 15 | `15-baixa-de-estoque.sql` | O estoque cai sozinho quando o pedido chega e volta se o pedido for cancelado (com "Controlar estoque" ligado) |
 | 16 | `16-limites-do-bucket.sql` | Fotos: até 5 MB por arquivo e só imagem (JPEG, PNG, WebP, SVG) |
+| 18 | `18-detalhes-do-produto.sql` | Produto ganha características (Material, Altura, Peso…) e blocos de informação (Prazo de produção, Cuidados com a peça…) |
 | 17 | `17-pedidos-leves.sql` | A lista de pedidos personalizados deixa de baixar as fotos (só "tem foto"); a foto é buscada ao abrir o pedido |
 
 Observação: o padrão de `status` dos pedidos nestes arquivos é `'novo'`; o banco atual ainda usa `'pending'` como padrão. O site funciona com os dois.

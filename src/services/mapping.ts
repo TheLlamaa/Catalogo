@@ -1,5 +1,6 @@
 import type { Category, ProductOption, StoredProduct } from '../types';
 import { clampDiscount } from '../lib/discount';
+import { detailsToStored, parseDetails, parseSpecs, specsToStored } from '../lib/productInfo';
 import type { Capabilities, CategoryInput, ProductPatch } from './gateway';
 
 // Tradução pura entre linhas do banco (snake_case) e objetos de domínio. Só o adapter do Supabase usa.
@@ -9,6 +10,7 @@ export interface ProductRow {
   badge?: string | null; section?: string | null; created_at?: string;
   discount_percent?: number | null; sort_order?: number | null; category_ids?: string[] | null; image_urls?: string[] | null;
   aura_color?: string | null; lead_time?: string | null; options?: ProductOption[] | unknown;
+  specs?: unknown; details?: unknown; // SQL 18
 }
 export interface CategoryRow {
   id: string; name: string; slug?: string; description?: string; created_at?: string;
@@ -19,6 +21,7 @@ export const detectCapabilities = (products: object[], categories: object[]): Ca
   ordering: [...products, ...categories].some(row => 'sort_order' in row),
   discount: products.some(row => 'discount_percent' in row),
   categoryVisibility: categories.some(row => 'visible' in row),
+  productInfo: products.some(row => 'specs' in row),
 });
 
 const byManual = (a: StoredProduct, b: StoredProduct) =>
@@ -39,6 +42,8 @@ export const toProduct = (row: ProductRow, modelUrl = ''): StoredProduct => ({
   stock: row.stock ?? 0,
   auraColor: row.aura_color || 'inherit',
   options: Array.isArray(row.options) ? (row.options as ProductOption[]) : [],
+  specs: parseSpecs(row.specs),
+  details: parseDetails(row.details),
   leadTime: row.lead_time || '',
   discountPercent: clampDiscount(row.discount_percent),
   modelUrl,
@@ -81,6 +86,11 @@ export function productPayload(product: Partial<StoredProduct>, caps: Capabiliti
   if (caps.ordering) {
     payload.badge = (product.badge || '').trim() || null;
     payload.section = product.section || null;
+  }
+  // Características e blocos de informação: só se o banco já tem as colunas (SQL 18)
+  if (caps.productInfo) {
+    payload.specs = specsToStored(product.specs);
+    payload.details = detailsToStored(product.details);
   }
   // Desconto: só manda a coluna se o banco já a tem ou se há desconto de fato
   const discount = clampDiscount(product.discountPercent);

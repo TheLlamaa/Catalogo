@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createMemoryGateway } from '../../src/services/memoryGateway';
 import { categoryPayload, detectCapabilities, patchPayload, productPayload, toCategories, toProducts } from '../../src/services/mapping';
 
-const ALL = { ordering: true, discount: true, categoryVisibility: true };
-const NONE = { ordering: false, discount: false, categoryVisibility: false };
+const ALL = { ordering: true, discount: true, categoryVisibility: true, productInfo: true };
+const NONE = { ordering: false, discount: false, categoryVisibility: false, productInfo: false };
 const product = (id, over = {}) => ({
   id, title: `P${id}`, description: '', price: 10, stock: 5, active: true, badge: 'Novo', section: 'destaque',
   sortOrder: 0, categoryIds: ['c1'], imageUrls: ['a.jpg'], auraColor: 'inherit', options: [], leadTime: '', modelUrl: '',
@@ -43,7 +43,7 @@ describe('mapeamento linha do banco -> domínio', () => {
 
 describe('capacidades do banco', () => {
   it('vêm das colunas presentes nas linhas', () => {
-    expect(detectCapabilities([{ sort_order: 1, discount_percent: 0 }], [{ visible: true }])).toEqual(ALL);
+    expect(detectCapabilities([{ sort_order: 1, discount_percent: 0, specs: [] }], [{ visible: true }])).toEqual(ALL);
     expect(detectCapabilities([{ title: 'x' }], [{ name: 'y' }])).toEqual(NONE);
   });
 });
@@ -128,7 +128,7 @@ describe('gateway em memória', () => {
     expect(state.catalogOrders).toHaveLength(1);
   });
   it('lê o schema_version', async () => {
-    expect((await setup({ schemaVersion: 17 }).gateway.loadSchemaStatus()).ok).toBe(true);
+    expect((await setup({ schemaVersion: 18 }).gateway.loadSchemaStatus()).ok).toBe(true);
     expect((await setup({ schemaVersion: 9 }).gateway.loadSchemaStatus()).reason).toBe('desatualizado');
     expect((await setup().gateway.loadSchemaStatus()).reason).toBe('sem-versao');
   });

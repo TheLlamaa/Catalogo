@@ -10,6 +10,7 @@ import { badgeStyle } from '../../lib/theme';
 import { availability, badgeFor, lowStockMaxOf, relatedProducts } from '../../lib/catalog';
 import { Button } from '../../components/ui';
 import Price from './Price';
+import RichText from '../../components/RichText';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -132,6 +133,24 @@ export default function ProductDetailModal({ product, products = [], categories,
             <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{t('tDescription')}</h3>
             <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
           </div>
+
+          {(product.specs?.length ?? 0) > 0 && (
+            <div className="border-t border-gray-100 pt-4 mb-4">
+              <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{t('tSpecsTitle')}</h3>
+              <dl className="text-sm text-gray-700 space-y-1">
+                {product.specs!.map((s, i) => (
+                  <div key={i} className="flex flex-wrap gap-x-1.5"><dt className="text-gray-600">{s.name}:</dt><dd className="font-medium text-gray-900">{s.value}</dd></div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {product.details?.map((d, i) => (
+            <div key={i} className="border-t border-gray-100 pt-4 mb-4">
+              {d.title && <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">{d.title}</h3>}
+              <RichText text={d.text} />
+            </div>
+          ))}
 
           {related.length > 0 && (
             <div className="border-t border-gray-100 pt-4">

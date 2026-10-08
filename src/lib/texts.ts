@@ -43,6 +43,7 @@ const defs = [
   { key: 'tNoResultsHintHome', label: 'Dica quando não há resultados (modelos novos)', default: 'Tente outra palavra ou veja todas as categorias.', section: VITRINE },
   { key: 'tClearSearch', label: 'Botão "limpar busca"', default: 'Limpar busca', section: VITRINE },
   // Janela do produto
+  { key: 'tSpecsTitle', label: 'Título das características', default: 'Características', section: JANELA, hint: 'Lista de Material, Altura, Peso… que você cadastra em cada produto.' },
   { key: 'tDescription', label: 'Título da descrição', default: 'Descrição', section: JANELA },
   { key: 'tCopyLink', label: 'Botão copiar link', default: 'Copiar link deste produto', section: JANELA },
   { key: 'tLinkCopied', label: 'Aviso: link copiado', default: 'Link do produto copiado!', section: JANELA },

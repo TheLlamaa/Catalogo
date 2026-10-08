@@ -2,6 +2,7 @@ import type { CatalogOrder, Category, CustomOrder, OrderTable, SettingRow, Store
 import { clampDiscount } from '../lib/discount';
 import { schemaStatus } from '../lib/schema';
 import type { CatalogGateway, Capabilities, GatewayResult } from './gateway';
+import { detailsToStored, specsToStored } from '../lib/productInfo';
 import { categorySlug } from './mapping';
 
 // Adapter em memória: mesmo contrato do supabaseGateway, sem rede. Serve a testes dos hooks e do checkout.
@@ -23,7 +24,7 @@ const OK: GatewayResult = { error: null };
 export function createMemoryGateway(initial: Partial<MemoryState> = {}) {
   const state: MemoryState = {
     products: [], categories: [], settings: [], customOrders: [], catalogOrders: [],
-    capabilities: { ordering: true, discount: true, categoryVisibility: true },
+    capabilities: { ordering: true, discount: true, categoryVisibility: true, productInfo: true },
     schemaVersion: null,
     ...initial,
   };
@@ -69,6 +70,8 @@ export function createMemoryGateway(initial: Partial<MemoryState> = {}) {
         imageUrls: product.imageUrls || [],
         auraColor: product.auraColor || 'inherit',
         options: product.options || [],
+        specs: capabilities.productInfo ? specsToStored(product.specs).map(s => ({ name: s.n, value: s.v })) : (existing?.specs ?? []),
+        details: capabilities.productInfo ? detailsToStored(product.details).map(d => ({ title: d.t, text: d.x })) : (existing?.details ?? []),
         leadTime: product.leadTime || '',
         modelUrl: (product.modelUrl || '').trim(),
         // colunas de SQL mais novo só gravam se o banco as tem; senão ficam como estavam

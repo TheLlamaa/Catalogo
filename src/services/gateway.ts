@@ -14,9 +14,10 @@ export interface Capabilities {
   ordering: boolean; // SQL 06: ordem manual, selo e vitrine
   discount: boolean; // SQL 13
   categoryVisibility: boolean; // SQL 12
+  productInfo: boolean; // SQL 18: características e blocos de informação do produto
 }
 
-export const NO_CAPABILITIES: Capabilities = { ordering: false, discount: false, categoryVisibility: false };
+export const NO_CAPABILITIES: Capabilities = { ordering: false, discount: false, categoryVisibility: false, productInfo: false };
 
 export interface CatalogSnapshot {
   products: StoredProduct[];

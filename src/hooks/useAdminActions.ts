@@ -39,6 +39,9 @@ export function useAdminActions({
     if (!capabilities.ordering && ((product.badge || '').trim() || product.section)) {
       toast.info(`Selo e vitrine ainda não foram salvos: ${SQL_06_HINT}`);
     }
+    if (!capabilities.productInfo && ((product.specs?.length ?? 0) > 0 || (product.details?.length ?? 0) > 0)) {
+      toast.info('Características e informações extras ainda não foram salvas: falta rodar o SQL 18 no Supabase (supabase/18-detalhes-do-produto.sql).');
+    }
     const previousModelUrl = product.id ? (products.find(p => p.id === product.id)?.modelUrl || '') : '';
     const { error, modelUrlError } = await gateway().saveProduct(product, { capabilities, previousModelUrl });
     if (error) {

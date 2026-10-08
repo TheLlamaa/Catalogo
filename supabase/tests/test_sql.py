@@ -142,8 +142,8 @@ ok,m=att("delete from public.admins where email='segundo@teste.com'"); check('ad
 role('authenticated','admin@teste.com'); cur.execute("select public.is_admin()"); check('admin removido continua removido; o outro segue admin', cur.fetchone()[0] is True)
 role('authenticated','segundo@teste.com'); cur.execute("select public.is_admin()"); check('quem foi removido deixa de ser admin na hora', cur.fetchone()[0] is False)
 cur.execute("reset role"); ok,m=att("delete from public.admins where email='admin@teste.com'"); check('nem pelo SQL Editor dá para apagar o último admin', not ok, m)
-role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (17)', cur.fetchone()[0]=='17')
-ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='17')
+role('authenticated','admin@teste.com'); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin lê a versão do banco (18)', cur.fetchone()[0]=='18')
+ok,m=att("update public.app_meta set value='1' where key='schema_version'"); cur.execute("select value from public.app_meta where key='schema_version'"); check('admin não consegue mexer na versão do banco', cur.fetchone()[0]=='18')
 role('anon'); ok,m=att("select * from public.app_meta"); check('visitante não lê a versão', not ok, m)
 cur.execute("reset role"); cur.execute("update public.app_meta set value='99' where key='schema_version'")
 sql08=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '08-administradores.sql'),encoding='utf-8').read(); att(sql08)
@@ -239,6 +239,14 @@ cur.execute('reset role'); cur.execute("insert into public.site_settings(key,val
 ok,m=pedido([{"id":pid,"quantity":2}],tel='(48) 99999-3434',refill=False); check('controle desligado: aceita e não mexe no estoque', ok and estoque()==0, f"{m} estoque={estoque()}")
 cur.execute('reset role'); cur.execute("delete from public.site_settings where key='stockControl'")
 role('anon'); ok,m=att('select public.baixar_estoque_pedido()'); check('função de baixa não é chamável pela API', not ok, m)
+
+# --- detalhes do produto (SQL 18) ---
+role('authenticated','admin@teste.com')
+ok,m=att("update public.products set specs='[{\"n\":\"Altura\",\"v\":\"20cm\"}]'::jsonb, details='[{\"t\":\"Prazo\",\"x\":\"2-7 dias\"}]'::jsonb where id=%s",(pid,)); check('admin grava características e blocos de informação',ok,m)
+ok,m=att("update public.products set specs='{\"n\":\"x\"}'::jsonb where id=%s",(pid,)); check('características que não são uma lista são recusadas',not ok,m)
+ok,m=att("update public.products set details=(select jsonb_agg(jsonb_build_object('t','a','x','b')) from generate_series(1,7)) where id=%s",(pid,)); check('mais de 6 blocos de informação é recusado',not ok,m)
+ok,m=att("update public.products set specs=(select jsonb_agg(jsonb_build_object('n','a','v','b')) from generate_series(1,13)) where id=%s",(pid,)); check('mais de 12 características é recusado',not ok,m)
+role('anon'); cur.execute("select specs->0->>'n', details->0->>'t' from public.products where id=%s",(pid,)); row=cur.fetchone(); check('visitante lê as características de produto ativo', row==('Altura','Prazo'), str(row))
 
 import sys
 print('TUDO OK' if allok else 'HÁ FALHAS'); sys.exit(0 if allok else 1)

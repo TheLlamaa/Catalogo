@@ -43,6 +43,10 @@ export interface CustomOrder {
 }
 
 export interface ProductOption { name: string; values: string[] }
+/** Característica do produto (Material: Cimento). Coluna products.specs, SQL 18. */
+export interface ProductSpec { name: string; value: string }
+/** Bloco de informação do produto (Cuidados com a peça: …). Coluna products.details, SQL 18. */
+export interface ProductDetail { title: string; text: string }
 
 export interface Product {
   id: string;
@@ -64,6 +68,8 @@ export interface Product {
   imageUrls: string[];
   auraColor: string;
   options: ProductOption[];
+  specs?: ProductSpec[];
+  details?: ProductDetail[];
   leadTime?: string | null;
   modelUrl?: string;
   created_at?: string;
