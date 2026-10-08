@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   RotateCcw, Clock, Upload, Trash2, ArrowUp, ArrowDown, Plus, Undo2, Image as ImageIcon,
-  AlertCircle, ListChecks, Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom
+  AlertCircle, ListChecks, Palette, Eye, Search, Megaphone, Link2, Store, Menu, LayoutGrid, LayoutTemplate, ListOrdered, Sparkles, FileText, CircleHelp, ToggleRight, Package, Share2, Info, Type, PanelBottom, ShoppingCart as ShoppingCartIcon
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUI } from '../../../components/UIContext';
@@ -39,7 +39,8 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'Identidade e contato': Store, 'Nomes dos botões do menu': Type, 'Página inicial (vitrine)': LayoutGrid,
   'Faixa de destaque (peça personalizada)': Sparkles, 'Blocos da página inicial': ToggleRight, 'Passo a passo do pedido': ListOrdered, 'Página de peça personalizada': FileText,
   'Página "Sobre / Como funciona"': Info, 'Perguntas frequentes': CircleHelp,
-  'Seções no topo da vitrine': LayoutGrid, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
+  'Seções no topo da vitrine': LayoutGrid, 'Seções e blocos': ListOrdered, 'Selos e estoque baixo': Package, 'SEO por página': FileText,
+  'Vitrine e produtos': Type, 'Janela do produto (textos)': Package, 'Carrinho e formulários': ShoppingCartIcon, 'Pedido personalizado (formulário)': Sparkles, 'Estados vazios e erros': CircleHelp, 'Rodapé e links': PanelBottom, 'Mensagem do WhatsApp (rótulos)': Share2, 'Janela do produto': Package, 'Recursos da loja': ToggleRight, 'Redes sociais': Share2, 'Rodapé': PanelBottom
 };
 
 // Sem acento e em minúsculas, para a busca achar "voce" em "Você"; todas as palavras precisam aparecer (com sinônimos como "zap")

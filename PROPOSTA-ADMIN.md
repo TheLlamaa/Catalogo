@@ -291,3 +291,46 @@ Regras para **todas**: padrão = comportamento atual; chaves existentes intocada
 ---
 
 **Parando aqui, como pedido.** Aguardo sua aprovação e a lista de etapas liberadas; nenhum arquivo do projeto foi alterado nesta fase.
+
+---
+
+# Fase 2 — o que foi implementado (branch `personalizar-loja`)
+
+Todas as etapas liberadas foram feitas **sem alterar o banco**: tudo usa a tabela `site_settings` que já existia, com padrões iguais ao comportamento anterior (nada muda na vitrine até o dono editar). Nenhuma configuração existente foi removida ou renomeada.
+
+| Etapa | Situação | Onde |
+|---|---|---|
+| 1 Menus e grupos por tarefa (9 grupos, "Personalizar loja") | ✅ | `src/lib/settings.ts` (`GROUPS`), `AdminNav.tsx` |
+| 2 Busca global (`Ctrl+K`) com sinônimos | ✅ | `CommandPalette.tsx`, `settingsMeta.ts`, `settingsHints.ts` |
+| 3 Cartão de campo: "O padrão é…", "Alterado", erro no próprio campo, voltar área ao padrão, explicação em todos os campos | ✅ | `SiteSettings.tsx`, `settingsWrite.ts` (`findFormProblem`) |
+| 4 Revisar alterações (antes → depois) e contador | ✅ | `SiteSettings.tsx` |
+| 5 Textos e mensagens (70 textos editáveis) | ✅ | `src/lib/texts.ts`, componentes da vitrine |
+| 6 Regras da vitrine (itens por vez, "poucas unidades", novidades, relacionados, descrição/prazo no card, ordem, copiar link, estoque na janela) | ✅ | `settings.ts`, `catalog.ts` |
+| 7 Ordem e visibilidade das seções da página inicial | ✅ | `homeSections.ts`, `HomeSectionsEditor.tsx` |
+| 8 Identidade: mais cantos, fonte de marca no site, modo escuro por padrão | ✅ (cores extras de texto/destaque **não** — risco de contraste; ver abaixo) | `theme.ts`, `siteFont.ts`, `colorMode.ts` |
+| 9 Contato completo (endereço, horário, mapa, e-mail no rodapé, 3 redes novas, esconder "Área do lojista") | ✅ | `settings.ts`, `Layout.tsx` |
+| 10 SEO por página (Sobre e páginas extras: descrição e imagem) | ✅ parcial — **por produto fica para depois (precisa de SQL e de Worker)** | `pages.ts`, `seo.ts`, `PageView.tsx`, `AboutView.tsx` |
+| 11 Backup das configurações em arquivo (baixar/carregar como rascunho) | ✅ parcial — **histórico com várias versões precisa de SQL** | `settingsBackup.ts`, `BackupPanel.tsx` |
+| 12 Prévia acompanha o campo em edição (carrinho, produto, rodapé, pedido personalizado) | ✅ | `preview.ts`, `VitrinePreview.tsx` |
+| 13 Blocos extras da página inicial (texto, banner, depoimentos; até 6) | ✅ | `blocks.ts`, `ExtraBlock.tsx` |
+
+Decisões que eu tomei no seu lugar (você não respondeu): menu chamado **"Personalizar loja"**; **todos** os textos principais editáveis; o link da **política de privacidade fica sempre visível** (só o texto muda) e só "Área do lojista" pode ser escondido.
+
+## O que ficou de fora, e por quê
+
+1. **Cores extras (texto, links, destaque)**: o tema inteiro usa classes do Tailwind (`text-gray-*`, `bg-white`…); trocar isso exige revisar o modo escuro e o contraste de cada tela. É o item de maior risco visual; proponho tratar em separado, com checagem de contraste automática.
+2. **Histórico com várias versões** e "quem mudou" — precisa de tabela nova. SQL proposto (**não aplicado**):
+   ```sql
+   create table if not exists public.site_settings_history (
+     id         uuid primary key default gen_random_uuid(),
+     created_at timestamptz not null default now(),
+     changed_by text,
+     changes    jsonb not null   -- { chave: { de: valor|null, para: valor|null } }
+   );
+   alter table public.site_settings_history enable row level security;
+   create policy "historico admin le" on public.site_settings_history for select to authenticated using (public.is_admin());
+   create policy "historico admin grava" on public.site_settings_history for insert to authenticated with check (public.is_admin());
+   ```
+3. **SEO por produto** — colunas `seo_title`, `seo_description` (e `seo_image`) em `products`, mais um Worker para entregar as metatags a WhatsApp/Google (ver `ANALISE-CATALOGO.md`, itens 4 e 7).
+4. **Foto própria da categoria** — coluna `image_url` em `categories` (hoje "Por categoria" usa a foto de um produto).
+5. **Textos que continuam no código**: mensagens de erro de gravação do painel (só o dono vê), política de privacidade padrão (já substituível inteira em "Política de privacidade"), formatação de moeda.

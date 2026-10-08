@@ -105,6 +105,43 @@ await page.locator('#s-footerText').focus();
 await page.waitForTimeout(800);
 check('editar o rodapé fecha o carrinho na prévia', await frame.getByRole('dialog', { name: /Seu Orçamento/ }).count() === 0);
 
+// backup das configurações: baixar e carregar
+await page.getByRole('button', { name: 'Avançado', exact: true }).first().click();
+const [baixado] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar backup' }).click()]);
+check('backup baixa um arquivo .json', /^configuracoes-\d{4}-\d{2}-\d{2}\.json$/.test(baixado.suggestedFilename()), baixado.suggestedFilename());
+await page.getByLabel('Arquivo de backup das configurações').setInputFiles({
+  name: 'backup.json', mimeType: 'application/json',
+  buffer: Buffer.from(JSON.stringify({ app: 'catalogo-configuracoes', v: 1, t: 'x', rows: [{ key: 'storeName', value: 'Loja do Backup' }, { key: 'inventada', value: 'x' }] })),
+});
+await page.getByRole('dialog').getByRole('button', { name: 'Carregar no rascunho' }).click();
+await page.getByRole('button', { name: 'Contato e redes', exact: true }).first().click();
+check('backup carregado vira rascunho no formulário', (await page.locator('#s-storeName').inputValue()) === 'Loja do Backup');
+check('e nada foi publicado sozinho', await page.getByText(/Alterações não publicadas/).count() >= 1);
+
+// celular: sem rolagem lateral nas áreas novas
+const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+await mctx.addInitScript((s) => { localStorage.setItem('sb-mock-auth-token', JSON.stringify(s)); }, session);
+const mp = await mctx.newPage();
+await mp.route('https://mock.supabase.co/**', async (route) => {
+  const req = route.request(); const url = new URL(req.url());
+  const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+  const json = (body) => route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(body) });
+  if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+  if (url.pathname === '/rest/v1/rpc/is_admin') return json(true);
+  if (url.pathname === '/rest/v1/app_meta') return json([{ key: 'schema_version', value: '99' }]);
+  return json([]);
+});
+await mp.goto(BASE + '/admin');
+await mp.getByRole('button', { name: /Buscar no painel/ }).waitFor();
+for (const area of ['Página inicial', 'Textos e mensagens', 'Menus e páginas', 'Avançado']) {
+  await mp.getByRole('button', { name: /Seções do painel|Abrir menu do painel/ }).first().click();
+  await mp.getByRole('dialog').getByRole('button', { name: new RegExp('^' + area) }).click();
+  await mp.waitForTimeout(400);
+  const largura = await mp.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  check('celular: "' + area + '" sem rolagem lateral', largura.sw <= largura.cw + 1, JSON.stringify(largura));
+}
+await mctx.close();
+
 await browser.close();
 console.log(fails ? `\n${fails} falha(s)` : '\nTudo certo');
 process.exit(fails ? 1 : 0);
