@@ -158,8 +158,8 @@ const baseRows = [
   const { p, writes, state } = await newPage({ rows: baseRows, admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   await p.getByRole('heading', { name: 'Aparência', exact: true }).waitFor();
-  const tabs = await p.locator('[data-nav-section="Site"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
-  check('áreas do Site no menu do painel', tabs.join('|') === 'Página inicial|Aparência|Dados da loja|Pedidos e carrinho|Peça personalizada|Páginas e menus|Recursos', tabs.join('|'));
+  const tabs = await p.locator('[data-nav-section="Personalizar loja"] button').evaluateAll(els => els.map(e => (e.querySelector('.sr-only')?.textContent || e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()));
+  check('áreas do Site no menu do painel', tabs.join('|') === 'Aparência|Página inicial|Loja e produtos|Pedidos e carrinho|Menus e páginas|Contato e redes|Google e compartilhamento|Avançado', tabs.join('|'));
   check('Publicar desabilitado sem mudanças', await p.getByRole('button', { name: 'Publicar alterações' }).isDisabled());
   // prévia ao vivo
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
@@ -177,7 +177,7 @@ const baseRows = [
   check('cor inválida bloqueia a publicação', writes.length === 0 && await p.getByText(/Cor inválida/).count() >= 1);
   await p.getByLabel('Cor principal (código)').fill('#dc2626');
   // troca de aba mantém o rascunho
-  await p.getByRole('button', { name: 'Dados da loja', exact: true }).click();
+  await p.getByRole('button', { name: 'Contato e redes', exact: true }).click();
   await p.getByLabel('Instagram').fill('@novaloja');
   await p.getByRole('button', { name: 'Aparência', exact: true }).click();
   check('rascunho mantido ao trocar de aba', (await p.getByLabel('Cor principal (código)').inputValue()) === '#dc2626');
@@ -209,7 +209,7 @@ const baseRows = [
   await p.getByRole('button', { name: 'Restaurar seção' }).first().click();
   check('restaurar seção limpa os campos', (await p.getByLabel('Cor principal (código)').inputValue()) === '');
   // FAQ editor
-  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   check('FAQ carregado no editor', (await p.getByLabel('Pergunta 1', { exact: true }).inputValue()) === 'Quanto demora?');
   await p.getByRole('button', { name: 'Adicionar pergunta' }).click();
   await p.getByLabel('Pergunta 3', { exact: true }).fill('Aceitam Pix?');

@@ -1,10 +1,10 @@
 // Menu do painel, agrupado pelo que cada área controla:
-//   Vendas (pedidos) · Catálogo (produtos) · Site (o que o cliente vê) · Sistema (calculadora, equipe e erros).
+//   Vendas (pedidos) · Catálogo (produtos) · Personalizar loja (o que o cliente vê) · Sistema (calculadora, equipe e erros).
 // No computador fica na lateral; no celular vira um botão que abre a lista inteira (nada escondido em rolagem).
 import { useState } from 'react';
 import Dialog from '../../components/Dialog';
 import {
-  ShoppingBag, Sparkles, Package, Tags, Wand2, Home, Palette, Store, ShoppingCart, FileText, ToggleRight, Users, Bug, Calculator, ChevronDown, Menu as MenuIcon, X,
+  ShoppingBag, Sparkles, Package, Tags, Wand2, Home, Palette, Store, ShoppingCart, FileText, ToggleRight, Search, Users, Bug, Calculator, ChevronDown, Menu as MenuIcon, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { GROUPS } from '../../lib/settings';
@@ -15,7 +15,7 @@ export interface NavItem { id: NavId; label: string; icon: LucideIcon; count?: n
 export interface NavSection { title: string; items: NavItem[] }
 
 const SITE_ICONS: Record<string, LucideIcon> = {
-  inicio: Home, aparencia: Palette, loja: Store, pedidos: ShoppingCart, personalizados: Sparkles, paginas: FileText, recursos: ToggleRight,
+  aparencia: Palette, inicio: Home, produtos: Package, pedidos: ShoppingCart, menus: FileText, contato: Store, seo: Search, avancado: ToggleRight,
 };
 
 interface BuildInput { products: number; categories: number; orders: number; newOrders: number; newCustom: number; customOrders: number; customEnabled: boolean; aurasEnabled: boolean }
@@ -31,7 +31,7 @@ export function buildNav({ products, categories, orders, newOrders, newCustom, c
   return [
     { title: 'Vendas', items: sales },
     { title: 'Catálogo', items: catalog },
-    { title: 'Site', items: GROUPS.map(g => ({ id: `site:${g.id}` as NavId, label: g.label, icon: SITE_ICONS[g.id] || FileText })) },
+    { title: 'Personalizar loja', items: GROUPS.map(g => ({ id: `site:${g.id}` as NavId, label: g.label, icon: SITE_ICONS[g.id] || FileText })) },
     { title: 'Sistema', items: [{ id: 'calculator', label: 'Calculadora de preço', icon: Calculator }, { id: 'team', label: 'Equipe', icon: Users }, { id: 'errors', label: 'Erros do site', icon: Bug }] },
   ];
 }

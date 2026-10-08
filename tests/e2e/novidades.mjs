@@ -108,7 +108,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
 { // Site: prévia ao vivo e aviso da faixa sem texto
   const { page, ctx, writes } = await abrir();
   await page.getByRole('button', { name: /^Pedidos \(/ }).waitFor();
-  await nav(page, 'Dados da loja').click();
+  await nav(page, 'Contato e redes').click();
   await page.getByRole('button', { name: 'Prévia ao vivo' }).click();
   const quadro = page.frameLocator('iframe[title^="Prévia da vitrine"]');
   await quadro.getByText('Vaso Cubo').first().waitFor();
@@ -145,7 +145,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
 { // Celular: a prévia abre numa janela
   const { page, ctx } = await abrir({ viewport: { width: 390, height: 844 } });
   await page.getByRole('button', { name: /Abrir menu do painel/ }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Dados da loja', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Contato e redes', exact: true }).click();
   await page.getByRole('button', { name: 'Prévia ao vivo' }).click();
   const janela = page.getByRole('dialog', { name: 'Prévia da vitrine' });
   check('celular: prévia abre em janela', await janela.isVisible());
@@ -330,7 +330,7 @@ const nav = (page, name) => page.locator('nav[aria-label="Seções do painel"]')
   await page.waitForTimeout(800);
   check('tema pronto aplicado no painel', rosa === '190 24 93', rosa);
   check('dados recarregaram e a cor do rascunho continua', recarregou && await cor() === rosa, `${recarregou} ${await cor()}`);
-  await nav(page, 'Dados da loja').click(); await page.waitForTimeout(200);
+  await nav(page, 'Contato e redes').click(); await page.waitForTimeout(200);
   await nav(page, 'Produtos (3)').click();
   await page.getByRole('dialog').getByRole('button', { name: /Sair sem publicar/ }).click();
   await page.waitForTimeout(300);

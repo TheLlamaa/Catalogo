@@ -165,7 +165,7 @@ const rowsExtra = [
   check('tema pronto mostra o fundo na hora', bgNow === '#fdf8ee', bgNow);
   check('tema pronto não grava nada sozinho', writes.length === 0);
   // criar página pelo painel: incompleta bloqueia
-  await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   check('nomes dos botões do menu aparecem na aba', await p.getByLabel('Nome do botão da vitrine').count() === 1 && await p.getByLabel('Nome do botão “Sobre”').count() === 1);
   await p.getByRole('button', { name: 'Nova página' }).click();
   await p.getByLabel('Título da página').fill('Só título');
@@ -215,7 +215,7 @@ const rowsExtra = [
 // ============ ADMIN: ligar o botão Sobre direto no menu ============
 {
   const { p, writes } = await newPage({ rows: [], admin: true });
-  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Páginas e menus', exact: true }).click();
+  await p.goto(BASE + '/admin'); await p.getByRole('button', { name: 'Menus e páginas', exact: true }).click();
   await p.getByRole('listitem').filter({ hasText: 'Sobre' }).getByLabel('Mostrar na loja').check();
   await p.getByRole('button', { name: 'Publicar alterações' }).click(); await p.waitForTimeout(600);
   const post = writes.find(w => w.method === 'POST' && w.path.endsWith('site_settings'));

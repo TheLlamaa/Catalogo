@@ -14,8 +14,8 @@ describe('organização das configurações do site', () => {
   it('o grupo de cada seção bate com a lista do grupo', () => {
     for (const s of SETTINGS_SCHEMA) expect(GROUPS.find(g => g.id === s.group)?.sections).toContain(s.title);
   });
-  it('dados da loja (nome, WhatsApp) ficam em "Dados da loja", não em textos soltos', () => {
-    const loja = SETTINGS_SCHEMA.filter(s => s.group === 'loja').flatMap(s => s.fields.map(f => f.key));
+  it('dados da loja (nome, WhatsApp) ficam em "Contato e redes", não em textos soltos', () => {
+    const loja = SETTINGS_SCHEMA.filter(s => s.group === 'contato').flatMap(s => s.fields.map(f => f.key));
     expect(loja).toEqual(expect.arrayContaining(['storeName', 'whatsapp', 'email']));
   });
   it('pausar pedidos fica junto do carrinho, em "Pedidos e carrinho"', () => {
@@ -28,8 +28,8 @@ describe('organização das configurações do site', () => {
 });
 
 describe('menu do painel', () => {
-  it('agrupa em Vendas, Catálogo, Site e Sistema', () => {
-    expect(buildNav(base).map(s => s.title)).toEqual(['Vendas', 'Catálogo', 'Site', 'Sistema']);
+  it('agrupa em Vendas, Catálogo, Personalizar loja e Sistema', () => {
+    expect(buildNav(base).map(s => s.title)).toEqual(['Vendas', 'Catálogo', 'Personalizar loja', 'Sistema']);
   });
   it('cada área do site vira um item do menu', () => {
     expect(ids(buildNav(base)).filter(i => i.startsWith('site:'))).toEqual(GROUPS.map(g => `site:${g.id}`));

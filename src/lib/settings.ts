@@ -104,19 +104,21 @@ export interface Settings {
 // campo vazio/igual ao padrão = nada fica salvo no banco.
 // O grupo de cada seção vem de GROUPS (lista "sections"), que também define a ordem na tela.
 export const GROUPS: SettingsGroup[] = [
-  { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: capa, título, faixa de aviso e as seções Destaques, Mais pedidos e Novidades.',
-    sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Passo a passo do pedido', 'Capa da vitrine', 'Página inicial (vitrine)', 'Seções no topo da vitrine', 'Exibição da vitrine', 'Faixa de aviso no topo'] },
-  { id: 'aparencia', label: 'Aparência', description: 'Cores, fonte, logo e o formato dos cards. Vale para o site inteiro.',
+  { id: 'aparencia', label: 'Aparência', description: 'Logo, nome da loja no topo, cores, fonte e o formato dos cards. Vale para o site inteiro.',
     sections: ['Cores e fonte', 'Logo', 'Nome da loja no topo', 'Estilo dos cards'] },
-  { id: 'loja', label: 'Dados da loja', description: 'Nome, WhatsApp, e-mail, redes sociais, rodapé e como o site aparece no Google e no WhatsApp.',
-    sections: ['Identidade e contato', 'Redes sociais', 'Rodapé', 'Google e compartilhamento'] },
-  { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, a janela do produto e os textos do carrinho.',
-    sections: ['Pedidos', 'Janela do produto', 'Carrinho e pedido'] },
-  { id: 'personalizados', label: 'Peça personalizada', description: 'A faixa de destaque na vitrine e a página onde o cliente pede uma peça sob medida.',
-    sections: ['Faixa de destaque (peça personalizada)', 'Página de peça personalizada'] },
-  { id: 'paginas', label: 'Páginas e menus', description: 'Página Sobre, perguntas frequentes, páginas extras, menu do topo, rodapé e política de privacidade.',
-    sections: ['Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Páginas', 'Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Política de privacidade'] },
-  { id: 'recursos', label: 'Recursos', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
+  { id: 'inicio', label: 'Página inicial', description: 'O que o cliente vê ao abrir o site: modelo, capa, faixa de aviso, passo a passo e as seções Destaques, Mais pedidos e Novidades.',
+    sections: ['Modelo da página inicial', 'Blocos da página inicial', 'Seções no topo da vitrine', 'Capa da vitrine', 'Página inicial (vitrine)', 'Faixa de aviso no topo', 'Passo a passo do pedido'] },
+  { id: 'produtos', label: 'Loja e produtos', description: 'Como os produtos aparecem: ordem, busca, preços, a janela do produto, selos e relacionados.',
+    sections: ['Exibição da vitrine', 'Janela do produto'] },
+  { id: 'pedidos', label: 'Pedidos e carrinho', description: 'Pausar pedidos, pedido mínimo, entrega, textos do carrinho e a página de peça personalizada.',
+    sections: ['Pedidos', 'Carrinho e pedido', 'Faixa de destaque (peça personalizada)', 'Página de peça personalizada'] },
+  { id: 'menus', label: 'Menus e páginas', description: 'Menu do topo, rodapé, página Sobre, perguntas frequentes, páginas extras e política de privacidade.',
+    sections: ['Menu do topo', 'Nomes dos botões do menu', 'Links do rodapé', 'Páginas', 'Página "Sobre / Como funciona"', 'Perguntas frequentes', 'Política de privacidade'] },
+  { id: 'contato', label: 'Contato e redes', description: 'Nome da loja, WhatsApp, e-mail, redes sociais e a linha extra do rodapé.',
+    sections: ['Identidade e contato', 'Redes sociais', 'Rodapé'] },
+  { id: 'seo', label: 'Google e compartilhamento', description: 'Como o site aparece no Google e quando o link é compartilhado no WhatsApp e nas redes.',
+    sections: ['Google e compartilhamento'] },
+  { id: 'avancado', label: 'Avançado', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
     sections: ['Recursos da loja'] }
 ];
 
@@ -224,7 +226,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'loja', title: 'Identidade e contato',
+    group: 'contato', title: 'Identidade e contato',
     fields: [
       { key: 'storeName', label: 'Nome da loja', type: 'text', max: 60, default: STORE_NAME },
       { key: 'whatsapp', label: 'WhatsApp da loja', type: 'phone', default: STORE_WHATSAPP, hint: 'Recebe os pedidos. Ex: (48) 99999-9999' },
@@ -239,7 +241,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'personalizados', title: 'Faixa de destaque (peça personalizada)',
+    group: 'pedidos', title: 'Faixa de destaque (peça personalizada)',
     fields: [
       { key: 'showCardBadge', label: 'Mostrar a etiqueta na faixa', type: 'toggle', default: false },
       { key: 'cardBadge', label: 'Etiqueta', type: 'text', max: 40, default: 'Destaque Especial' },
@@ -249,7 +251,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'personalizados', title: 'Página de peça personalizada',
+    group: 'pedidos', title: 'Página de peça personalizada',
     fields: [
       { key: 'customTitle', label: 'Título', type: 'text', max: 80, default: 'Solicitar Peça Personalizada' },
       { key: 'customIntro', label: 'Texto de apresentação', type: 'textarea', max: 300, default: 'Tem um modelo em mente ou uma foto de referência? Preencha os campos abaixo e entraremos em contato com um orçamento sob medida.' },
@@ -257,15 +259,15 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'paginas', title: 'Páginas',
+    group: 'menus', title: 'Páginas',
     fields: PAGE_KEYS.map((key, i): SettingField => ({ key, label: `Página ${i + 1}`, type: 'page', default: '' }))
   },
   {
-    group: 'paginas', title: 'Menu do topo',
+    group: 'menus', title: 'Menu do topo',
     fields: [{ key: 'menuTop', label: 'Menu do topo', type: 'menu', default: '', hint: 'Ordem e itens do menu no alto da loja. Vitrine, Sobre e Personalizado podem mudar de lugar, mas não saem.' }]
   },
   {
-    group: 'paginas', title: 'Nomes dos botões do menu',
+    group: 'menus', title: 'Nomes dos botões do menu',
     fields: [
       { key: 'menuHome', label: 'Nome do botão da vitrine', type: 'text', max: 24, default: 'Vitrine' },
       { key: 'menuAbout', label: 'Nome do botão “Sobre”', type: 'text', max: 24, default: 'Sobre' },
@@ -273,11 +275,11 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'paginas', title: 'Links do rodapé',
+    group: 'menus', title: 'Links do rodapé',
     fields: [{ key: 'menuFoot', label: 'Links extras do rodapé', type: 'menu', default: '', hint: 'Páginas, categorias e links externos que aparecem no rodapé, além de Sobre, redes sociais, WhatsApp e privacidade.' }]
   },
   {
-    group: 'paginas', title: 'Política de privacidade',
+    group: 'menus', title: 'Política de privacidade',
     fields: [
       { key: 'privacyText', label: 'Texto próprio da política', type: 'textarea', rows: 10, max: 4000, default: '', hint: 'Vazio = usa o texto padrão do site. Linha em branco = novo parágrafo.' },
     ]
@@ -308,7 +310,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'paginas', title: 'Página "Sobre / Como funciona"',
+    group: 'menus', title: 'Página "Sobre / Como funciona"',
     fields: [
       { key: 'aboutEnabled', label: 'Mostrar a página Sobre', type: 'toggle', default: false, hint: 'Cria o botão no menu, o link no rodapé e a página /sobre.' },
       { key: 'aboutTitle', label: 'Título', type: 'text', max: 80, default: 'Como funciona' },
@@ -317,7 +319,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'paginas', title: 'Perguntas frequentes',
+    group: 'menus', title: 'Perguntas frequentes',
     fields: [
       { key: 'faqItems', label: 'Perguntas e respostas', type: 'faq', default: '', hint: 'Até 20 perguntas, na página Sobre.' },
     ]
@@ -334,7 +336,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'recursos', title: 'Recursos da loja',
+    group: 'avancado', title: 'Recursos da loja',
     fields: [
       { key: 'stockControl', label: 'Controlar estoque', type: 'toggle', default: true, hint: 'Desligado: tudo fica sempre disponível e o estoque some do site e do cadastro.' },
       { key: 'customEnabled', label: 'Aceitar pedidos personalizados', type: 'toggle', default: true, hint: 'Desligado: some o botão do menu, a faixa de destaque e a página /custom.' },
@@ -344,7 +346,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'inicio', title: 'Exibição da vitrine',
+    group: 'produtos', title: 'Exibição da vitrine',
     fields: [
       { key: 'defaultSort', label: 'Ordem padrão dos produtos', type: 'select', display: 'sort', default: 'recent', options: [{ value: 'recent', label: 'Mais recentes' }, { value: 'price_asc', label: 'Menor preço' }, { value: 'price_desc', label: 'Maior preço' }] },
       { key: 'showSearch', label: 'Mostrar a busca', type: 'toggle', default: true },
@@ -352,7 +354,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'pedidos', title: 'Janela do produto',
+    group: 'produtos', title: 'Janela do produto',
     fields: [
       { key: 'lowStockBadge', label: 'Selo "Últimas unidades" automático', type: 'toggle', default: false, hint: 'Para produtos com 3 unidades ou menos e sem outro selo.' },
       { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
@@ -362,7 +364,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'loja', title: 'Google e compartilhamento',
+    group: 'seo', title: 'Google e compartilhamento',
     fields: [
       { key: 'seoTitle', label: 'Título do site', type: 'text', max: 70, default: '', hint: 'Aparece na aba do navegador e nos resultados do Google. Vazio = título padrão.' },
       { key: 'seoDescription', label: 'Descrição', type: 'textarea', rows: 3, max: 160, default: '', hint: 'Resumo da loja para o Google (até 160 caracteres).' },
@@ -370,7 +372,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'loja', title: 'Redes sociais',
+    group: 'contato', title: 'Redes sociais',
     fields: [
       { key: 'socialInstagram', label: 'Instagram', type: 'social', max: 200, default: '' },
       { key: 'socialTiktok', label: 'TikTok', type: 'social', max: 200, default: '' },
@@ -379,7 +381,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ]
   },
   {
-    group: 'loja', title: 'Rodapé',
+    group: 'contato', title: 'Rodapé',
     fields: [
       { key: 'footerText', label: 'Linha extra no rodapé', type: 'text', max: 160, default: '', hint: 'Ex: Atendimento de segunda a sexta, das 9h às 18h. Vazio = sem linha.' },
     ]
