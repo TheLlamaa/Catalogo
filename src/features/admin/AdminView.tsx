@@ -95,7 +95,7 @@ export default function AdminView({ admin, onSelectOrder, onDeleteOrder }: Admin
           {active === 'products' && (
             <ProductManager
               key={productFilter.key} initialFilter={productFilter.value}
-              products={products} categories={categories} onSave={admin.saveProduct} onPatch={admin.patchProduct} onDelete={admin.deleteProduct} onReorder={admin.reorderProducts}
+              products={products} categories={categories} onSave={admin.saveProduct} onPatch={admin.patchProduct} onBulkPatch={admin.bulkPatchProducts} onDelete={admin.deleteProduct} onReorder={admin.reorderProducts}
               onOpenSettings={(group) => go(`site:${group}`)}
             />
           )}

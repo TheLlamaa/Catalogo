@@ -17,6 +17,7 @@ export interface AdminApi {
   user: AuthUser | null;
   saveProduct: Actions['saveProduct'];
   patchProduct: Actions['patchProduct'];
+  bulkPatchProducts: Actions['bulkPatchProducts'];
   deleteProduct: Actions['deleteProduct'];
   reorderProducts: Actions['reorderProducts'];
   saveCategory: Actions['saveCategory'];

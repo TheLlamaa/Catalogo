@@ -72,6 +72,28 @@ export function useAdminActions({
     return true;
   };
 
+  // Edição em massa: grava vários produtos de uma vez e conta quantos deram certo
+  const bulkPatchProducts = async (updates: { id: string; patch: ProductPatch }[], doneMessage: string) => {
+    const capabilities = capabilitiesRef.current;
+    if (updates.some(u => u.patch.section !== undefined) && !capabilities.ordering) {
+      toast.info(`Vitrine ainda não foi salva: ${SQL_06_HINT}`);
+      return false;
+    }
+    if (updates.some(u => u.patch.discountPercent !== undefined) && !capabilities.discount) {
+      toast.info('Desconto ainda não está disponível: rode o arquivo 13-desconto.sql no Supabase.');
+      return false;
+    }
+    const { error, failedIds } = await gateway().patchProducts(updates, { capabilities });
+    if (error) {
+      const done = updates.length - failedIds.length;
+      toast.error(`${done} de ${updates.length} produtos foram alterados; ${failedIds.length} falharam. ${friendlyError(error)}`);
+    } else {
+      toast.success(doneMessage);
+    }
+    await fetchData();
+    return !error;
+  };
+
   // Textos do site: changes = { chave: 'valor' | null }. null volta ao padrão.
   // Antes de gravar, guarda o valor antigo das chaves mudadas (settingsBackup) para o botão "Desfazer".
   const saveSettings = async (changes: SettingChanges, successMessage = 'Site atualizado.', options: { noBackup?: boolean } = {}) => {
@@ -173,7 +195,7 @@ export function useAdminActions({
   };
 
   return {
-    saveProduct, patchProduct, deleteProduct, saveCategory, deleteCategory, reorderProducts, reorderCategories,
+    saveProduct, patchProduct, bulkPatchProducts, deleteProduct, saveCategory, deleteCategory, reorderProducts, reorderCategories,
     saveSettings, undoSettings, saveCustomOrder, saveCatalogOrder, deleteOrder, updateOrderStatus,
   };
 }

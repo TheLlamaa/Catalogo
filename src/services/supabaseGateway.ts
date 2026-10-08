@@ -82,6 +82,21 @@ export const supabaseGateway: CatalogGateway = {
     return ok(await supabase.from('products').update(payload).eq('id', id));
   },
 
+  async patchProducts(updates, { capabilities }) {
+    // Em lotes de 15 pedidos ao mesmo tempo: rápido sem abrir centenas de conexões
+    const failedIds: string[] = [];
+    let anyError: GatewayResult['error'] = null;
+    for (let i = 0; i < updates.length; i += 15) {
+      await Promise.all(updates.slice(i, i + 15).map(async u => {
+        const payload = patchPayload(u.patch, capabilities);
+        if (!Object.keys(payload).length) return;
+        const { error } = await supabase.from('products').update(payload).eq('id', u.id);
+        if (error) { failedIds.push(u.id); anyError ??= error; }
+      }));
+    }
+    return { error: anyError, failedIds };
+  },
+
   async deleteProduct(id) { return ok(await supabase.from('products').delete().eq('id', id)); },
 
   async saveCategory(category, { capabilities, sortOrderIfNew }) {

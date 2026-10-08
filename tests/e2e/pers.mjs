@@ -248,7 +248,7 @@ const baseRows = [
 {
   const { p, writes, state } = await newPage({ rows: [], admin: true });
   await p.goto(BASE + '/admin'); await p.getByRole('button', { name: /^Produtos/ }).click();
-  const names = async () => (await p.locator('tbody tr td:nth-child(2) button.text-gray-900').allInnerTexts()).map(s => s.trim());
+  const names = async () => (await p.locator('tbody tr td:nth-child(3) button.text-gray-900').allInnerTexts()).map(s => s.trim());
   const first = await names();
   check('lista admin na ordem manual', first.join('|') === 'Vaso Cubo|Chaveiro Cão|Chaveiro Gato|Vaso Onda|Item Geral', first.join('|'));
   check('seta de subir do primeiro desabilitada', await p.getByRole('button', { name: 'Subir Vaso Cubo' }).isDisabled());

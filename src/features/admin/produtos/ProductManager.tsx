@@ -10,6 +10,8 @@ import ProductImage from '../../vitrine/ProductImage';
 import { useUI } from '../../../components/UIContext';
 import { Button, EmptyState, InlineSwitch, PageHeader } from '../../../components/ui';
 import ProductForm from './ProductForm';
+import BulkBar from './BulkBar';
+import { describeBulk, planBulk, validateBulk, type BulkAction } from '../../../lib/bulk';
 import Pagination from '../pedidos/Pagination';
 import { usePagination } from '../../../hooks/usePagination';
 import { optionsFor, auraDot, auraLabel } from '../../../lib/auras';
@@ -24,6 +26,7 @@ interface ProductManagerProps {
   categories: Category[];
   onSave: (product: Partial<StoredProduct>, successMessage?: string) => Promise<boolean>;
   onPatch: (id: string, patch: ProductPatch, successMessage?: string) => Promise<boolean>;
+  onBulkPatch: (updates: { id: string; patch: ProductPatch }[], doneMessage: string) => Promise<boolean>;
   onDelete: (id: string) => unknown;
   onReorder: (orderedIds: string[]) => unknown;
   initialFilter?: string; // 'destaque', 'popular' ou 'cat:<id>' (atalho vindo de outras telas)
@@ -35,8 +38,8 @@ type StatusFilter = '' | 'visible' | 'hidden' | 'destaque' | 'popular' | 'nostoc
 const normalize = normalizeText;
 const SECTION_LABEL: Record<string, string> = { destaque: 'Destaque', popular: 'Mais pedido' };
 
-export default function ProductManager({ products, categories, onSave, onPatch, onDelete, onReorder, initialFilter = '', onOpenSettings }: ProductManagerProps) {
-  const { confirm } = useUI();
+export default function ProductManager({ products, categories, onSave, onPatch, onBulkPatch, onDelete, onReorder, initialFilter = '', onOpenSettings }: ProductManagerProps) {
+  const { confirm, toast } = useUI();
   const settings = useSettings();
   const { stockControl, aurasEnabled } = settings;
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -73,6 +76,36 @@ export default function ProductManager({ products, categories, onSave, onPatch, 
   const counts: Record<string, number> = Object.fromEntries(chips.map(c => [c.id, c.id ? bySearch.filter(tests[c.id as Exclude<StatusFilter, ''>]).length : bySearch.length]));
   const wide = useMediaQuery('(min-width: 1024px)');
   const drag = useDragReorder(products.map(p => p.id), onReorder, !filtering && wide);
+
+  // Edição em massa: produtos marcados (a marcação sobrevive a filtros e páginas)
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const chosen = products.filter(p => selected.has(p.id));
+  const toggleSelected = (id: string) => setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const allVisibleSelected = visible.length > 0 && visible.every(p => selected.has(p.id));
+  const toggleAllVisible = () => setSelected(prev => {
+    const next = new Set(prev);
+    if (allVisibleSelected) visible.forEach(p => next.delete(p.id)); else visible.forEach(p => next.add(p.id));
+    return next;
+  });
+  const geralId = categories.find(c => c.name.toLowerCase() === 'geral')?.id ?? null;
+  const applyBulk = async (action: BulkAction) => {
+    const problem = validateBulk(action);
+    if (problem) { toast.error(problem); return; }
+    const updates = planBulk(products, chosen.map(p => p.id), action);
+    if (!updates.length) { toast.info('Nada para mudar: os produtos marcados já estão assim.'); return; }
+    const categoryName = action.type === 'category' ? categories.find(c => c.id === action.categoryId)?.name ?? '' : '';
+    const ok = await confirm({
+      title: `Alterar ${updates.length === 1 ? '1 produto' : `${updates.length} produtos`}?`,
+      message: describeBulk(action, updates, products, categoryName),
+      confirmLabel: 'Aplicar',
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const done = await onBulkPatch(updates.map(u => ({ id: u.id, patch: u.patch })), `${updates.length === 1 ? '1 produto alterado' : `${updates.length} produtos alterados`}.`);
+    setBulkBusy(false);
+    if (done) setSelected(new Set());
+  };
 
   const clearFilters = () => { setQuery(''); setStatus(''); setCategoryId(''); };
   const handleAddNew = () => { setEditingProduct(null); setIsFormOpen(true); };
@@ -171,6 +204,11 @@ export default function ProductManager({ products, categories, onSave, onPatch, 
           ) : (
             <>
               <Pagination {...pager} onPage={pager.setPage} onPerPage={pager.setPerPage} noun="produtos" position="top" />
+              {chosen.length > 0 && <BulkBar count={chosen.length} categories={categories} fallbackCategoryId={geralId} busy={bulkBusy} onApply={applyBulk} onClear={() => setSelected(new Set())} />}
+              <label className="mb-2 inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} className="h-4 w-4 rounded border-gray-300" />
+                Marcar {filtering ? 'os' : 'todos os'} {visible.length} {visible.length === 1 ? 'produto da lista' : 'produtos da lista'} para editar em massa
+              </label>
               {filtering && <p className="text-xs text-gray-500 mb-2">Com filtros ligados não dá para reordenar. <button type="button" onClick={clearFilters} className="text-blue-700 underline py-1">Limpar filtros</button></p>}
 
               {/* Computador: tabela */}
@@ -179,6 +217,7 @@ export default function ProductManager({ products, categories, onSave, onPatch, 
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
+                      <th className="pl-3 pr-0 py-3 w-8"><span className="sr-only">Marcar</span></th>
                       {!filtering && <th className="pl-3 pr-0 py-3 w-10"><span className="sr-only">Ordem</span></th>}
                       <th className="px-3 py-3">Produto</th>
                       {stockControl && <th className="px-3 py-3">Estoque</th>}
@@ -192,6 +231,7 @@ export default function ProductManager({ products, categories, onSave, onPatch, 
                       const index = products.findIndex(p => p.id === product.id); // posição na lista inteira (a ordem vale para toda a vitrine)
                       return (
                         <tr key={product.id} {...drag.rowProps(product.id)} className={`hover:bg-gray-50 ${isVisible(product) ? '' : 'bg-gray-50/60'} ${drag.rowClass(product.id)}`}>
+                          <td className="pl-3 pr-0 py-3"><input type="checkbox" checked={selected.has(product.id)} onChange={() => toggleSelected(product.id)} aria-label={`Marcar ${product.title}`} className="h-4 w-4 rounded border-gray-300" /></td>
                           {!filtering && (
                             // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a célula só agrupa a alça (decorativa) e as setas, que têm nome próprio
                             <td className="pl-2 pr-0 py-2">
@@ -226,6 +266,7 @@ export default function ProductManager({ products, categories, onSave, onPatch, 
                   return (
                     <li key={product.id} className={`border border-gray-200 rounded-lg p-3 ${isVisible(product) ? 'bg-white' : 'bg-gray-50'}`}>
                       <div className="flex items-start gap-3">
+                        <input type="checkbox" checked={selected.has(product.id)} onChange={() => toggleSelected(product.id)} aria-label={`Marcar ${product.title}`} className="mt-3.5 h-6 w-6 rounded border-gray-300 flex-shrink-0" />
                         <div className="flex-1 min-w-0"><ProductSummary product={product} onEdit={handleEdit} /></div>
                         {!filtering && (
                           <div className="flex flex-col -mr-1">

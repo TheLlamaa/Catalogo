@@ -97,6 +97,8 @@ export function patchPayload(patch: ProductPatch, caps: Capabilities): Record<st
   if (patch.price !== undefined) payload.price = patch.price;
   if (patch.auraColor !== undefined) payload.aura_color = patch.auraColor || 'inherit';
   if (patch.section !== undefined && caps.ordering) payload.section = patch.section || null;
+  if (patch.categoryIds !== undefined) payload.category_ids = patch.categoryIds;
+  if (patch.discountPercent !== undefined && caps.discount) payload.discount_percent = clampDiscount(patch.discountPercent);
   return payload;
 }
 

@@ -95,6 +95,16 @@ export function createMemoryGateway(initial: Partial<MemoryState> = {}) {
       return OK;
     },
 
+    async patchProducts(updates, opts) {
+      const failedIds: string[] = [];
+      let error: GatewayResult['error'] = null;
+      for (const u of updates) {
+        const r = await gateway.patchProduct(u.id, u.patch, opts);
+        if (r.error) { failedIds.push(u.id); error ??= r.error; }
+      }
+      return { error, failedIds };
+    },
+
     async deleteProduct(id) {
       const failed = fail('deleteProduct');
       if (failed) return failed;
