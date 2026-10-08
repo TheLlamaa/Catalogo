@@ -32,3 +32,9 @@ describe('Content-Security-Policy', () => {
     for (const tag of html.match(/<script\b[^>]*>/gi) || []) expect(tag).toMatch(/\bsrc=/);
   });
 });
+
+describe('cache dos arquivos do site', () => {
+  it('não marca /assets/* como imutável: arquivo que falta é respondido com o index.html (fallback do site) e ficaria preso no navegador por um ano, travando o painel em "O site foi atualizado"', () => {
+    expect(headers).not.toMatch(/immutable/i);
+  });
+});
