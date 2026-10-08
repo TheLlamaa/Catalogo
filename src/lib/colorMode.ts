@@ -17,7 +17,13 @@ export function readPref(): ColorPref {
 }
 
 const systemDark = () => typeof window !== 'undefined' && !!window.matchMedia?.(QUERY).matches;
-export const resolveDark = (pref: ColorPref, sysDark: boolean): boolean => (pref === 'auto' ? sysDark : pref === 'dark');
+// "darkDefault": a loja abre escura para quem ainda não escolheu (a escolha do cliente, no botão sol/lua, sempre vale)
+export const resolveDark = (pref: ColorPref, sysDark: boolean, darkDefault = false): boolean => (pref === 'auto' ? (darkDefault || sysDark) : pref === 'dark');
+
+const DEFAULT_KEY = 'catalogo-escuro-padrao';
+const readDarkDefault = (): boolean => { try { return localStorage.getItem(DEFAULT_KEY) === '1'; } catch { return false; } };
+/** Guarda neste navegador se a loja abre escura, para a próxima visita já abrir certo (sem piscar). */
+export const rememberDarkDefault = (on: boolean): void => { try { if (on) localStorage.setItem(DEFAULT_KEY, '1'); else localStorage.removeItem(DEFAULT_KEY); } catch { /* só não guarda */ } };
 
 export function applyDark(on: boolean) {
   document.documentElement.classList.toggle('dark', on);
@@ -25,11 +31,11 @@ export function applyDark(on: boolean) {
 
 // Aplica antes do primeiro desenho (chamado em main.tsx), para não piscar claro → escuro
 export function applyInitialColorMode() {
-  applyDark(resolveDark(readPref(), systemDark()));
+  applyDark(resolveDark(readPref(), systemDark(), readDarkDefault()));
 }
 
 // allowed=false: esta tela fica sempre clara (vitrine com o modo escuro desligado no painel)
-export function useColorMode(allowed = true) {
+export function useColorMode(allowed = true, darkDefault = false) {
   const [pref, setPref] = useState<ColorPref>(readPref);
   const [sys, setSys] = useState(systemDark);
 
@@ -43,15 +49,15 @@ export function useColorMode(allowed = true) {
     return () => { mq.removeEventListener?.('change', onChange); window.removeEventListener('storage', onStorage); };
   }, []);
 
-  const dark = allowed && resolveDark(pref, sys);
+  const dark = allowed && resolveDark(pref, sys, darkDefault);
   useEffect(() => { applyDark(dark); }, [dark]);
 
   // O botão alterna claro/escuro; se a escolha bate com o aparelho, volta a "seguir o aparelho"
   const toggle = useCallback(() => {
-    const next: ColorPref = !dark === sys ? 'auto' : (!dark ? 'dark' : 'light');
+    const next: ColorPref = darkDefault ? (dark ? 'light' : 'dark') : (!dark === sys ? 'auto' : (!dark ? 'dark' : 'light'));
     try { if (next === 'auto') localStorage.removeItem(KEY); else localStorage.setItem(KEY, next); } catch { /* só não guarda */ }
     setPref(next);
-  }, [dark, sys]);
+  }, [dark, sys, darkDefault]);
 
   return { dark, toggle };
 }

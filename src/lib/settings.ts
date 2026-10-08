@@ -1,7 +1,8 @@
 import { STORE_NAME, STORE_EMAIL, STORE_WHATSAPP } from './config';
 import { normalizeWhatsapp } from './whatsapp';
 import { parseCustomAuras, parseAuraOverrides, type AuraLib } from './auras';
-import { FONT_CHOICES, BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
+import { SITE_FONT_CHOICES } from './siteFont';
+import { BG_TONES, CARD_STYLES, GRID_COLUMNS, isHex, parseFaq, normalizeSocial, type FaqItem } from './theme';
 import { NICHE } from './niche';
 import { BRAND_FONTS, NAME_WEIGHTS, NAME_CASES, NAME_SPACINGS, NAME_COLORS, LOGO_SHAPES, BRAND_LAYOUTS } from './brand';
 import { PAGE_KEYS, buildPages, isCompletePage, type ExtraPage } from './pages';
@@ -148,9 +149,9 @@ const RAW_SCHEMA: SettingsSection[] = [
     group: 'aparencia', title: 'Cores e fonte',
     fields: [
       { key: 'primaryColor', label: 'Cor principal', type: 'color', default: '', hint: 'Vazio = azul padrão. Prefira cores escuras ou médias: com cor clara o texto dos botões fica ruim de ler.' },
-      { key: 'fontChoice', label: 'Fonte', type: 'select', display: 'font', default: 'padrao', options: FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
+      { key: 'fontChoice', label: 'Fonte', type: 'select', display: 'font', default: 'padrao', options: SITE_FONT_CHOICES.map(f => ({ value: f.id, label: f.name })) },
       { key: 'bgTone', label: 'Fundo da loja', type: 'select', display: 'tone', default: 'padrao', options: BG_TONES.map(t => ({ value: t.id, label: t.name })) },
-      { key: 'darkMode', label: 'Modo escuro na vitrine', type: 'select', default: 'auto', options: [{ value: 'auto', label: 'Cliente escolhe (segue o aparelho, com botão sol/lua)' }, { value: 'off', label: 'Sempre claro' }], hint: 'No modo escuro o fundo escolhido acima não é usado; a cor principal continua.' },
+      { key: 'darkMode', label: 'Modo escuro na vitrine', type: 'select', default: 'auto', options: [{ value: 'auto', label: 'Cliente escolhe (segue o aparelho, com botão sol/lua)' }, { value: 'dark', label: 'Escuro por padrão (o cliente pode trocar para o claro)' }, { value: 'off', label: 'Sempre claro' }], hint: 'No modo escuro o fundo escolhido acima não é usado; a cor principal continua.' },
     ]
   },
   {

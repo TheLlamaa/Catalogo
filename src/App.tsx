@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo, Suspense } from 'react';
 import { makeT } from './lib/texts';
 import { lazyWithReload } from './lib/staleChunk';
-import { useColorMode } from './lib/colorMode';
+import { useColorMode, rememberDarkDefault } from './lib/colorMode';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useMatch, Navigate } from 'react-router-dom';
 
 import { signOut } from './services/auth';
@@ -135,7 +135,8 @@ function MainLayout() {
 
   // Modo escuro: painel e login sempre podem; a vitrine só se o lojista não travou no claro
   const onPanel = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
-  const colorMode = useColorMode(onPanel || settings.darkMode !== 'off');
+  const colorMode = useColorMode(onPanel || settings.darkMode !== 'off', !onPanel && settings.darkMode === 'dark');
+  useEffect(() => { if (!loading && !IS_PREVIEW) rememberDarkDefault(settings.darkMode === 'dark'); }, [loading, settings.darkMode]);
 
   if (loading) {
     return (

@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { installErrorLogging } from './services/errors'
 import { installStaleChunkReload } from './lib/staleChunk'
+import './lib/siteFont'
 import { applyInitialColorMode } from './lib/colorMode'
 import { applyCachedTheme } from './lib/theme'
 

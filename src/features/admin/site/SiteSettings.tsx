@@ -20,7 +20,8 @@ import { PagesEditor, MenuEditor } from './MenusAndPages';
 import HomeSectionsEditor from './HomeSectionsEditor';
 import { ImageField } from './ImageField';
 import type { Category, Product } from '../../../types';
-import { THEME_PRESETS, FONT_CHOICES, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, MAX_FAQ } from '../../../lib/theme';
+import { siteFontStack } from '../../../lib/siteFont';
+import { THEME_PRESETS, BG_TONES, CARD_STYLES, setThemeDraft, isBannerActive, isHex, normalizeHex, isTooLight, DEFAULT_PRIMARY, DEFAULT_BADGE_BG, MAX_FAQ } from '../../../lib/theme';
 import { uploadSiteImage } from '../../../services/storage';
 import { formatPhoneBR } from '../../../lib/format';
 import { friendlyError } from '../../../lib/errorMessage';
@@ -463,7 +464,7 @@ function ChoicePreview({ display, value }: { display: NonNullable<Extract<Settin
     );
   }
   if (display === 'font') {
-    const stack = FONT_CHOICES.find(f => f.id === value)?.stack;
+    const stack = siteFontStack(value) ?? undefined;
     return <span style={{ fontFamily: stack }} className="text-3xl leading-none text-gray-800" aria-hidden="true">Aa</span>;
   }
   if (display === 'tone') {
@@ -475,7 +476,7 @@ function ChoicePreview({ display, value }: { display: NonNullable<Extract<Settin
 }
 
 function ChoiceGroup({ f, display, value, onChange }: { f: Extract<SettingField, { type: 'select' }>; display: NonNullable<Extract<SettingField, { type: 'select' }>['display']>; value: string; onChange: (v: string) => void }) {
-  useEffect(() => { if (display === 'brandfont') loadAllBrandFonts(); }, [display]);
+  useEffect(() => { if (display === 'brandfont' || display === 'font') loadAllBrandFonts(); }, [display]);
   return (
     <div role="radiogroup" aria-label={f.label} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
       {f.options.map(o => {
