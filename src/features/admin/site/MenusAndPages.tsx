@@ -3,8 +3,9 @@ import { ArrowUp, ArrowDown, Plus, Trash2, Eye, Pencil, Bold, Italic, Heading2, 
 import { inputClass } from '../../../components/ui';
 import { useUI } from '../../../components/UIContext';
 import RichText from '../../../components/RichText';
+import { ImageField } from './ImageField';
 import {
-  PAGE_KEYS, PAGE_TITLE_MAX, PAGE_TEXT_MAX, MAX_PAGES, parsePageDraft, isCompletePage, nextPageKey, slugify
+  PAGE_KEYS, PAGE_TITLE_MAX, PAGE_TEXT_MAX, PAGE_DESC_MAX, MAX_PAGES, parsePageDraft, isCompletePage, nextPageKey, slugify
 } from '../../../lib/pages';
 import { MENU_LABEL_MAX, editMenu, serializeMenu, isBuiltin, type MenuItem, type MenuKind } from '../../../lib/menus';
 import type { Category } from '../../../types';
@@ -57,7 +58,7 @@ interface PageCardProps { value: string; expanded: boolean; onToggle: () => void
 
 function PageCard({ value, expanded, onToggle, onChange, onRemove }: PageCardProps) {
   const d = parsePageDraft(value);
-  const patch = (p: Partial<{ t: string; x: string; s: string; p: boolean }>) => onChange(JSON.stringify({ t: d.t || '', x: d.x || '', s: d.s || '', p: d.p !== false, ...p }));
+  const patch = (p: Partial<{ t: string; x: string; s: string; p: boolean; d: string; m: string }>) => onChange(JSON.stringify({ t: d.t || '', x: d.x || '', s: d.s || '', p: d.p !== false, d: d.d || '', m: d.m || '', ...p }));
   const [preview, setPreview] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const slug = slugify(d.s || '') || slugify(d.t || '');
@@ -125,6 +126,18 @@ function PageCard({ value, expanded, onToggle, onChange, onRemove }: PageCardPro
               ? <div className="border border-gray-200 bg-white rounded-md p-4 min-h-[8rem]"><RichText text={d.x || ''} /></div>
               : <textarea id="page-text" ref={area} rows={9} maxLength={PAGE_TEXT_MAX} value={d.x || ''} onChange={e => patch({ x: e.target.value })} placeholder="Escreva o texto da página" aria-label="Texto da página" className={inputCls} />}
             <p className="text-xs text-gray-500 mt-1">Linha em branco separa parágrafos. Use os botões acima para título, negrito, lista e link. {(d.x || '').length}/{PAGE_TEXT_MAX}</p>
+          </div>
+          <div className="rounded-md border border-gray-200 bg-white p-3 space-y-3">
+            <p className="text-xs font-medium text-gray-700">Google e compartilhamento desta página (opcional)</p>
+            <div>
+              <label htmlFor="page-desc" className="block text-xs text-gray-600 mb-1">Descrição (até {PAGE_DESC_MAX} caracteres)</label>
+              <textarea id="page-desc" rows={2} maxLength={PAGE_DESC_MAX} value={d.d || ''} onChange={e => patch({ d: e.target.value })} className={inputCls} />
+              <p className="text-xs text-gray-500 mt-1">Resumo que aparece no Google e ao compartilhar o link. Vazio = usa a descrição do site.</p>
+            </div>
+            <div>
+              <span className="block text-xs text-gray-600 mb-1">Imagem de compartilhamento</span>
+              <ImageField id="page-share" label="Imagem de compartilhamento da página" guide="share" value={d.m || ''} onChange={v => patch({ m: v })} />
+            </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={d.p !== false} onChange={e => patch({ p: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300" /> Publicada (visível para os clientes)

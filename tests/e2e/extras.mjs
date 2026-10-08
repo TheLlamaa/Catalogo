@@ -254,7 +254,7 @@ const rowsExtra = [
   await p.getByLabel('Buscar configurações').fill('ícone');
   check('ícone da aba: orientação', await p.getByText('Tamanho ideal: 256 × 256 px').count() === 1);
   await p.getByLabel('Buscar configurações').fill('compartilhamento');
-  check('compartilhamento: 1200 × 630', await p.getByText('Tamanho ideal: 1200 × 630 px').count() === 1);
+  check('compartilhamento: 1200 × 630', await p.getByText('Tamanho ideal: 1200 × 630 px').count() >= 1);
   await p.getByRole('button', { name: /^Produtos/ }).click();
   await p.getByRole('button', { name: 'Novo produto' }).click();
   check('produto: orientação de tamanho das fotos', await p.getByText('Tamanho ideal: 800 × 800 px (proporção 1:1)').count() === 1);

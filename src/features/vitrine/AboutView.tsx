@@ -3,6 +3,7 @@ import { makeT } from '../../lib/texts';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronDown, MessageCircle } from 'lucide-react';
 import { useSettings } from '../../components/SettingsContext';
+import { applySeo, pageSeo } from '../../lib/seo';
 
 // Página "Sobre / Como funciona": texto, foto e perguntas frequentes editados no painel (Site > Sobre e perguntas)
 export default function AboutView() {
@@ -12,9 +13,9 @@ export default function AboutView() {
 
   useEffect(() => {
     const previous = document.title;
-    document.title = `${settings.aboutTitle} | ${settings.storeName}`;
-    return () => { document.title = previous; };
-  }, [settings.aboutTitle, settings.storeName]);
+    applySeo(pageSeo(settings, { title: settings.aboutTitle, description: settings.aboutSeoDescription, image: settings.aboutSeoImage }), true);
+    return () => { applySeo(settings, false); document.title = previous; };
+  }, [settings]);
 
   return (
     <article className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">

@@ -18,6 +18,7 @@ import ImageGuideText from '../../../components/ImageGuideText';
 import { IMAGE_GUIDES, type ImageGuideKey } from '../../../lib/imageGuides';
 import { PagesEditor, MenuEditor } from './MenusAndPages';
 import HomeSectionsEditor from './HomeSectionsEditor';
+import BackupPanel from './BackupPanel';
 import { ImageField } from './ImageField';
 import type { Category, Product } from '../../../types';
 import { siteFontStack } from '../../../lib/siteFont';
@@ -228,6 +229,13 @@ export default function SiteSettings({ settings, categories, products, group, on
         </div>
       )}
 
+
+      {!searching && group === 'avancado' && (
+        <BackupPanel
+          publishedRows={draftRows(base)} dirty={dirty}
+          onLoad={rows => { const merged = mergeSettings(rows); setForm(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k => [k, toForm(k, merged[k])]))); }}
+        />
+      )}
 
       {!searching && group === 'aparencia' && (
         <fieldset className="rounded-lg border border-gray-200 bg-white shadow-sm p-5">

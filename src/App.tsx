@@ -142,7 +142,9 @@ function MainLayout() {
     if (!IS_PREVIEW) cacheTheme(settings);
   }, [settings, loading]);
   const ownTitle = /^\/(produto|sobre|p)\//.test(location.pathname) || location.pathname === '/sobre';
-  useEffect(() => { applySeo(settings, !ownTitle); }, [settings, ownTitle]);
+  // Sobre e páginas extras definem o próprio título, descrição e imagem (ver PageView e AboutView)
+  const pageOwnsSeo = /^\/(sobre|p)(\/|$)/.test(location.pathname);
+  useEffect(() => { if (!pageOwnsSeo) applySeo(settings, !ownTitle); }, [settings, ownTitle, pageOwnsSeo]);
 
   // Modo escuro: painel e login sempre podem; a vitrine só se o lojista não travou no claro
   const onPanel = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');

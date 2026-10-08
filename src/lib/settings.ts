@@ -91,7 +91,7 @@ export interface Settings {
   customTitle: string; customIntro: string; customSuccess: string;
   cartTitle: string; cartEmpty: string; cartIntro: string; addToCartLabel: string;
   orderDoneTitle: string; orderDoneText: string; whatsappButton: string; orderMessageIntro: string; customMessage: string;
-  aboutEnabled: boolean; menuAbout: string; aboutTitle: string; aboutText: string; aboutImage: string;
+  aboutEnabled: boolean; menuAbout: string; aboutTitle: string; aboutText: string; aboutImage: string; aboutSeoDescription: string; aboutSeoImage: string;
   faqItems: string; privacyText: string;
   showFeatured: boolean; featuredTitle: string; showPopular: boolean; popularTitle: string; showNew: boolean; newTitle: string;
   stockControl: boolean; customEnabled: boolean; leadTimeEnabled: boolean; aurasEnabled: boolean; modelLinkEnabled: boolean;
@@ -131,7 +131,7 @@ export const GROUPS: SettingsGroup[] = [
   { id: 'contato', label: 'Contato e redes', description: 'Nome da loja, WhatsApp, e-mail, redes sociais e a linha extra do rodapé.',
     sections: ['Identidade e contato', 'Redes sociais', 'Rodapé'] },
   { id: 'seo', label: 'Google e compartilhamento', description: 'Como o site aparece no Google e quando o link é compartilhado no WhatsApp e nas redes.',
-    sections: ['Google e compartilhamento'] },
+    sections: ['Google e compartilhamento', 'SEO por página'] },
   { id: 'avancado', label: 'Avançado', description: 'Liga e desliga funções da loja: estoque, pedidos personalizados, prazo de produção, auras e link do modelo 3D.',
     sections: ['Recursos da loja'] }
 ];
@@ -401,6 +401,13 @@ const RAW_SCHEMA: SettingsSection[] = [
       { key: 'lowStockMax', label: 'Quantas unidades contam como “poucas”', type: 'select', default: '3', options: ['1', '2', '3', '5', '10'].map(n => ({ value: n, label: n === '1' ? '1 unidade' : `até ${n} unidades` })), hint: 'Vale para o selo automático e para o aviso “Restam N unidades”.' },
       { key: 'lowStockText', label: 'Texto do selo automático', type: 'text', max: 20, default: 'Últimas unidades' },
       { key: 'badgeColor', label: 'Cor dos selos', type: 'color', default: '', hint: 'Vazio = laranja padrão (#f59e0b).' },
+    ]
+  },
+  {
+    group: 'seo', title: 'SEO por página',
+    fields: [
+      { key: 'aboutSeoDescription', label: 'Página Sobre: descrição', type: 'textarea', rows: 2, max: 160, default: '', hint: 'Resumo da página Sobre para o Google e para quem recebe o link. Vazio = usa a descrição do site. As páginas extras têm os mesmos campos em Menus e páginas > Páginas.' },
+      { key: 'aboutSeoImage', label: 'Página Sobre: imagem de compartilhamento', type: 'image', guide: 'share', default: '', max: 700, hint: 'Vazio = usa a imagem de compartilhamento do site.' },
     ]
   },
   {
